@@ -3,9 +3,9 @@
 namespace pplanner {
 
 void EffectVector::Apply(int i, std::vector<int> &state) {
-  auto value_iter = values_begin(i);
+  auto value_iter = ValuesBegin(i);
 
-  for (auto iter = vars_begin(i); iter != vars_end(i); ++iter) {
+  for (auto iter = VarsBegin(i); iter != VarsEnd(i); ++iter) {
     state[*iter] = *value_iter;
     ++value_iter;
   }

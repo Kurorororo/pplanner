@@ -18,7 +18,7 @@ class PartialStateVector {
 
   size_t size() const { return offsets_.size() - 1; }
 
-  int SizeOfElement(int i) const {
+  int SizeOfPartialState(int i) const {
     assert(size() > 0);
 
     return offsets_[i + 1] - offsets[i];

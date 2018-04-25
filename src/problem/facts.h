@@ -23,7 +23,9 @@ class FactTranslator {
     offsets_.push_back(offsets_.back() + ranges_.back());
   }
 
-  int ToFact(int var, int value) { return offsets_[var] + value; }
+  int ToFact(int var, int value) const { return offsets_[var] + value; }
+
+  int VarOffset(int var) const { return offsets_[var]; }
 
   const int* offsets_data() const { return offsets_.data(); }
 

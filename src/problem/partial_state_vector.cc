@@ -1,5 +1,6 @@
 #include "partial_state_vector.h"
 
+using std::pair;
 using std::vector;
 
 namespace pplanner {

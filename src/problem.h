@@ -32,13 +32,6 @@ class Problem {
     effects_ = std::make_shared(new EffectVector(size));
   }
 
-  void CreateSuccssorGenerator() {
-    assert(preconditions_ != nullptr);
-
-    successor_generator_ = std::make_shared(
-        new SuccessorGenerator(*preconditions_);
-  }
-
   void CreateFactTranslator() {
     assert(!initial_.empty());
 
@@ -110,6 +103,9 @@ class Problem {
 
   bool IsMutex(int f, int g) const { return mutex_groups_->IsMutex(f, g) };
 
+  void CopyPrecondition(int i, std::vector<std::pair<int, int> > &precondition)
+    const;
+
   const int* action_costs_data() { return action_costs_.data(); }
 
   std::shared_ptr<const PartialState> goal() { return goal_; }
@@ -119,10 +115,6 @@ class Problem {
   }
 
   std::shared_ptr<const EffectVector> effects() { return effects_; }
-
-  std::shared_ptr<const SuccessorGenerator> successor_generator() {
-    return successor_generator_;
-  }
 
   std::shared_ptr<const FactTranslator> translator() { return translator_; }
 
@@ -135,7 +127,6 @@ class Problem {
   std::shared_ptr<PartialState> goal_;
   std::shared_ptr<PartialStateVector> preconditions_;
   std::shared_ptr<EffectVector> effects_;
-  std::shared_ptr<SuccessorGenerator> successor_generator_;
   std::shared_ptr<FactTranslator> translator_;
   std::shared_ptr<MutexGroups> mutex_groups_;
 };
