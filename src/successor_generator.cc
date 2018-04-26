@@ -70,6 +70,11 @@ void SuccessorGenerator::AddQuery(int index, int query) {
   data_[data_index].push_back(query);
 }
 
+void SuccessorGenerator::Generate(const State &state, vector<int> &result) {
+  result.clear();
+  DFS(state, 0, 0, result);
+}
+
 void SuccessorGenerator::DFS(const vector<int> &state, int index,
                              size_t current, vector<int> &result) {
   int offset = index - fact_translator_->VarOffset(current);
@@ -88,6 +93,14 @@ void SuccessorGenerator::DFS(const vector<int> &state, int index,
 
     DFS(state, child, i + 1, result);
   }
+}
+
+int SuccessorGenerator::Sample(const vector<int> &state) {
+  int result = -1;
+  unsigned int k = 1;
+  DFSample(state, 0, 0, &k, &result);
+
+  return result;
 }
 
 void SuccessorGenerator::DFSample(const vector<int> &state, int index,

@@ -3,7 +3,7 @@
 namespace pplanner {
 
 bool PartialState::IsSubset(const std::vector<int> &state) const {
-  for (int i=0, n=staic_cast<int>(size()); i<n; ++i)
+  for (int i=0, n=static_cast<int>(size()); i<n; ++i)
     if (state[vars_[i]] != values_[i]) return false;
 
   return true;

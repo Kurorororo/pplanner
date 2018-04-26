@@ -9,12 +9,10 @@ class PartialState {
  public:
   PartialState() {}
 
-  explicit PartialState(size_t size) {
-    vars_.reserve(size);
-    values_.reserve(size);
-  }
+  PartialState(const std::vector<int> &vars, const std::vector<int> &values)
+    : vars_(vars), values_(values) {}
 
-  size_t size() { return vars_.size(); }
+  size_t size() const { return vars_.size(); }
 
   void Add(int var, int value) {
     vars_.push_back(var);

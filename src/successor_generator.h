@@ -5,6 +5,8 @@
 #include <utility>
 #include <vector>
 
+#include "problem.h"
+
 namespace pplanner {
 
 class SuccessorGenerator {

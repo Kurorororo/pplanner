@@ -19,15 +19,16 @@ class Problem {
               goal_(nullptr),
               preconditions_(nullptr),
               effects_(nullptr),
-              successor_generator_(nullptr),
-              translator_(nullptr),
+              facts_(nullptr),
               mutex_groups_(nullptr) {}
 
-  void CreateGoal(size_t size) {
-    goal_ = std::make_shared(new PartialState(size));
+  void CreateGoal(const std::vector<int> &vars, const std::vector<int> &values) {
+    goal_ = std::make_shared(new PartialState(vars, values));
   }
 
   void CreateActions(size_t size) {
+    action_names_.reserve(size);
+    action_costs_.reserve(size);
     preconditions_ = std::make_shared(new PartialStateVector(size));
     effects_ = std::make_shared(new EffectVector(size));
   }
@@ -35,7 +36,7 @@ class Problem {
   void CreateFactTranslator() {
     assert(!initial_.empty());
 
-    translator_ = std::make_shared(new FactTranslator(n_variables()));
+    fact_translator_ = std::make_shared(new FactTranslator(n_variables()));
   }
 
   void CreateMutexGroups(size_t size) {
@@ -44,11 +45,19 @@ class Problem {
 
   size_t n_variables() const { return initial_.size(); }
 
-  size_t n_goal_facts() const { return partial_state->size(); }
+  size_t n_goal_facts() const {
+    assert(goal_ != nullptr);
+
+    return goal_->size();
+  }
 
   size_t n_actions() const { return costs_.size(); }
 
-  size_t n_facts() const { return translator_->n_facts(); }
+  size_t n_facts() const {
+    assert(fact_translator_ != nullptr);
+
+    return fact_translator_->n_facts();
+  }
 
   int metric() const { return metric_; }
 
@@ -86,7 +95,7 @@ class Problem {
     effects_->Add(vars, values_);
   }
 
-  void AddFacts(int range) { translator_->Add(range); }
+  void AddFacts(int range) { fact_translator_->Add(range); }
 
   void FindApplicableActions(const std::vector<int> &state,
                              std::vector<int> &actions) const {
@@ -116,7 +125,7 @@ class Problem {
 
   std::shared_ptr<const EffectVector> effects() { return effects_; }
 
-  std::shared_ptr<const FactTranslator> translator() { return translator_; }
+  std::shared_ptr<const Facts> translator() { return facts; }
 
  private:
   int metric_;
@@ -127,7 +136,7 @@ class Problem {
   std::shared_ptr<PartialState> goal_;
   std::shared_ptr<PartialStateVector> preconditions_;
   std::shared_ptr<EffectVector> effects_;
-  std::shared_ptr<FactTranslator> translator_;
+  std::shared_ptr<Facts> facts;
   std::shared_ptr<MutexGroups> mutex_groups_;
 };
 

@@ -1,64 +1,55 @@
 #ifndef FACTS_H_
 #define FACTS_H_
 
+#include <string>
 #include <vector>
 
 namespace pplanner {
 
-class FactTranslator {
+class Facts {
  public:
-  FactTranslator() : n_facts_(0) { offsets_.push_back(0); }
+  Facts() : size_(0), n_variables_(0) { offsets_.push_back(0); }
 
-  explicit FactTranslator(size_t size) : n_facts_(0) {
-    offsets_.reserve(size);
-    ranges_.reserve(size);
-    offsets_.push_back(0);
+  size_t size() const { return size_; }
+
+  size_t n_variables() const { return n_variables_; }
+
+  void Reserve(size_t n_variables) {
+    offsets_.reserve(n_variables);
+    ranges_.reserve(n_variables);
+    predicates_.reserve(n_variables);
   }
 
-  size_t n_facts() const { return n_facts; }
+  int AddVariable(const std::vector<std::string> &predicates);
 
-  void Add(int range) {
-    n_facts += range;
-    ranges_.push_back(range);
-    offsets_.push_back(offsets_.back() + ranges_.back());
+  int VarBegin(int var) const { return offsets_[var]; }
+
+  int VarRange(int var) const { return ranges_[var]; }
+
+  int Fact(int var, int value) const { return VarBegin(var) + value; }
+
+  const std::string& Predicate(int var, int value) const {
+    return predicates_[Fact(var, value)];
   }
-
-  int ToFact(int var, int value) const { return offsets_[var] + value; }
-
-  int VarOffset(int var) const { return offsets_[var]; }
 
   const int* offsets_data() const { return offsets_.data(); }
 
   const int* ranges_data() const { return ranges_.data(); }
 
  private:
-  size_t n_facts_;
+  size_t size_;
+  size_t n_variables_;
   std::vector<int> offsets_;
   std::vector<int> ranges_;
+  std::vector<std::string> predicates_;
 };
 
-void StateToFactVector(const FactTranslator &translater,
-                       const std::vector<int> &state, std::vector<int> &facts);
+void StateToFactVector(const Facts &facts, const std::vector<int> &state,
+                       std::vector<int> &v);
 
-void StateToFactSet(const FactTranslator &translater,
-                    const std::vector<int> &state, std::vector<bool> &facts);
+void StateToFactSet(const Facts &facts, const std::vector<int> &state,
+                    std::vector<bool> &s);
 
-inline std::vector<int> StateToFactVector(const FactTranslator &translater,
-                                          const std::vector<int> &state) {
-  std::vector<int> facts(state);
-  StateToFactVector(translater, state, facts);
+} // namespace pplanner
 
-  return facts;
-}
-
-inline std::vector<bool> StateToFactSet(const FactTranslator &translater,
-                                        const std::vector<int> &state) {
-  std::vector<bool> facts(translater.n_facts(), false);
-  StateToFactSet(translater, state, facts);
-
-  return facts;
-}
-
-}
-
-#endif FACTS_H_
+#endif // FACTS_H_

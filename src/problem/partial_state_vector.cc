@@ -1,4 +1,4 @@
-#include "partial_state_vector.h"
+#include "problem/partial_state_vector.h"
 
 using std::pair;
 using std::vector;
@@ -17,7 +17,7 @@ void PartialStateVector::Add(const vector<int> &vars,
     values_.push_back(values[i]);
   }
 
-  offsets_.push_back(offsets.back() + static_cast<int>(size));
+  offsets_.push_back(offsets_.back() + static_cast<int>(size));
 }
 
 } // namespace pplanner

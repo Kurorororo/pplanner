@@ -1,5 +1,5 @@
-#ifndef EFFECTS_H_
-#define EFFECTS_H_
+#ifndef EFFECT_VECTOR_H_
+#define EFFECT_VECTOR_H_
 
 #include <vector>
 
@@ -11,11 +11,9 @@ class EffectVector : public PartialStateVector {
  public:
   EffectVector() : PartialStateVector() {}
 
-  explicit EffectVector(size_t size) : PartialStateVector(size) {}
-
   void Apply(int i, std::vector<int> &state) const;
 };
 
 }
 
-#endif // EFFECTS_H_
+#endif // EFFECT_VECTOR_H_

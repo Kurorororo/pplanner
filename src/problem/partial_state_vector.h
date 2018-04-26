@@ -7,9 +7,9 @@ namespace pplanner {
 
 class PartialStateVector {
  public:
-  PartialStateVector() { offsets_.push_back(0) }
+  PartialStateVector() { offsets_.push_back(0); }
 
-  explicit PartialStateVector(size_t size) {
+  void Reserve(size_t size) {
     offsets_.reserve(size);
     vars_.reserve(size);
     values_.reserve(size);
@@ -21,7 +21,7 @@ class PartialStateVector {
   int SizeOfPartialState(int i) const {
     assert(size() > 0);
 
-    return offsets_[i + 1] - offsets[i];
+    return offsets_[i + 1] - offsets_[i];
   }
 
   std::vector<int>::const_iterator VarsBegin(int i) const {

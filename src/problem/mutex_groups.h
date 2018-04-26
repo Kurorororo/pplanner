@@ -12,7 +12,9 @@ class MutexGroups {
 
   explicit MutexGroups(size_t size) { groups_.resize(size); }
 
-  void AddGroup() { groups_.resize(mutex_groups_.size() + 1); }
+  size_t size() const { return groups_.size(); };
+
+  void AddGroup() { groups_.resize(groups_.size() + 1); }
 
   void Insert(int i, int fact) { groups_[i].insert(fact); }
 
