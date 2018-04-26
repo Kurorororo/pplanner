@@ -1,6 +1,7 @@
 #ifndef PARTIAL_STATE_H_
 #define PARTIAL_STATE_H_
 
+#include <utility>
 #include <vector>
 
 namespace pplanner {
@@ -9,8 +10,7 @@ class PartialState {
  public:
   PartialState() {}
 
-  PartialState(const std::vector<int> &vars, const std::vector<int> &values)
-    : vars_(vars), values_(values) {}
+  explicit PartialState(const std::vector<std::pair<int, int> > &v);
 
   size_t size() const { return vars_.size(); }
 

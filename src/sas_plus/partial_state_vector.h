@@ -44,7 +44,7 @@ class PartialStateVector {
     return values_.begin() + offsets_[i + 1];
   }
 
-  void Add(const std::vector<int> &vars, const std::vector<int> &values);
+  void Add(const std::vector<std::pair<int, int> > &v);
 
   const int* offsets_data() const { return offsets_.data(); }
 

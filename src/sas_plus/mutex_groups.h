@@ -8,15 +8,11 @@ namespace pplanner {
 
 class MutexGroups {
  public:
-  MutexGroups() {}
-
-  explicit MutexGroups(size_t size) { groups_.resize(size); }
+  void Reserve(size_t size) { groups_.reserve(size); }
 
   size_t size() const { return groups_.size(); };
 
-  void AddGroup() { groups_.resize(groups_.size() + 1); }
-
-  void Insert(int i, int fact) { groups_[i].insert(fact); }
+  void AddGroup(const std::vector<int> &group);
 
   bool IsMutex(int f, int g) const;
 

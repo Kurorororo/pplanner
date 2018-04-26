@@ -3,7 +3,7 @@
 
 #include <vector>
 
-#include "problem/partial_state_vector.h"
+#include "sas_plus/partial_state_vector.h"
 
 namespace pplanner {
 
