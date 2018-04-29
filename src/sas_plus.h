@@ -54,6 +54,13 @@ class SASPlus {
 
   bool IsMutex(int f, int g) const { return mutex_groups_->IsMutex(f, g); }
 
+  bool IsMutex(int l_var, int l_value, int r_var, int r_value) const {
+    int f = Fact(l_var, l_value);
+    int g = Fact(r_var, r_value);
+
+    return IsMutex(f, g);
+  }
+
   bool IsGoal(const std::vector<int> &state) const {
     return goal_->IsSubset(state);
   }
