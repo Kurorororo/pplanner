@@ -1,51 +1,52 @@
-#include "problem/successor_generator.h"
+#include "successor_generator.h"
 
 #include <algorithm>
+#include <iostream>
 #include <random>
 
+using std::pair;
 using std::vector;
-using pair_vector_t = vector<pair<int, int> >;
 
 namespace pplanner {
 
-void SuccessorGenerator::Init(const Problem &problem) {
+void SuccessorGenerator::Init(const SASPlus &problem) {
   std::random_device seed_gen;
-  engine_ = std::make_unique(new std::mt19937(seed_gen()));
+  engine_ = std::mt19937(seed_gen());
 
-  fact_translator_ = problem.fact_translator();
+  facts_ = problem.facts();
 
-  to_child.resize(problem.n_facts(), -1);
-  to_data.resize(problem.n_facts(), -1);
+  to_child_.resize(problem.n_facts(), -1);
+  to_data_.resize(problem.n_facts(), -1);
 
-  std::vector<int> vars;
-  std::vector<int> values;
-  std::vector<int> indices;
+  vector<pair<int, int> > precondition;
 
   for (int i=0, n=static_cast<int>(problem.n_actions()); i<n; ++i)
-    Insert(problem, i, vars, values, indices);
+    Insert(problem, i, precondition);
 }
 
 
-void SuccessorGenerator::Insert(const Problem &problem, int query,
+void SuccessorGenerator::Insert(const SASPlus &problem, int query,
                                 vector<pair<int, int> > &precondition) {
+  assert(nullptr != facts_);
+
   problem.CopyPrecondition(query, precondition);
   std::sort(precondition.begin(), precondition.end());
 
-  size_t n_facts = problem.n_facts();
+  size_t n_facts = facts_->size();
   int offset = 0;
   int n_ommited = 0;
 
   for (size_t i=0, n=precondition.size(); i<n; ++i) {
-    int var = p.first;
-    int value = p.second;
-    int index = offset + problem.ToFact(var, value) - n_ommited;
+    int var = precondition[i].first;
+    int value = precondition[i].second;
+    int index = offset + facts_->Fact(var, value) - n_ommited;
 
     if (i == n - 1) {
       AddQuery(index, query);
       return;
     }
 
-    n_ommited = problem.VarOffset(var + 1);
+    n_ommited = facts_->VarBegin(var + 1);
 
     if (to_child_[index] == -1) {
       size_t old_size = to_child_.size();
@@ -70,17 +71,12 @@ void SuccessorGenerator::AddQuery(int index, int query) {
   data_[data_index].push_back(query);
 }
 
-void SuccessorGenerator::Generate(const State &state, vector<int> &result) {
-  result.clear();
-  DFS(state, 0, 0, result);
-}
-
 void SuccessorGenerator::DFS(const vector<int> &state, int index,
-                             size_t current, vector<int> &result) {
-  int offset = index - fact_translator_->VarOffset(current);
+                             size_t current, vector<int> &result) const {
+  int offset = index - facts_->VarBegin(current);
 
   for (size_t i=current, n=state.size(); i<n; ++i) {
-    int next = fact_translator_.ToFact(i, state[i]) + offset;
+    int next = facts_->Fact(i, state[i]) + offset;
     int data_index = to_data_[next];
 
     if (data_index != -1) {
@@ -95,20 +91,12 @@ void SuccessorGenerator::DFS(const vector<int> &state, int index,
   }
 }
 
-int SuccessorGenerator::Sample(const vector<int> &state) {
-  int result = -1;
-  unsigned int k = 1;
-  DFSample(state, 0, 0, &k, &result);
-
-  return result;
-}
-
 void SuccessorGenerator::DFSample(const vector<int> &state, int index,
                                   size_t current, unsigned int *k, int *result) {
-  int offset = index - fact_offset[current];
+  int offset = index - facts_->VarBegin(current);
 
   for (size_t i=current, n=state.size(); i<n; ++i) {
-    int next = fact_translator_.ToFact(i, state[i]) + offset;
+    int next = facts_->Fact(i, state[i]) + offset;
     int data_index = to_data_[next];
 
     if (data_index != -1) {
@@ -121,26 +109,28 @@ void SuccessorGenerator::DFSample(const vector<int> &state, int index,
     int child = to_child_[next];
     if (child == -1) continue;
 
-    RecursiveSample(state, child, i + 1, k, result);
+    DFSample(state, child, i + 1, k, result);
   }
 }
 
-void SuccessorGenerator::Print() const {
+void SuccessorGenerator::Dump() const {
   std::cout << "to child" << std::endl;
 
   for (auto v : to_child_)
-    std::cout << v << " " << std::endl;
+    std::cout << v << " ";
 
+  std::cout << std::endl;
   std::cout << "to data" << std::endl;
 
   for (auto v : to_data_)
-    std::cout << v << " " << std::endl;
+    std::cout << v << " ";
 
+  std::cout << std::endl;
   std::cout << "data" << std::endl;
 
   for (auto d : data_) {
     for (auto v : d)
-      std::cout << v << " " << std::endl;
+      std::cout << v << " ";
 
     std::cout << std::endl;
   }

@@ -5,33 +5,48 @@
 #include <utility>
 #include <vector>
 
-#include "problem.h"
+#include "sas_plus.h"
 
 namespace pplanner {
 
 class SuccessorGenerator {
  public:
-  SuccessorGenerator() : translator_(nullptr), engine_(nullptr) {}
+  SuccessorGenerator() : facts_(nullptr) {}
 
-  explicit SuccessorGenerator(const Problem &problem)
-    : fact_translator_(nullptr), engine_(nullptr) { Init(problem); }
+  explicit SuccessorGenerator(const SASPlus &problem)
+    : facts_(nullptr) { Init(problem); }
 
-  void Init(const Problem &problem);
+  void Init(const SASPlus &problem);
 
-  void Generate(const std::vector<int> &state, std::vector<int> &result) const;
+  void Generate(const std::vector<int> &state, std::vector<int> &result) const {
+    result.clear();
+    DFS(state, 0, 0, result);
+  }
 
-  int Sample(const std::vector<int> &state) const;
+  int Sample(const std::vector<int> &state) {
+    int result = -1;
+    unsigned int k = 1;
+    DFSample(state, 0, 0, &k, &result);
 
-  void Print() const;
+    return result;
+  }
+
+  void Dump() const;
+
+  const int* to_child_data() const { return to_child_.data(); }
+
+  const int* to_data() const { return to_data_.data(); }
+
+  const std::vector<std::vector<int> >& data() const { return data_; }
 
  private:
-  void Insert(const Problem &problem, int query,
+  void Insert(const SASPlus &problem, int query,
               std::vector<std::pair<int, int> > &precondition);
 
   void AddQuery(int index, int query);
 
   void DFS(const std::vector<int> &state, int index, size_t current,
-           std::vector<int> &result);
+           std::vector<int> &result) const;
 
   void DFSample(const std::vector<int> &state, int index,  size_t current,
                 unsigned int *k, int *result);
@@ -39,8 +54,8 @@ class SuccessorGenerator {
   std::vector<int> to_child_;
   std::vector<int> to_data_;
   std::vector<std::vector<int> > data_;
-  std::shared_ptr<const FactTranslator> fact_translator_;
-  std::unique_ptr<std::mt19937> engine_;
+  std::shared_ptr<const Facts> facts_;
+  std::mt19937 engine_;
 };
 
 } // namespace pplanner
