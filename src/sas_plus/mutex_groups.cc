@@ -1,5 +1,7 @@
 #include "sas_plus/mutex_groups.h"
 
+#include <iostream>
+
 namespace pplanner {
 
 void MutexGroups::AddGroup(const std::vector<int> &group) {
@@ -16,6 +18,17 @@ bool MutexGroups::IsMutex(int f, int g) const {
       return true;
 
   return false;
+}
+
+void MutexGroups::Dump() const {
+  std::cout << groups_.size() << " mutex groups" << std::endl;
+
+  for (auto &group : groups_) {
+    for (auto f : group)
+      std::cout << "fact" << f << ", ";
+
+    std::cout << std::endl;
+  }
 }
 
 } // pplanner

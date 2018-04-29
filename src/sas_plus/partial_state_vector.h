@@ -13,7 +13,6 @@ class PartialStateVector {
     offsets_.reserve(size);
     vars_.reserve(size);
     values_.reserve(size);
-    offsets_.push_back(0);
   }
 
   size_t size() const { return offsets_.size() - 1; }
@@ -45,6 +44,8 @@ class PartialStateVector {
   }
 
   void Add(const std::vector<std::pair<int, int> > &v);
+
+  void Dump(int i) const;
 
   const int* offsets_data() const { return offsets_.data(); }
 

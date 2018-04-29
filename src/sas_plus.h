@@ -1,10 +1,10 @@
 #ifndef SAS_PLUS_H_
 #define SAS_PLUS_H_
 
-#include <string>
+#include <memory>
 #include <queue>
+#include <string>
 #include <utility>
-#include <unordered_set>
 #include <vector>
 
 #include "sas_plus/effect_vector.h"
@@ -34,57 +34,62 @@ class SASPlus {
     return goal_->size();
   }
 
-  size_t n_actions() const { return costs_.size(); }
+  size_t n_actions() const { return action_costs_.size(); }
 
   size_t n_facts() const {
-    assert(fact_translator_ != nullptr);
+    assert(facts_ != nullptr);
 
-    return fact_translator_->n_facts();
+    return facts_->size();
   }
 
   int metric() const { return metric_; }
 
   const std::vector<int>& initial() const { return initial_; }
 
-  int ActionCost(int i) const { return action_costs_[i]; }
-
-  const std::string& ActionName(int i) const { return action_names_[i]; }
+  int Fact(int var, int value) const { return facts_->Fact(var, value); }
 
   const std::string& Predicate(int var, int value) const {
     return facts_->Predicate(var, value);
   }
 
-  void ApplyEffect(int i, std::vector<int> &state) const {
-    effects_->Apply(i, state);
-  }
+  bool IsMutex(int f, int g) const { return mutex_groups_->IsMutex(f, g); }
 
   bool IsGoal(const std::vector<int> &state) const {
     return goal_->IsSubset(state);
   }
 
-  bool IsMutex(int f, int g) const { return mutex_groups_->IsMutex(f, g) };
+  int ActionCost(int i) const { return action_costs_[i]; }
+
+  const std::string& ActionName(int i) const { return action_names_[i]; }
 
   void CopyPrecondition(int i, std::vector<std::pair<int, int> > &precondition)
     const;
 
+  void ApplyEffect(int i, std::vector<int> &state) const {
+    effects_->Apply(i, state);
+  }
+
+  void Dump() const;
+
+  std::shared_ptr<const Facts> facts() const { return facts_; }
+
+  std::shared_ptr<const PartialState> goal() const { return goal_; }
+
   const int* action_costs_data() { return action_costs_.data(); }
 
-  std::shared_ptr<const PartialState> goal() { return goal_; }
-
-  std::shared_ptr<const PartialStateVector> preconditions() {
+  std::shared_ptr<const PartialStateVector> preconditions() const {
     return preconditions_;
   }
 
-  std::shared_ptr<const EffectVector> effects() { return effects_; }
+  std::shared_ptr<const EffectVector> effects() const { return effects_; }
 
-  std::shared_ptr<const Facts> translator() { return facts; }
 
  private:
   void CreateActions(int n);
 
   int AddAction(int cost, const std::string &name,
-                std::vector<std::pair<int, int> > &precondition,
-                std::vector<std::pair<int, int> > &effect);
+                const std::vector<std::pair<int, int> > &precondition,
+                const std::vector<std::pair<int, int> > &effect);
 
   int metric_;
   std::shared_ptr<Facts> facts_;

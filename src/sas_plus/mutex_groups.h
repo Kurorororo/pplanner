@@ -16,6 +16,8 @@ class MutexGroups {
 
   bool IsMutex(int f, int g) const;
 
+  void Dump() const;
+
  private:
   std::vector<std::unordered_set<int> > groups_;
 };

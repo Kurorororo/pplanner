@@ -32,6 +32,8 @@ class Facts {
     return predicates_[Fact(var, value)];
   }
 
+  void Dump() const;
+
   const int* offsets_data() const { return offsets_.data(); }
 
   const int* ranges_data() const { return ranges_.data(); }

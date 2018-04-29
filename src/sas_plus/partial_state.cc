@@ -1,5 +1,7 @@
 #include "sas_plus/partial_state.h"
 
+#include <iostream>
+
 using std::pair;
 using std::vector;
 
@@ -21,6 +23,16 @@ bool PartialState::IsSubset(const vector<int> &state) const {
     if (state[vars_[i]] != values_[i]) return false;
 
   return true;
+}
+
+void PartialState::Dump() const {
+  int n = static_cast<int>(size());
+  std::cout << n << " assignments" << std::endl;
+
+  for (int i=0; i<n; ++i)
+    std::cout << "var" << vars_[i] << "=" << values_[i] << ", ";
+
+  std::cout << std::endl;
 }
 
 } // namespace pplanner
