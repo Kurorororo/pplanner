@@ -9,44 +9,44 @@ using std::vector;
 
 namespace pplanner {
 
-void SuccessorGenerator::Init(const SASPlus &problem) {
+void SuccessorGenerator::Init(std::shared_ptr<const SASPlus> problem) {
   std::random_device seed_gen;
   engine_ = std::mt19937(seed_gen());
 
-  facts_ = problem.facts();
+  problem_ = problem;
 
-  to_child_.resize(problem.n_facts(), -1);
-  to_data_.resize(problem.n_facts(), -1);
+  to_child_.resize(problem->n_facts(), -1);
+  to_data_.resize(problem->n_facts(), -1);
 
   vector<pair<int, int> > precondition;
 
-  for (int i=0, n=static_cast<int>(problem.n_actions()); i<n; ++i)
-    Insert(problem, i, precondition);
+  for (int i=0, n=static_cast<int>(problem->n_actions()); i<n; ++i)
+    Insert(i, precondition);
 }
 
 
-void SuccessorGenerator::Insert(const SASPlus &problem, int query,
+void SuccessorGenerator::Insert(int query,
                                 vector<pair<int, int> > &precondition) {
-  assert(nullptr != facts_);
+  assert(nullptr != problem_);
 
-  problem.CopyPrecondition(query, precondition);
+  problem_->CopyPrecondition(query, precondition);
   std::sort(precondition.begin(), precondition.end());
 
-  size_t n_facts = facts_->size();
+  size_t n_facts = problem_->n_facts();
   int offset = 0;
   int n_ommited = 0;
 
   for (size_t i=0, n=precondition.size(); i<n; ++i) {
     int var = precondition[i].first;
     int value = precondition[i].second;
-    int index = offset + facts_->Fact(var, value) - n_ommited;
+    int index = offset + problem_->Fact(var, value) - n_ommited;
 
     if (i == n - 1) {
       AddQuery(index, query);
       return;
     }
 
-    n_ommited = facts_->VarBegin(var + 1);
+    n_ommited = problem_->VarBegin(var + 1);
 
     if (to_child_[index] == -1) {
       size_t old_size = to_child_.size();
@@ -73,10 +73,10 @@ void SuccessorGenerator::AddQuery(int index, int query) {
 
 void SuccessorGenerator::DFS(const vector<int> &state, int index,
                              size_t current, vector<int> &result) const {
-  int offset = index - facts_->VarBegin(current);
+  int offset = index - problem_->VarBegin(current);
 
   for (size_t i=current, n=state.size(); i<n; ++i) {
-    int next = facts_->Fact(i, state[i]) + offset;
+    int next = problem_->Fact(i, state[i]) + offset;
     int data_index = to_data_[next];
 
     if (data_index != -1) {
@@ -92,17 +92,17 @@ void SuccessorGenerator::DFS(const vector<int> &state, int index,
 }
 
 void SuccessorGenerator::DFSample(const vector<int> &state, int index,
-                                  size_t current, unsigned int *k, int *result) {
-  int offset = index - facts_->VarBegin(current);
+                                  size_t current, unsigned int &k, int &result) {
+  int offset = index - problem_->VarBegin(current);
 
   for (size_t i=current, n=state.size(); i<n; ++i) {
-    int next = facts_->Fact(i, state[i]) + offset;
+    int next = problem_->Fact(i, state[i]) + offset;
     int data_index = to_data_[next];
 
     if (data_index != -1) {
       for (auto d : data_[data_index]) {
-        if (engine_() % *k == 0) *result = d;
-        ++(*k);
+        if (engine_() % k == 0) result = d;
+        ++k;
       }
     }
 

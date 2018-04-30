@@ -1,86 +1,64 @@
-#include "successor_generator.h"
+#include "search_graph/state_packer.h"
 
-#include <algorithm>
+#include <cstdio>
+
 #include <queue>
 #include <string>
+#include <vector>
 
 #include "gtest/gtest.h"
-
-#include "sas_plus.h"
 
 namespace pplanner {
 
 std::queue<std::string> ExampleSASPlusLines();
 
-std::queue<std::string> NoPickSASPlusLines();
+std::queue<std::string> RandomSASPlusLines(std::vector<int> &ranges);
 
-class SuccessorGeneratorTest: public ::testing::Test {
+class StatePackerTest : public ::testing::Test {
  protected:
   virtual void SetUp() {
     auto lines = ExampleSASPlusLines();
-    auto sas_0 = std::make_shared<SASPlus>();
-    sas_0->InitFromLines(lines);
-    generator_0_ = SuccessorGenerator(sas_0);
-    //generator_0_.Dump();
+    SASPlus sas_0;
+    sas_0.InitFromLines(lines);
+    packer_0_ = StatePacker(sas_0);
 
-    lines = NoPickSASPlusLines();
-    auto sas_1 = std::make_shared<SASPlus>();
-    sas_1->InitFromLines(lines);
-    generator_1_ = SuccessorGenerator(sas_1);
-    //generator_1_.Dump();
+    state_0_ = std::vector<int>{1, 0, 2};
+
+    std::vector<int> ranges;
+    lines = RandomSASPlusLines(ranges);
+    SASPlus sas_1;
+    sas_1.InitFromLines(lines);
+    packer_1_ = StatePacker(sas_1);
+
+    for (auto range : ranges)
+      state_1_.push_back(rand() % range);
   }
 
-  SuccessorGenerator generator_0_;
-  SuccessorGenerator generator_1_;
+  StatePacker packer_0_;
+  StatePacker packer_1_;
+  StatePacker packer_2_;
+  std::vector<int> state_0_;
+  std::vector<int> state_1_;
 };
 
-TEST_F(SuccessorGeneratorTest, GenerateWorks) {
-  std::vector<int> state{0, 1, 0};
-  std::vector<int> result;
-
-  generator_1_.Generate(state, result);
-  EXPECT_TRUE(result.empty());
-
-  generator_0_.Generate(state, result);
-  ASSERT_EQ(2, result.size());
-  std::sort(result.begin(), result.end());
-  EXPECT_EQ(2, result[0]);
-  EXPECT_EQ(4, result[1]);
-
-  state[1] = 0;
-  state[2] = 2;
-  generator_0_.Generate(state, result);
-  ASSERT_EQ(2, result.size());
-  std::sort(result.begin(), result.end());
-  EXPECT_EQ(0, result[0]);
-  EXPECT_EQ(2, result[1]);
-
-  state[0] = 1;
-  generator_0_.Generate(state, result);
-  ASSERT_EQ(2, result.size());
-  std::sort(result.begin(), result.end());
-  EXPECT_EQ(1, result[0]);
-  EXPECT_EQ(3, result[1]);
+TEST_F(StatePackerTest, BlockSizeWorks) {
+  EXPECT_EQ(1, packer_0_.block_size());
+  EXPECT_EQ(0, packer_2_.block_size());
 }
 
-TEST_F(SuccessorGeneratorTest, SampleWorks) {
-  std::vector<int> state{0, 1, 0};
-  std::vector<int> result;
+TEST_F(StatePackerTest, PackUnPackWorks) {
+  std::vector<int> tmp_state(state_0_.size());
+  std::vector<uint32_t> tmp_packed(packer_0_.block_size());
 
-  int a = generator_1_.Sample(state);
-  EXPECT_EQ(-1, a);
+  packer_0_.Pack(state_0_, tmp_packed.data());
+  packer_0_.Unpack(tmp_packed.data(), tmp_state);
+  EXPECT_EQ(state_0_, tmp_state);
 
-  a = generator_0_.Sample(state);
-  EXPECT_TRUE(2 == a || 4 == a);
-
-  state[1] = 0;
-  state[2] = 2;
-  a = generator_0_.Sample(state);
-  EXPECT_TRUE(0 == a || 2 == a);
-
-  state[0] = 1;
-  a = generator_0_.Sample(state);
-  EXPECT_TRUE(1 == a || 3 == a);
+  tmp_state.resize(state_1_.size());
+  tmp_packed.resize(packer_1_.block_size());
+  packer_1_.Pack(state_1_, tmp_packed.data());
+  packer_1_.Unpack(tmp_packed.data(), tmp_state);
+  EXPECT_EQ(state_1_, tmp_state);
 }
 
 std::queue<std::string> ExampleSASPlusLines() {
@@ -187,7 +165,7 @@ std::queue<std::string> ExampleSASPlusLines() {
   return q;
 }
 
-std::queue<std::string> NoPickSASPlusLines() {
+std::queue<std::string> RandomSASPlusLines(std::vector<int> &ranges) {
   std::queue<std::string> q;
 
   q.push("begin_version");
@@ -196,7 +174,10 @@ std::queue<std::string> NoPickSASPlusLines() {
   q.push("begin_metric");
   q.push("0");
   q.push("end_metric");
-  q.push("3");
+
+  int var_max = rand() % 200 + 3;
+  q.push(std::to_string(var_max));
+
   q.push("begin_variable");
   q.push("var0");
   q.push("-1");
@@ -219,6 +200,24 @@ std::queue<std::string> NoPickSASPlusLines() {
   q.push("Atom at(ball1, roomb)");
   q.push("<none of those>");
   q.push("end_variable");
+
+  ranges = std::vector<int>{2, 2, 3};
+
+  for (int i=3; i<var_max; ++i) {
+    q.push("begin_variable");
+    q.push("var" + std::to_string(i));
+    q.push("-1");
+
+    int range = rand() % 20 + 1;
+    ranges.push_back(range);
+    q.push(std::to_string(range));
+
+    for (int j=0; j<range; ++j)
+      q.push("Atom dummy(ball" + std::to_string(j) + ")");
+
+    q.push("end_variable");
+  }
+
   q.push("1");
   q.push("begin_mutex_group");
   q.push("3");
@@ -230,12 +229,16 @@ std::queue<std::string> NoPickSASPlusLines() {
   q.push("0");
   q.push("1");
   q.push("0");
+
+  for (int i=3; i<var_max; ++i)
+    q.push("0");
+
   q.push("end_state");
   q.push("begin_goal");
   q.push("1");
   q.push("2 1");
   q.push("end_goal");
-  q.push("3");
+  q.push("6");
   q.push("begin_operator");
   q.push("drop ball1 rooma left");
   q.push("1");
@@ -255,10 +258,35 @@ std::queue<std::string> NoPickSASPlusLines() {
   q.push("1");
   q.push("end_operator");
   q.push("begin_operator");
+  q.push("move rooma roomb");
+  q.push("0");
+  q.push("1");
+  q.push("0 0 0 1");
+  q.push("1");
+  q.push("end_operator");
+  q.push("begin_operator");
   q.push("move roomb rooma");
   q.push("0");
   q.push("1");
   q.push("0 0 1 0");
+  q.push("1");
+  q.push("end_operator");
+  q.push("begin_operator");
+  q.push("pick ball1 rooma left");
+  q.push("1");
+  q.push("0 0");
+  q.push("2");
+  q.push("0 2 0 2");
+  q.push("0 1 1 0");
+  q.push("1");
+  q.push("end_operator");
+  q.push("begin_operator");
+  q.push("pick ball1 roomb left");
+  q.push("1");
+  q.push("0 1");
+  q.push("2");
+  q.push("0 2 1 2");
+  q.push("0 1 1 0");
   q.push("1");
   q.push("end_operator");
   q.push("0");

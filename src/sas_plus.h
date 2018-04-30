@@ -48,6 +48,10 @@ class SASPlus {
 
   int Fact(int var, int value) const { return facts_->Fact(var, value); }
 
+  int VarBegin(int var) const { return facts_->VarBegin(var); }
+
+  int VarRange(int var) const { return facts_->VarRange(var); }
+
   const std::string& Predicate(int var, int value) const {
     return facts_->Predicate(var, value);
   }

@@ -11,12 +11,12 @@ namespace pplanner {
 
 class SuccessorGenerator {
  public:
-  SuccessorGenerator() : facts_(nullptr) {}
+  SuccessorGenerator() : problem_(nullptr) {}
 
-  explicit SuccessorGenerator(const SASPlus &problem)
-    : facts_(nullptr) { Init(problem); }
+  explicit SuccessorGenerator(std::shared_ptr <const SASPlus> problem)
+    : problem_(nullptr) { Init(problem); }
 
-  void Init(const SASPlus &problem);
+  void Init(std::shared_ptr<const SASPlus> problem);
 
   void Generate(const std::vector<int> &state, std::vector<int> &result) const {
     result.clear();
@@ -26,7 +26,7 @@ class SuccessorGenerator {
   int Sample(const std::vector<int> &state) {
     int result = -1;
     unsigned int k = 1;
-    DFSample(state, 0, 0, &k, &result);
+    DFSample(state, 0, 0, k, result);
 
     return result;
   }
@@ -40,21 +40,20 @@ class SuccessorGenerator {
   const std::vector<std::vector<int> >& data() const { return data_; }
 
  private:
-  void Insert(const SASPlus &problem, int query,
-              std::vector<std::pair<int, int> > &precondition);
+  void Insert(int query, std::vector<std::pair<int, int> > &precondition);
 
   void AddQuery(int index, int query);
 
   void DFS(const std::vector<int> &state, int index, size_t current,
            std::vector<int> &result) const;
 
-  void DFSample(const std::vector<int> &state, int index,  size_t current,
-                unsigned int *k, int *result);
+  void DFSample(const std::vector<int> &state, int index, size_t current,
+                unsigned int &k, int &result);
 
+  std::shared_ptr<const SASPlus> problem_;
   std::vector<int> to_child_;
   std::vector<int> to_data_;
   std::vector<std::vector<int> > data_;
-  std::shared_ptr<const Facts> facts_;
   std::mt19937 engine_;
 };
 

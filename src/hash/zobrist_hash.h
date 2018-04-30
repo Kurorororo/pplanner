@@ -1,22 +1,28 @@
 #ifndef ZOBRIST_HASH_H_
 #define ZOBRIST_HASH_H_
 
+#include <memory>
 #include <vector>
 
-#include "domain/domain.h"
-#include "domain/state.h"
+#include "sas_plus.h"
 
-namespace rwls {
+namespace pplanner {
 
 struct ZobristHash {
-  ZobristHash(const Domain &domain);
+ public:
+  ZobristHash() : n_(0), problem_(nullptr) {}
 
-  size_t operator()(const State &state) const;
+  ZobristHash(std::shared_ptr<const SASPlus> problem);
 
-  std::vector<int> offset;
-  std::vector<size_t> array;
+  size_t operator()(const std::vector<int> &state) const;
+
+ private:
+  int n_;
+  std::shared_ptr<const SASPlus> problem_;
+  std::vector<int> offsets_;
+  std::vector<size_t> array_;
 };
 
-} // namespace rwls
+} // namespace pplanner
 
 #endif // ZOBRIST_HASH_H_
