@@ -12,6 +12,8 @@ class SearchGraph {
   SearchGraph()
     : states_(nullptr) {}
 
+  virtual ~SearchGraph() {}
+
   explicit SearchGraph(const SASPlus &problem, int closed_exponent=22)
     : states_(std::make_shared<StateVector>(problem, closed_exponent)) {}
 
