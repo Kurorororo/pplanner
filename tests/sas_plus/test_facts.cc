@@ -77,26 +77,4 @@ TEST_F(FactsTest, PredicateWorks) {
   EXPECT_EQ("e", facts_1_.Predicate(2, 1));
 }
 
-TEST_F(FactsTest, StateToFactVectorWorks) {
-  std::vector<int> v;
-  StateToFactVector(facts_1_, state_, v);
-  ASSERT_TRUE(state_.size() == v.size());
-  EXPECT_EQ(1, v[0]);
-  EXPECT_EQ(4, v[1]);
-  EXPECT_EQ(5, v[2]);
-}
-
-TEST_F(FactsTest, StateToFactSetWorks) {
-  std::vector<bool> s;
-  StateToFactSet(facts_1_, state_, s);
-  ASSERT_TRUE(facts_1_.size() == s.size());
-  ASSERT_FALSE(s[0]);
-  ASSERT_TRUE(s[1]);
-  ASSERT_FALSE(s[2]);
-  ASSERT_FALSE(s[3]);
-  ASSERT_TRUE(s[4]);
-  ASSERT_TRUE(s[5]);
-  ASSERT_FALSE(s[6]);
-}
-
 } // namespace pplanner

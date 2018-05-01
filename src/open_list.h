@@ -1,41 +1,22 @@
 #ifndef OPEN_LIST_H_
 #define OPEN_LIST_H_
 
-#include <memory>
-#include <string>
-#include <vector>
-
-#include "evaluator.h"
-#include "open_lists/open_list_impl.h"
-#include "open_lists/open_list_impl_factory.h"
-
 namespace pplanner {
 
 class OpenList {
  public:
-  OpenList() : list_(nullptr), evaluators_(nullptr) {};
+  virtual ~OpenList() = 0;
 
-  explicit OpenList(const std::string &tie_breaking)
-      : list_(OpenListImplFactory(tie_breaking)), evaluators_(nullptr) {}
+  virtual void Push(const std::vector<int> &values, int node, bool preferred)
+    = 0;
 
-  OpenList(const std::string &tie_breaking,
-           const std::vector<std::shared_ptr<Evaluator> > &evaluators)
-      : list_(OpenListImplFactory(tie_breaking)), evaluators_(evaluators_) {}
+  virtual int Push(const std::vector<int> &state, int node, bool preferred) = 0;
 
-  void Push(const vector<int> &values, int node) { list_->Push(values, node); }
+  virtual int Pop() = 0;
 
-  int Push(const std::vector<int> &state, int node);
+  virtual bool IsEmpty() const = 0;
 
-  int Pop() { return list_->Pop(); }
-
-  bool IsEmpty() const { return list_->IsEmpty(); }
-
- private:
-  void Init(const std::vector<std::string> &evaluator_names);
-
-  std::vector<int> values_;
-  std::unique_ptr<OpenListImpl> list_;
-  std::vector<std::shared_ptr<Evaluator> > evaluators_;
+  virtual void Boost() = 0;
 };
 
 } // namespace pplanner

@@ -31,6 +31,14 @@ class RelaxedSASPlus {
 
   bool IsGoal(int i) const { return is_goal[i]; }
 
+  const std::vector<int>& goal() const { return goal_; }
+
+  const std::vector<int>& PreconditionMap(int i) const {
+    return precondition_map_[i];
+  }
+
+  const std::vector<int>& EffectMap(int i) const { return effect_map_[i]; }
+
  private:
   void Init(const SASPlus &problem, bool simplify) {
     InitActions(problem, simplify);

@@ -123,6 +123,12 @@ class SASPlus {
   std::shared_ptr<EffectVector> effects_;
 };
 
+void StateToFactVector(const SASPlus &problem, const std::vector<int> &state,
+                       std::vector<int> &v);
+
+void StateToFactSet(const SASPlus &problem, const std::vector<int> &state,
+                    std::vector<bool> &s);
+
 } // namespace pplanner
 
 #endif // SAS_PLUS_H_

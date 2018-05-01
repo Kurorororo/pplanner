@@ -116,4 +116,31 @@ void SASPlus::Dump() const {
   }
 }
 
+void StateToFactVector(const SASPlus &problem, const vector<int> &state,
+                       vector<int> &v) {
+  v.clear();
+
+  int i = 0;
+
+  for (auto value : state) {
+    int f = problem.Fact(i, value);
+    v.push_back(f);
+    ++i;
+  }
+}
+
+void StateToFactSet(const SASPlus &problem, const vector<int> &state,
+                    vector<bool> &s) {
+  s.clear();
+  s.resize(problem.n_facts(), false);
+
+  int i = 0;
+
+  for (auto value : state) {
+    int f = problem.Fact(i, value);
+    s[f] = true;
+    ++i;
+  }
+}
+
 } // namespace pplanner

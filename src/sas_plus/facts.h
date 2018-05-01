@@ -46,12 +46,6 @@ class Facts {
   std::vector<std::string> predicates_;
 };
 
-void StateToFactVector(const Facts &facts, const std::vector<int> &state,
-                       std::vector<int> &v);
-
-void StateToFactSet(const Facts &facts, const std::vector<int> &state,
-                    std::vector<bool> &s);
-
 } // namespace pplanner
 
 #endif // FACTS_H_

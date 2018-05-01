@@ -3,7 +3,7 @@
 namespace pplanner {
 
 int PreferredOpenList::Push(const std::vector<int> &state, int node,
-                            bool preferred=false) {
+                            bool preferred) {
   values_.clear();
 
   for (auto evaluator : evaluators_)

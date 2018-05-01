@@ -42,30 +42,4 @@ void Facts::Dump() const {
   }
 }
 
-void StateToFactVector(const Facts &facts, const vector<int> &state,
-                       vector<int> &v) {
-  v.clear();
-
-  int i = 0;
-
-  for (auto value : state) {
-    int f = facts.Fact(i, value);
-    v.push_back(f);
-    ++i;
-  }
-}
-
-void StateToFactSet(const Facts &facts, const vector<int> &state,
-                    vector<bool> &s) {
-  s.resize(facts.size(), false);
-
-  int i = 0;
-
-  for (auto value : state) {
-    int f = facts.Fact(i, value);
-    s[f] = true;
-    ++i;
-  }
-}
-
 } // namespace pplanner

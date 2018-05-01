@@ -209,6 +209,45 @@ TEST_F(SASPlusTest, ApplyEffectWorks) {
   EXPECT_EQ(1, state[2]);
 }
 
+
+TEST_F(SASPlusTest, StateToFactVectorWorks) {
+  std::vector<int> v;
+  auto state = sas_1_.initial();
+  StateToFactVector(sas_1_, state, v);
+  ASSERT_TRUE(state.size() == v.size());
+  EXPECT_EQ(0, v[0]);
+  EXPECT_EQ(3, v[1]);
+  EXPECT_EQ(4, v[2]);
+  state[0] = 1;
+  StateToFactVector(sas_1_, state, v);
+  ASSERT_TRUE(state.size() == v.size());
+  EXPECT_EQ(1, v[0]);
+  EXPECT_EQ(3, v[1]);
+  EXPECT_EQ(4, v[2]);
+}
+
+TEST_F(SASPlusTest, StateToFactSetWorks) {
+  std::vector<bool> s;
+  auto state = sas_1_.initial();
+  StateToFactSet(sas_1_, state, s);
+  ASSERT_TRUE(sas_1_.n_facts() == s.size());
+  EXPECT_TRUE(s[0]);
+  EXPECT_FALSE(s[1]);
+  EXPECT_FALSE(s[2]);
+  EXPECT_TRUE(s[3]);
+  EXPECT_TRUE(s[4]);
+  EXPECT_FALSE(s[5]);
+  state[0] = 1;
+  StateToFactSet(sas_1_, state, s);
+  ASSERT_TRUE(sas_1_.n_facts() == s.size());
+  EXPECT_FALSE(s[0]);
+  EXPECT_TRUE(s[1]);
+  EXPECT_FALSE(s[2]);
+  EXPECT_TRUE(s[3]);
+  EXPECT_TRUE(s[4]);
+  EXPECT_FALSE(s[5]);
+}
+
 std::queue<std::string> ExampleSASPlusLines(bool unit_cost) {
   std::queue<std::string> q;
 
