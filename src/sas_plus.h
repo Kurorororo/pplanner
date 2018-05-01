@@ -65,6 +65,10 @@ class SASPlus {
     return IsMutex(f, g);
   }
 
+  void CopyGoal(std::vector<std::pair<int, int> > &goal) const {
+    goal_->Copy(goal);
+  }
+
   bool IsGoal(const std::vector<int> &state) const {
     return goal_->IsSubset(state);
   }
@@ -74,7 +78,13 @@ class SASPlus {
   const std::string& ActionName(int i) const { return action_names_[i]; }
 
   void CopyPrecondition(int i, std::vector<std::pair<int, int> > &precondition)
-    const;
+    const {
+    preconditions_->Copy(i, precondition);
+  }
+
+  void CopyEffect(int i, std::vector<std::pair<int, int> > &effect) const {
+    effects_->Copy(i, effect);
+  }
 
   void ApplyEffect(int i, std::vector<int> &state) const {
     effects_->Apply(i, state);

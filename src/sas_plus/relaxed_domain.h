@@ -1,29 +1,59 @@
-#ifndef RELAXED_DOMAIN_H_
-#define RELAXED_DOMAIN_H_
+#ifndef RELAXED_SAS_PLUS_H_
+#define RELAXED_SAS_PLUS_H_
 
 #include <vector>
 
-#include "domain/domain.h"
+#include "sas_plus.h"
 
-namespace rwls {
+namespace pplanner {
 
-struct RelaxedDomain {
-  size_t fact_size;
-  size_t action_size;
-  int goal_size;
-  std::vector<int> ids;
-  std::vector<int> costs;
-  std::vector<int> precondition_size;
-  std::vector<std::vector<int> > preconditions;
-  std::vector<int> effects;
-  std::vector<bool> is_goal;
-  std::vector<int> goal;
-  std::vector<std::vector<int> > precondition_map;
-  std::vector<std::vector<int> > effect_map;
+class RelaxedSASPlus {
+ public:
+  RelaxedSASPlus() {}
+
+  RelaxedSASPlus(const SASPlus &problem, bool simplify=true) {
+    Init(problem, simplify);
+  }
+
+  size_t n_facts() const { return is_goal_.size(); }
+
+  size_t n_actions() const { return ids_.size(); }
+
+  int n_goal_facts() const { return goal_.size(); }
+
+  int ActionId(int i) const { return ids_[i]; }
+
+  int ActionCost(int i) const { return costs_[i]; }
+
+  int PreconditionSize(int i) const { return precondition_size_[i]; }
+
+  int Effect(int i) const { return effects_[i]; }
+
+  bool IsGoal(int i) const { return is_goal[i]; }
+
+ private:
+  void Init(const SASPlus &problem, bool simplify) {
+    InitActions(problem, simplify);
+    InitGoal(problem);
+  }
+
+  void InitActions(const SASPlus &problem, bool simplify);
+
+  void InitGoal(const SASPlus &problem);
+
+  void Simplify();
+
+  std::vector<int> ids_;
+  std::vector<int> costs_;
+  std::vector<int> precondition_size_;
+  std::vector<std::vector<int> > preconditions_;
+  std::vector<int> effects_;
+  std::vector<std::vector<int> > precondition_map_;
+  std::vector<std::vector<int> > effect_map_;
+  std::vector<bool> is_goal_;
+  std::vector<int> goal_;
 };
 
-void InitializeRelaxedDomain(const Domain &domain, RelaxedDomain *r_domain);
+} // namespace pplanner
 
-} // namespace rwls
-
-#endif // RELAXED_DOMAIN_H_
+#endif // RELAXED_SAS_PLUS_H_

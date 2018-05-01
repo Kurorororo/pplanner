@@ -43,6 +43,8 @@ class PartialStateVector {
     return values_.begin() + offsets_[i + 1];
   }
 
+  void Copy(int i, std::vector<std::pair<int, int> > &v) const;
+
   void Add(const std::vector<std::pair<int, int> > &v);
 
   void Dump(int i) const;

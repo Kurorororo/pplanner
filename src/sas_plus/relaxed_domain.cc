@@ -1,4 +1,4 @@
-#include "domain/relaxed_domain.h"
+#include "sas_plus/relaxed_sas_plus.h"
 
 #include <algorithm>
 #include <iostream>
@@ -11,9 +11,69 @@ using std::pair;
 using std::unordered_map;
 using std::vector;
 
-namespace rwls {
+namespace pplanner {
 
-void Simplify(RelaxedDomain *r_domain) {
+void RelaxedSASPlus::InitActions(const SASPlus &problem, bool simplify) {
+  vector<pair<int, int> > pair_precondition;
+  vector<pair<int, int> > pair_effect;
+  vector<int> precondition;
+
+  for (int i=0, n=problem->n_actions(); i<n; ++i) {
+    problem.CopyPrecondition(i, pair_precondition);
+    precondition.clear();
+
+    for (auto &v : pair_precondition) {
+      int f = problem.Fact(v.first, v.second);
+      precondition.push_back(f);
+    }
+
+    size_t cost = problem.ActionCosts(i);
+    size_t size = precondition.size();
+
+    problem.CopyEffect(i, pair_effect);
+
+    for (auto &v : pair_effect) {
+      int f = problem.Fact(v.first, v.second);
+      ids_.push_back(i);
+      costs_.push_back(cost);
+      precondition_size_.push_back(size);
+      preconditions_.push_back(precondition);
+      effects_.push_back(f);
+    }
+  }
+
+  if (simplify) Simplify();
+
+  precondition_map_.resize(problem.n_facts());
+
+  for (int i=0; i<unary_int; ++i)
+    for (auto f : preconditions_[i])
+      precondition_map_[f].push_back(i);
+
+  effect_map_.resize(problem.n_facts());
+
+  for (int i=0; i<unary_int; ++i) {
+    int f = effects_[i];
+    r_domain->effect_map[f].push_back(i);
+  }
+
+}
+
+void RelaxedSASPlus::InitGoal(const SASPlus &problem) {
+  goal_size_ = problem.n_goal_facts();
+
+  vector<pair<int, int> > goal;
+  problem.CopyGoal(goal);
+  is_goal_.resize(problem.fact_size(), false);
+
+  for (auto &v : goal) {
+    int f = ToFact(v.first, v.second);
+    is_goal_[f] = true;
+    goal.push_back(f);
+  }
+}
+
+void RelaxedSASPlus::Simplify() {
   auto key_hash = [](const pair<vector<int>, int> &v) {
     auto hash = boost::hash_range(v.first.begin(), v.first.end());
     boost::hash_combine(hash, std::hash<int>()(v.second));
@@ -22,19 +82,19 @@ void Simplify(RelaxedDomain *r_domain) {
   };
 
   unordered_map<pair<vector<int>, int>, int, decltype(key_hash)>
-      umap(r_domain->ids.size(), key_hash);
+    umap(n_actions(), key_hash);
 
-  for (size_t i=0, n=r_domain->ids.size(); i<n; ++i) {
+  for (size_t i=0, n=n_actions(); i<n; ++i) {
     pair<vector<int>, int> key;
-    key.first = r_domain->preconditions[i];
+    key.first = preconditions_[i];
     std::sort(key.first.begin(), key.first.end());
-    key.second = r_domain->effects[i];
+    key.second = effects_[i];
 
     auto entry = umap.find(key);
 
     if (entry == umap.end()) {
       umap[key] = i;
-    } else if (r_domain->costs[i] < r_domain->costs[entry->second]) {
+    } else if (costs_[i] < costs_[entry->second]) {
       entry->second = i;
     }
   }
@@ -50,7 +110,7 @@ void Simplify(RelaxedDomain *r_domain) {
     auto p = key.first;
     int e = key.second;
     int a = v.second;
-    int cost = r_domain->costs[a];
+    int cost = costs_[a];
 
     bool match = false;
 
@@ -68,7 +128,7 @@ void Simplify(RelaxedDomain *r_domain) {
 
         auto entry = umap.find(dominate_key);
 
-        if (entry != umap.end() && r_domain->costs[entry->second] <= cost) {
+        if (entry != umap.end() && costs_[entry->second] <= cost) {
           match = true;
           break;
         }
@@ -76,7 +136,7 @@ void Simplify(RelaxedDomain *r_domain) {
     }
 
     if (!match) {
-      ids.push_back(r_domain->ids[a]);
+      ids.push_back(ids_[a]);
       costs.push_back(cost);
       precondition_size.push_back(p.size());
       preconditions.push_back(p);
@@ -84,73 +144,11 @@ void Simplify(RelaxedDomain *r_domain) {
     }
   }
 
-  r_domain->ids = ids;
-  r_domain->costs = costs;
-  r_domain->precondition_size = precondition_size;
-  r_domain->preconditions = preconditions;
-  r_domain->effects = effects;
+  ids_ = ids;
+  costs_ = costs;
+  precondition_size_ = precondition_size;
+  preconditions_ = preconditions;
+  effects_ = effects;
 }
 
-void InitializeRelaxedDomain(const Domain &domain, RelaxedDomain *r_domain) {
-  r_domain->fact_size = domain.fact_size;
-  r_domain->goal_size = static_cast<int>(domain.goal.size());
-
-  r_domain->is_goal.resize(domain.fact_size, false);
-
-  vector<int> precondition;
-
-  for (size_t i=0, n=domain.action_size; i<n; ++i) {
-    precondition.clear();
-
-    for (auto &v : domain.preconditions[i]) {
-      int f = ToFact(domain.fact_offset, v);
-      precondition.push_back(f);
-    }
-
-    size_t cost = domain.costs[i];
-    size_t size = domain.preconditions[i].size();
-
-    for (auto &v : domain.effects[i]) {
-      int f = ToFact(domain.fact_offset, v);
-      r_domain->ids.push_back(i);
-      r_domain->costs.push_back(cost);
-      r_domain->precondition_size.push_back(size);
-      r_domain->preconditions.push_back(precondition);
-      r_domain->effects.push_back(f);
-    }
-  }
-
-  std::cout << r_domain->ids.size() << " unary operators" << std::endl;
-
-  Simplify(r_domain);
-
-  size_t unary_size = r_domain->ids.size();
-  std::cout << "simplified to " << unary_size << std::endl;
-  int unary_int = static_cast<int>(unary_size);
-  r_domain->action_size = unary_size;
-
-  r_domain->precondition_map.resize(domain.fact_size);
-
-  for (int i=0; i<unary_int; ++i) {
-    for (auto f : r_domain->preconditions[i])
-      r_domain->precondition_map[f].push_back(i);
-  }
-
-  r_domain->effect_map.resize(domain.fact_size);
-
-  for (int i=0; i<unary_int; ++i) {
-    int f = r_domain->effects[i];
-    r_domain->effect_map[f].push_back(i);
-  }
-
-  r_domain->goal.resize(0);
-
-  for (auto v : domain.goal) {
-    int f = ToFact(domain.fact_offset, v);
-    r_domain->is_goal[f] = true;
-    r_domain->goal.push_back(f);
-  }
-
-}
-
-} // namespace rwls
+} // namespace pplanner

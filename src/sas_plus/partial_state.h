@@ -21,6 +21,8 @@ class PartialState {
 
   bool IsSubset(const std::vector<int> &state) const;
 
+  void Copy(std::vector<std::pair<int, int> > &v) const;
+
   void Dump() const;
 
   const int* vars_data() const { return vars_.data(); }

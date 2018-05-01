@@ -25,6 +25,13 @@ bool PartialState::IsSubset(const vector<int> &state) const {
   return true;
 }
 
+void PartialState::Copy(vector<pair<int, int> > &v) const {
+  for (int i=0, n=size(); i<n; ++i) {
+    v.first = vars_[i];
+    v.second = values_[i];
+  }
+}
+
 void PartialState::Dump() const {
   int n = static_cast<int>(size());
   std::cout << n << " assignments" << std::endl;

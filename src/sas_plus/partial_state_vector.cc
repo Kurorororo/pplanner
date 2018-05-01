@@ -7,6 +7,21 @@ using std::vector;
 
 namespace pplanner {
 
+void PartialStateVector::Copy(int i, vector<pair<int, int> > &v) const {
+  size_t size = SizeOfPartialState(i);
+  v.resize(size);
+
+  auto var_iter = VarsBegin(i);
+  auto value_iter = ValuesBegin(i);
+
+  for (auto &p : v) {
+    p.first = *var_iter;
+    p.second = *value_iter;
+    ++var_iter;
+    ++value_iter;
+  }
+}
+
 void PartialStateVector::Add(const vector<pair<int, int> > &v) {
   size_t size = v.size();
 

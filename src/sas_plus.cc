@@ -76,22 +76,6 @@ void SASPlus::InitFromLines(queue<string> &lines) {
     ParseAxiom(lines);
 }
 
-void SASPlus::CopyPrecondition(int i, vector<pair<int, int> > &precondition)
-  const {
-  size_t size = preconditions_->SizeOfPartialState(i);
-  precondition.resize(size);
-
-  auto var_iter = preconditions_->VarsBegin(i);
-  auto value_iter = preconditions_->ValuesBegin(i);
-
-  for (auto &p : precondition) {
-    p.first = *var_iter;
-    p.second = *value_iter;
-    ++var_iter;
-    ++value_iter;
-  }
-}
-
 void SASPlus::Dump() const {
   assert(facts_ != nullptr);
   assert(mutex_groups_ != nullptr);
