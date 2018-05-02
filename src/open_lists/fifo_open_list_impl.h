@@ -4,18 +4,18 @@
 #include <map>
 #include <deque>
 
-#include "open_list/open_list_impl.h"
+#include "open_lists/open_list_impl.h"
 
 namespace pplanner {
 
-class FIFOOpenListImpl : OpenListImpl {
+class FIFOOpenListImpl : public OpenListImpl {
  public:
   FIFOOpenListImpl() : size_(0) {}
 
   ~FIFOOpenListImpl() {}
 
-  void Push(std::vector<int> values, int node) override {
-    buckets_[value].push_back(node);
+  void Push(const std::vector<int> &values, int node) override {
+    buckets_[values].push_back(node);
     ++size_;
   }
 
@@ -34,7 +34,7 @@ class FIFOOpenListImpl : OpenListImpl {
 
  private:
   size_t size_;
-  std::map<int, std::deque<int> > buckets_;
+  std::map<std::vector<int>, std::deque<int> > buckets_;
 };
 
 } // namespace pplanner

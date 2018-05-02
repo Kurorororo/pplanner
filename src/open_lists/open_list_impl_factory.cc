@@ -1,10 +1,10 @@
-#include "open_list/open_list_impl.h"
+#include "open_lists/open_list_impl_factory.h"
 
 namespace pplanner {
 
 std::unique_ptr<OpenListImpl> OpenListImplFactory(
     const std::string &tie_breaking) {
-  return std::make_unique<FIFOOpenListImpl>();
+  return std::unique_ptr<FIFOOpenListImpl>(new FIFOOpenListImpl());
 }
 
 } // namespace pplanner

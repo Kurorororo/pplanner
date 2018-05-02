@@ -2,8 +2,8 @@
 
 namespace pplanner {
 
-int PreferredOpenList::Push(const std::vector<int> &state, int node,
-                            bool preferred) {
+int PreferredOpenList::EvaluateAndPush(const std::vector<int> &state, int node,
+                                       bool preferred) {
   values_.clear();
 
   for (auto evaluator : evaluators_)
@@ -15,7 +15,7 @@ int PreferredOpenList::Push(const std::vector<int> &state, int node,
 }
 
 int PreferredOpenList::Pop() {
-  if (lists_[0]->IsEmpty && lists_[1]->IsEmpty()) return -1;
+  if (lists_[0]->IsEmpty() && lists_[1]->IsEmpty()) return -1;
 
   if (lists_[0]->IsEmpty()) {
     --priorities_[1];

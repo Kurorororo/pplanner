@@ -46,7 +46,7 @@ void StateVector::Close(int node) {
   closed_[i] = node;
 }
 
-bool StateVector::IsClosed(const std::vector<int> &state) const {
+int StateVector::GetClosed(const std::vector<int> &state) const {
   packer_->Pack(state, tmp_packed_.data());
   size_t i = hash_->operator()(tmp_packed_) & closed_mask_;
   size_t b_size = packer_->block_size();
@@ -62,11 +62,11 @@ bool StateVector::IsClosed(const std::vector<int> &state) const {
       }
     }
 
-    if (all) return true;
+    if (all) return closed_[i];
     i = (i == closed_.size() - 1) ? 0 : i + 1;
   }
 
-  return false;
+  return -1;
 }
 
 } // namespace pplanner

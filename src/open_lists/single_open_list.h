@@ -1,7 +1,6 @@
 #ifndef SINGLE_OPEN_LIST_H_
 #define SINGLE_OPEN_LIST_H_
 
-
 #include <memory>
 #include <string>
 #include <vector>
@@ -13,28 +12,41 @@
 
 namespace pplanner {
 
-class SingleOpenList : OpenList {
+class SingleOpenList : public OpenList {
  public:
-  SingleOpenList() : list_(nullptr), evaluators_(nullptr) {};
+  SingleOpenList() : list_(nullptr) {}
 
   explicit SingleOpenList(const std::string &tie_breaking)
-      : list_(OpenListImplFactory(tie_breaking)), evaluators_(nullptr) {}
+      : list_(OpenListImplFactory(tie_breaking)) {}
 
   SingleOpenList(const std::string &tie_breaking,
                  const std::vector<std::shared_ptr<Evaluator> > &evaluators)
       : list_(OpenListImplFactory(tie_breaking)), evaluators_(evaluators) {}
 
-  ~SingleOpenList();
+  ~SingleOpenList() {}
 
-  void Push(const vector<int> &values, int node, bool preferred) override {
-    list_->Push(values, node, preferred);
+  void Push(const std::vector<int> &values, int node, bool preferred) override {
+    assert(list_ != nullptr);
+
+    list_->Push(values, node);
   }
 
-  int Push(const std::vector<int> &state, int node, bool preferred) override;
+  int EvaluateAndPush(const std::vector<int> &state, int node, bool preferred)
+    override;
 
-  int Pop() override { return list_->Pop(); }
+  int Pop() override {
+    assert(list_ != nullptr);
 
-  bool IsEmpty() const override { return list_->IsEmpty(); }
+    return list_->Pop();
+  }
+
+  bool IsEmpty() const override {
+    assert(list_ != nullptr);
+
+    return list_->IsEmpty();
+  }
+
+  void Boost() override {}
 
  private:
   std::vector<int> values_;

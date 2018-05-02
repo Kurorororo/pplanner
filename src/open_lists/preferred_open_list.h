@@ -1,6 +1,7 @@
 #ifndef PREFERRED_OPEN_LIST_H_
 #define PREFERRED_OPEN_LIST_H_
 
+#include <array>
 #include <memory>
 #include <string>
 #include <vector>
@@ -12,24 +13,27 @@
 
 namespace pplanner {
 
-class PreferredOpenList : OpenList {
+class PreferredOpenList : public OpenList {
  public:
-  PreferredOpenList() : boost_(1000), evaluators_(nullptr) {}
+  PreferredOpenList() : boost_(1000) {}
 
-  PreferredOpenList(const std::string &tie_breaking, boost=1000)
-      : boost_(boost), evaluators_(nullptr) { Init(tie_breaking); }
+  PreferredOpenList(const std::string &tie_breaking, int boost=1000)
+      : boost_(boost) { Init(tie_breaking); }
 
   PreferredOpenList(const std::string &tie_breaking,
-                    const std::vector<std::string> &evaluators,
-                    boost=1000)
+                    const std::vector<std::shared_ptr<Evaluator> > &evaluators,
+                    int boost=1000)
       : boost_(boost), evaluators_(evaluators) { Init(tie_breaking); }
+
+  ~PreferredOpenList() {}
 
   void Push(const std::vector<int> &values, int node, bool preferred) override {
     lists_[0]->Push(values, node);
     if (preferred) lists_[1]->Push(values, node);
   }
 
-  int Push(const std::vector<int> &state, int node, bool preferred) override;
+  int EvaluateAndPush(const std::vector<int> &state, int node, bool preferred)
+    override;
 
   int Pop() override;
 
@@ -49,6 +53,7 @@ class PreferredOpenList : OpenList {
   }
 
   int boost_;
+  std::vector<int> values_;
   std::array<int, 2> priorities_;
   std::array<std::unique_ptr<OpenListImpl>, 2> lists_;
   std::vector<std::shared_ptr<Evaluator> > evaluators_;

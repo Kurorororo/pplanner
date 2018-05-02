@@ -1,86 +1,82 @@
-#include "search_graph.h"
+#include "open_lists/single_open_list.h"
 
-#include <cstdio>
-
+#include <memory>
 #include <queue>
-#include <string>
 #include <vector>
 
 #include "gtest/gtest.h"
+
+#include "evaluator.h"
+#include "sas_plus.h"
+#include "search_graph.h"
+#include "heuristics/blind.h"
 
 namespace pplanner {
 
 std::queue<std::string> ExampleSASPlusLines();
 
-class SearchGraphTest : public ::testing::Test {
+class SingleOpenListTest: public ::testing::Test {
  protected:
   virtual void SetUp() {
+    list_0_ = std::unique_ptr<SingleOpenList>(new SingleOpenList("fifo"));
+
+    std::vector<std::shared_ptr<Evaluator> > evaluators;
     auto lines = ExampleSASPlusLines();
-    SASPlus sas_0;
-    sas_0.InitFromLines(lines);
-    graph_0_ = SearchGraph(sas_0);
-    state_0_ = std::vector<int>{0, 1, 0};
-    state_1_ = std::vector<int>{0, 0, 0};
+    auto sas = std::make_shared<SASPlus>();
+    sas->InitFromLines(lines);
+    auto graph = std::make_shared<SearchGraph>(*sas);
+    evaluators.push_back(std::make_shared<Blind>(sas, graph));
+    list_1_ = std::unique_ptr<SingleOpenList>(
+       new  SingleOpenList("fifo", evaluators));
+
+    state_ = sas->initial();
   }
 
-  SearchGraph graph_0_;
-  std::vector<int> state_0_;
-  std::vector<int> state_1_;
+  std::unique_ptr<SingleOpenList> list_0_;
+  std::unique_ptr<SingleOpenList> list_1_;
+  std::vector<int> state_;
 };
 
-TEST_F(SearchGraphTest, GenerateNodeTest) {
-  int node = graph_0_.GenerateNode(state_0_, -1, -1);
+TEST_F(SingleOpenListTest, IsEmptyWorks) {
+  EXPECT_TRUE(list_0_->IsEmpty());
+  EXPECT_TRUE(list_1_->IsEmpty());
+}
+
+TEST_F(SingleOpenListTest, PushWorks) {
+  int node = 0;
+  std::vector<int> values{0, 1, 2};
+  list_0_->Push(values, node, false);
+  EXPECT_FALSE(list_0_->IsEmpty());
+}
+
+TEST_F(SingleOpenListTest, EvaluateAndPushWorks) {
+  int node = 0;
+  list_1_->Push(state_, node, false);
+  EXPECT_FALSE(list_1_->IsEmpty());
+}
+
+TEST_F(SingleOpenListTest, PopWorks) {
+  int node = 0;
+  std::vector<int> values{0, 1, 2};
+  list_0_->Push(values, node, false);
+  node = 1;
+  values[0] = 1;
+  list_0_->Push(values, node, false);
+  values[1] = 0;
+  node = 2;
+  list_0_->Push(values, node, false);
+  values[0] = 0;
+  node = 3;
+  list_0_->Push(values, node, false);
+
+  node = list_0_->Pop();
+  EXPECT_EQ(3, node);
+  node = list_0_->Pop();
   EXPECT_EQ(0, node);
-  node = graph_0_.GenerateNode(state_1_, node, 4);
+  node = list_0_->Pop();
+  EXPECT_EQ(2, node);
+  node = list_0_->Pop();
   EXPECT_EQ(1, node);
-}
-
-TEST_F(SearchGraphTest, ActionTest) {
-  int node = graph_0_.GenerateNode(state_0_, -1, -1);
-  EXPECT_EQ(-1, graph_0_.Action(node));
-  node = graph_0_.GenerateNode(state_1_, node, 4);
-  EXPECT_EQ(4, graph_0_.Action(node));
-}
-
-TEST_F(SearchGraphTest, ParentTest) {
-  int node = graph_0_.GenerateNode(state_0_, -1, -1);
-  EXPECT_EQ(-1, graph_0_.Parent(node));
-  node = graph_0_.GenerateNode(state_1_, node, 4);
-  EXPECT_EQ(0, graph_0_.Parent(node));
-}
-
-TEST_F(SearchGraphTest, CloseWokrs) {
-  ASSERT_EQ(-1, graph_0_.GetClosed(state_0_));
-  int node = graph_0_.GenerateNode(state_0_, -1, -1);
-  graph_0_.Close(node);
-  EXPECT_EQ(node, graph_0_.GetClosed(state_0_));
-}
-
-TEST_F(SearchGraphTest, StateWorks) {
-  int node = graph_0_.GenerateNode(state_0_, -1, -1);
-  std::vector<int> tmp_state(state_0_.size());
-  graph_0_.State(node, tmp_state);
-  EXPECT_EQ(state_0_, tmp_state);
-  node = graph_0_.GenerateNode(state_1_, node, 4);
-  graph_0_.State(node, tmp_state);
-  EXPECT_EQ(state_1_, tmp_state);
-}
-
-TEST_F(SearchGraphTest, ExtractPathWorks) {
-  int node = graph_0_.GenerateNode(state_0_, -1, -1);
-  node = graph_0_.GenerateNode(state_1_, node, 4);
-  std::vector<int> tmp_state(state_1_);
-  tmp_state[0] = 1;
-  tmp_state[3] = 2;
-  node = graph_0_.GenerateNode(tmp_state, node, 2);
-  tmp_state[1] = 0;
-  tmp_state[3] = 1;
-  node = graph_0_.GenerateNode(tmp_state, node, 1);
-  auto result = ExtractPath(graph_0_, node);
-  ASSERT_EQ(3, result.size());
-  EXPECT_EQ(4, result[0]);
-  EXPECT_EQ(2, result[1]);
-  EXPECT_EQ(1, result[2]);
 }
 
 std::queue<std::string> ExampleSASPlusLines() {

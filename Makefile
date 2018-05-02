@@ -138,6 +138,88 @@ $(BIN_DIR)/test_search_graph: \
 		$(BIN_DIR)/libsas_plus.a \
 		$(BIN_DIR)/libsearch_graph.a
 
+$(BIN_DIR)/heuristics/test_blind: \
+	$(TEST_DIR)/heuristics/test_blind.cc \
+	$(BIN_DIR)/heuristics/blind.o \
+	$(BIN_DIR)/evaluator.o \
+	$(BIN_DIR)/libsas_plus.a \
+	$(BIN_DIR)/libsearch_graph.a
+	$(CXX) $(INCS) $(TEST_FLAG) -o $(BIN_DIR)/heuristics/test_blind \
+		$(TEST_DIR)/heuristics/test_blind.cc \
+		$(BIN_DIR)/heuristics/blind.o \
+		$(BIN_DIR)/evaluator.o \
+		$(BIN_DIR)/libsas_plus.a \
+		$(BIN_DIR)/libsearch_graph.a
+
+$(BIN_DIR)/open_lists/test_fifo_open_list_impl: \
+	$(TEST_DIR)/open_lists/test_fifo_open_list_impl.cc \
+	$(BIN_DIR)/open_lists/open_list_impl.o
+	$(CXX) $(INCS) $(TEST_FLAG) -o $(BIN_DIR)/open_lists/test_fifo_open_lists_impl \
+		$(TEST_DIR)/open_lists/test_fifo_open_list_impl.cc \
+		$(BIN_DIR)/open_lists/open_list_impl.o
+
+$(BIN_DIR)/open_lists/test_open_list_impl_factory: \
+	$(TEST_DIR)/open_lists/test_open_list_impl_factory.cc \
+	$(BIN_DIR)/open_lists/open_list_impl_factory.o
+	$(CXX) $(INCS) $(TEST_FLAG) -o $(BIN_DIR)/open_lists/test_open_list_impl_factory \
+		$(TEST_DIR)/open_lists/test_open_list_impl_factory.cc \
+		$(BIN_DIR)/open_lists/open_list_impl_factory.o
+
+$(BIN_DIR)/open_lists/test_single_open_list: \
+	$(TEST_DIR)/open_lists/test_single_open_list.cc \
+	$(BIN_DIR)/open_lists/single_open_list.o \
+	$(BIN_DIR)/open_lists/open_list_impl_factory.o \
+	$(BIN_DIR)/open_lists/open_list_impl.o \
+	$(BIN_DIR)/heuristics/blind.o \
+	$(BIN_DIR)/evaluator.o \
+	$(BIN_DIR)/open_list.o \
+	$(BIN_DIR)/libsas_plus.a \
+	$(BIN_DIR)/libsearch_graph.a
+	$(CXX) $(INCS) $(TEST_FLAG) -o $(BIN_DIR)/open_lists/test_single_open_list \
+		$(TEST_DIR)/open_lists/test_single_open_list.cc \
+		$(BIN_DIR)/open_lists/single_open_list.o \
+		$(BIN_DIR)/open_lists/open_list_impl_factory.o \
+		$(BIN_DIR)/open_lists/open_list_impl.o \
+		$(BIN_DIR)/heuristics/blind.o \
+		$(BIN_DIR)/evaluator.o \
+		$(BIN_DIR)/open_list.o \
+		$(BIN_DIR)/libsas_plus.a \
+		$(BIN_DIR)/libsearch_graph.a
+
+$(BIN_DIR)/open_lists/test_preferred_open_list: \
+	$(TEST_DIR)/open_lists/test_preferred_open_list.cc \
+	$(BIN_DIR)/open_lists/preferred_open_list.o \
+	$(BIN_DIR)/open_lists/open_list_impl_factory.o \
+	$(BIN_DIR)/open_lists/open_list_impl.o \
+	$(BIN_DIR)/heuristics/blind.o \
+	$(BIN_DIR)/evaluator.o \
+	$(BIN_DIR)/open_list.o \
+	$(BIN_DIR)/libsas_plus.a \
+	$(BIN_DIR)/libsearch_graph.a
+	$(CXX) $(INCS) $(TEST_FLAG) -o $(BIN_DIR)/open_lists/test_preferred_open_list \
+		$(TEST_DIR)/open_lists/test_preferred_open_list.cc \
+		$(BIN_DIR)/open_lists/preferred_open_list.o \
+		$(BIN_DIR)/open_lists/open_list_impl_factory.o \
+		$(BIN_DIR)/open_lists/open_list_impl.o \
+		$(BIN_DIR)/heuristics/blind.o \
+		$(BIN_DIR)/evaluator.o \
+		$(BIN_DIR)/open_list.o \
+		$(BIN_DIR)/libsas_plus.a \
+		$(BIN_DIR)/libsearch_graph.a
+
+$(BIN_DIR)/libopen_lists.a : \
+	$(BIN_DIR)/open_list.o \
+	$(BIN_DIR)/open_lists/single_open_list.o \
+	$(BIN_DIR)/open_lists/preferred_open_list.o \
+	$(BIN_DIR)/open_lists/open_list_impl_factory.o \
+	$(BIN_DIR)/open_lists/open_list_impl.o
+	ar rcs $(BIN_DIR)/libopen_lists.a \
+		$(BIN_DIR)/open_list.o \
+		$(BIN_DIR)/open_lists/single_open_list.o \
+		$(BIN_DIR)/open_lists/preferred_open_list.o \
+		$(BIN_DIR)/open_lists/open_list_impl_factory.o \
+		$(BIN_DIR)/open_lists/open_list_impl.o
+
 sas_parser: \
 	$(TEST_DIR)/sas_parser.cc \
 	$(BIN_DIR)/utils/file_utils.o \

@@ -99,28 +99,28 @@ TEST_F(StateVectorTest, CloseWorks) {
   EXPECT_GE(vector_2_.closed_size(), 4);
 }
 
-TEST_F(StateVectorTest, IsClosedWorks) {
-  EXPECT_FALSE(vector_0_.IsClosed(state_0_));
+TEST_F(StateVectorTest, GetClosedWorks) {
+  EXPECT_EQ(-1, vector_0_.GetClosed(state_0_));
   int i = vector_0_.Add(state_0_);
   vector_0_.Close(i);
-  EXPECT_TRUE(vector_0_.IsClosed(state_0_));
+  EXPECT_EQ(i, vector_0_.GetClosed(state_0_));
   std::vector<int> tmp_state_0(state_0_);
   tmp_state_0[1] = 1;
-  EXPECT_FALSE(vector_0_.IsClosed(tmp_state_0));
+  EXPECT_EQ(-1, vector_0_.GetClosed(tmp_state_0));
   i = vector_0_.Add(tmp_state_0);
   vector_0_.Close(i);
-  EXPECT_TRUE(vector_0_.IsClosed(tmp_state_0));
+  EXPECT_EQ(i, vector_0_.GetClosed(tmp_state_0));
 
-  EXPECT_FALSE(vector_1_.IsClosed(state_1_));
+  EXPECT_EQ(-1, vector_1_.GetClosed(state_1_));
   i = vector_1_.Add(state_1_);
   vector_1_.Close(i);
-  EXPECT_TRUE(vector_1_.IsClosed(state_1_));
+  EXPECT_EQ(i, vector_1_.GetClosed(state_1_));
   std::vector<int> tmp_state_1(state_1_);
   tmp_state_1[1] = 1;
-  EXPECT_FALSE(vector_1_.IsClosed(tmp_state_1));
+  EXPECT_EQ(-1, vector_1_.GetClosed(tmp_state_1));
   i = vector_1_.Add(tmp_state_1);
   vector_1_.Close(i);
-  EXPECT_TRUE(vector_1_.IsClosed(tmp_state_1));
+  EXPECT_EQ(i, vector_1_.GetClosed(tmp_state_1));
 }
 
 std::queue<std::string> ExampleSASPlusLines() {

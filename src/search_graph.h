@@ -48,8 +48,8 @@ class SearchGraph {
 
   void Close(int node) { states_->Close(node); }
 
-  bool IsClosed(const std::vector<int> &state) const {
-    return states_->IsClosed(state);
+  int GetClosed(const std::vector<int> &state) const {
+    return states_->GetClosed(state);
   }
 
   void State(int i, std::vector<int> &state) const {

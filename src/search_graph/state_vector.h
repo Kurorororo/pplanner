@@ -56,7 +56,7 @@ class StateVector {
 
   void Close(int node);
 
-  bool IsClosed(const std::vector<int> &state) const;
+  int GetClosed(const std::vector<int> &state) const;
 
  private:
   void InitClosed() {

@@ -2,9 +2,12 @@
 #define BLIND_H_
 
 #include <memory>
+#include <unordered_set>
 #include <vector>
 
 #include "evaluator.h"
+#include "sas_plus.h"
+#include "search_graph.h"
 
 namespace pplanner {
 
@@ -19,9 +22,15 @@ class Blind : public Evaluator {
   ~Blind() {}
 
   int Evaluate(const std::vector<int> &state, int node) override {
-    if (probelm_->IsGoal(state)) return 0;
+    if (problem_->IsGoal(state)) return 0;
 
     return cheapest_;
+  }
+
+  int Evaluate(const std::vector<int> &state, int node,
+               const std::vector<int> &applicable,
+               std::unordered_set<int> &preferred) override {
+    return Evaluate(state, node);
   }
 
  private:

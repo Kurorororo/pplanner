@@ -1,86 +1,52 @@
-#include "search_graph.h"
+#include "heuristics/blind.h"
 
-#include <cstdio>
-
-#include <queue>
-#include <string>
+#include <memory>
+#include <unordered_set>
 #include <vector>
 
 #include "gtest/gtest.h"
+
+#include "sas_plus.h"
+#include "search_graph.h"
 
 namespace pplanner {
 
 std::queue<std::string> ExampleSASPlusLines();
 
-class SearchGraphTest : public ::testing::Test {
+class BlindTest : public ::testing::Test {
  protected:
   virtual void SetUp() {
     auto lines = ExampleSASPlusLines();
-    SASPlus sas_0;
-    sas_0.InitFromLines(lines);
-    graph_0_ = SearchGraph(sas_0);
-    state_0_ = std::vector<int>{0, 1, 0};
-    state_1_ = std::vector<int>{0, 0, 0};
+    auto sas = std::make_shared<SASPlus>();
+    sas->InitFromLines(lines);
+    auto graph = std::make_shared<SearchGraph>(*sas);
+    blind_ = Blind(sas, graph);
+
+    state = sas->initial();
   }
 
-  SearchGraph graph_0_;
-  std::vector<int> state_0_;
-  std::vector<int> state_1_;
+  Blind blind_;
+  std::vector<int> state;
+  std::vector<int> applicable;
+  std::unordered_set<int> preferred;
 };
 
-TEST_F(SearchGraphTest, GenerateNodeTest) {
-  int node = graph_0_.GenerateNode(state_0_, -1, -1);
-  EXPECT_EQ(0, node);
-  node = graph_0_.GenerateNode(state_1_, node, 4);
-  EXPECT_EQ(1, node);
-}
-
-TEST_F(SearchGraphTest, ActionTest) {
-  int node = graph_0_.GenerateNode(state_0_, -1, -1);
-  EXPECT_EQ(-1, graph_0_.Action(node));
-  node = graph_0_.GenerateNode(state_1_, node, 4);
-  EXPECT_EQ(4, graph_0_.Action(node));
-}
-
-TEST_F(SearchGraphTest, ParentTest) {
-  int node = graph_0_.GenerateNode(state_0_, -1, -1);
-  EXPECT_EQ(-1, graph_0_.Parent(node));
-  node = graph_0_.GenerateNode(state_1_, node, 4);
-  EXPECT_EQ(0, graph_0_.Parent(node));
-}
-
-TEST_F(SearchGraphTest, CloseWokrs) {
-  ASSERT_EQ(-1, graph_0_.GetClosed(state_0_));
-  int node = graph_0_.GenerateNode(state_0_, -1, -1);
-  graph_0_.Close(node);
-  EXPECT_EQ(node, graph_0_.GetClosed(state_0_));
-}
-
-TEST_F(SearchGraphTest, StateWorks) {
-  int node = graph_0_.GenerateNode(state_0_, -1, -1);
-  std::vector<int> tmp_state(state_0_.size());
-  graph_0_.State(node, tmp_state);
-  EXPECT_EQ(state_0_, tmp_state);
-  node = graph_0_.GenerateNode(state_1_, node, 4);
-  graph_0_.State(node, tmp_state);
-  EXPECT_EQ(state_1_, tmp_state);
-}
-
-TEST_F(SearchGraphTest, ExtractPathWorks) {
-  int node = graph_0_.GenerateNode(state_0_, -1, -1);
-  node = graph_0_.GenerateNode(state_1_, node, 4);
-  std::vector<int> tmp_state(state_1_);
-  tmp_state[0] = 1;
-  tmp_state[3] = 2;
-  node = graph_0_.GenerateNode(tmp_state, node, 2);
-  tmp_state[1] = 0;
-  tmp_state[3] = 1;
-  node = graph_0_.GenerateNode(tmp_state, node, 1);
-  auto result = ExtractPath(graph_0_, node);
-  ASSERT_EQ(3, result.size());
-  EXPECT_EQ(4, result[0]);
-  EXPECT_EQ(2, result[1]);
-  EXPECT_EQ(1, result[2]);
+TEST_F(BlindTest, EvaluateWorks) {
+  int h = blind_.Evaluate(state, 0);
+  EXPECT_EQ(1, h);
+  blind_.Evaluate(state, 0, applicable, preferred);
+  EXPECT_TRUE(preferred.empty());
+  state[1] = 0;
+  h = blind_.Evaluate(state, 0);
+  EXPECT_EQ(1, h);
+  state[0] = 1;
+  state[2] = 2;
+  h = blind_.Evaluate(state, 0);
+  EXPECT_EQ(1, h);
+  state[1] = 1;
+  state[2] = 1;
+  h = blind_.Evaluate(state, 0);
+  EXPECT_EQ(0, h);
 }
 
 std::queue<std::string> ExampleSASPlusLines() {

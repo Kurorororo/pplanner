@@ -1,6 +1,8 @@
 #ifndef OPEN_LIST_H_
 #define OPEN_LIST_H_
 
+#include <vector>
+
 namespace pplanner {
 
 class OpenList {
@@ -10,7 +12,8 @@ class OpenList {
   virtual void Push(const std::vector<int> &values, int node, bool preferred)
     = 0;
 
-  virtual int Push(const std::vector<int> &state, int node, bool preferred) = 0;
+  virtual int EvaluateAndPush(const std::vector<int> &state, int node,
+                              bool preferred) = 0;
 
   virtual int Pop() = 0;
 

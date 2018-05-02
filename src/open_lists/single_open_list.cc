@@ -2,12 +2,12 @@
 
 #include <vector>
 
-#include "evaluator_factory.h"
-
 namespace pplanner {
 
-int SingleOpenList::Push(const vector<int> &state, int node, bool preferred)
-  override {
+using std::vector;
+
+int SingleOpenList::EvaluateAndPush(const vector<int> &state, int node,
+                                    bool preferred) {
   assert(evaluators_ != nullptr);
 
   values_.clear();

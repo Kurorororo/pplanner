@@ -2,6 +2,7 @@
 
 namespace pplanner {
 
+using std::unordered_set;
 using std::vector;
 
 int RPGTable::PlanCost(const vector<int> &state) {
@@ -18,6 +19,18 @@ int RPGTable::PlanCost(const vector<int> &state) {
 
   for (int i=0, n=plan_set_.size(); i<n; ++i)
     if (plan_set_[i]) h += problem_->ActionCosts(i);
+
+  return h;
+}
+
+int RPGTable::PlanCost(const vector<int> &state, const vector<int> &applicable,
+                       unordered_set<int> &helpful) {
+  int h = PlanCost(state);
+
+  preferred.clear();
+
+  for (auto a : applicable)
+    if (plan_set_[a]) preferred.insert(a);
 
   return h;
 }
