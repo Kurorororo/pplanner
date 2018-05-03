@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <queue>
 #include <string>
+#include <unordered_set>
+#include <vector>
 
 #include "gtest/gtest.h"
 
@@ -65,6 +67,128 @@ TEST_F(RPGTableTest, AdditiveCostWorks) {
   state = {1, 1, 1};
   StateToFactVector(sas_, state, facts);
   EXPECT_EQ(0, table_1_.AdditiveCost(facts));
+}
+
+TEST_F(RPGTableTest, PlanCostWorks) {
+  std::vector<int> state{0, 1, 0};
+  std::vector<int> facts;
+  StateToFactVector(sas_, state, facts);
+  int h = table_0_.PlanCost(facts);
+  EXPECT_LT(0, h);
+  EXPECT_GE(table_0_.AdditiveCost(facts), h);
+  state = {0, 0, 2};
+  StateToFactVector(sas_, state, facts);
+  h = table_0_.PlanCost(facts);
+  EXPECT_LT(0, h);
+  EXPECT_GE(table_0_.AdditiveCost(facts), h);
+  state = {1, 1, 0};
+  StateToFactVector(sas_, state, facts);
+  h = table_0_.PlanCost(facts);
+  EXPECT_LT(0, h);
+  EXPECT_GE(table_0_.AdditiveCost(facts), h);
+  state = {1, 0, 2};
+  StateToFactVector(sas_, state, facts);
+  h = table_0_.PlanCost(facts);
+  EXPECT_LT(0, h);
+  EXPECT_GE(table_0_.AdditiveCost(facts), h);
+  state = {1, 1, 1};
+  StateToFactVector(sas_, state, facts);
+  h = table_0_.PlanCost(facts);
+  EXPECT_EQ(0, h);
+
+  state = {0, 1, 0};
+  StateToFactVector(sas_, state, facts);
+  h = table_1_.PlanCost(facts);
+  EXPECT_LT(0, h);
+  EXPECT_GE(table_1_.AdditiveCost(facts), h);
+  state = {0, 0, 2};
+  StateToFactVector(sas_, state, facts);
+  h = table_1_.PlanCost(facts);
+  EXPECT_LT(0, h);
+  EXPECT_GE(table_1_.AdditiveCost(facts), h);
+  state = {1, 1, 0};
+  StateToFactVector(sas_, state, facts);
+  h = table_1_.PlanCost(facts);
+  EXPECT_LT(0, h);
+  EXPECT_GE(table_1_.AdditiveCost(facts), h);
+  state = {1, 0, 2};
+  StateToFactVector(sas_, state, facts);
+  h = table_1_.PlanCost(facts);
+  EXPECT_LT(0, h);
+  EXPECT_GE(table_1_.AdditiveCost(facts), h);
+  state = {1, 1, 1};
+  StateToFactVector(sas_, state, facts);
+  h = table_1_.PlanCost(facts);
+  EXPECT_EQ(0, h);
+}
+
+TEST_F(RPGTableTest, PlanCostWithHelpfulWorks) {
+  std::vector<int> state;
+  std::vector<int> facts;
+  std::vector<int> applicable;
+  std::unordered_set<int> helpful;
+
+  state = {0, 1, 0};
+  applicable = {2, 4};
+  StateToFactVector(sas_, state, facts);
+  int h = table_0_.PlanCost(facts, applicable, helpful);
+  EXPECT_LT(0, h);
+  EXPECT_GE(table_0_.AdditiveCost(facts), h);
+  EXPECT_FALSE(helpful.empty());
+
+  state = {0, 0, 2};
+  applicable = {0, 2};
+  StateToFactVector(sas_, state, facts);
+  h = table_0_.PlanCost(facts, applicable, helpful);
+  EXPECT_LT(0, h);
+  EXPECT_GE(table_0_.AdditiveCost(facts), h);
+  EXPECT_FALSE(helpful.empty());
+
+  state = {1, 0, 2};
+  applicable = {1, 3};
+  StateToFactVector(sas_, state, facts);
+  h = table_0_.PlanCost(facts, applicable, helpful);
+  EXPECT_LT(0, h);
+  EXPECT_GE(table_0_.AdditiveCost(facts), h);
+  EXPECT_FALSE(helpful.empty());
+
+  state = {1, 1, 1};
+  applicable = {3, 5, 6};
+  StateToFactVector(sas_, state, facts);
+  h = table_0_.PlanCost(facts, applicable, helpful);
+  EXPECT_EQ(0, h);
+  EXPECT_TRUE(helpful.empty());
+
+  state = {0, 1, 0};
+  applicable = {2, 4};
+  StateToFactVector(sas_, state, facts);
+  h = table_1_.PlanCost(facts, applicable, helpful);
+  EXPECT_LT(0, h);
+  EXPECT_GE(table_1_.AdditiveCost(facts), h);
+  EXPECT_FALSE(helpful.empty());
+
+  state = {0, 0, 2};
+  applicable = {0, 2};
+  StateToFactVector(sas_, state, facts);
+  h = table_1_.PlanCost(facts, applicable, helpful);
+  EXPECT_LT(0, h);
+  EXPECT_GE(table_1_.AdditiveCost(facts), h);
+  EXPECT_FALSE(helpful.empty());
+
+  state = {1, 0, 2};
+  applicable = {1, 3};
+  StateToFactVector(sas_, state, facts);
+  h = table_1_.PlanCost(facts, applicable, helpful);
+  EXPECT_LT(0, h);
+  EXPECT_GE(table_1_.AdditiveCost(facts), h);
+  EXPECT_FALSE(helpful.empty());
+
+  state = {1, 1, 1};
+  applicable = {3, 5};
+  StateToFactVector(sas_, state, facts);
+  h = table_1_.PlanCost(facts, applicable, helpful);
+  EXPECT_EQ(0, h);
+  EXPECT_TRUE(helpful.empty());
 }
 
 std::queue<std::string> ExampleSASPlusLines() {

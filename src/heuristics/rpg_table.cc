@@ -9,11 +9,11 @@ int RPGTable::PlanCost(const vector<int> &state) {
   int additive_h = AdditiveCost(state);
   if (additive_h == -1) return -1;
 
+  std::fill(plan_set_.begin(), plan_set_.end(), false);
+  std::fill(marked_.begin(), marked_.end(), false);
+
   for (auto g : problem_->goal())
     SetPlan(g);
-
-  std::fill(marked_.begin(), marked_.end(), false);
-  std::fill(plan_set_.begin(), plan_set_.end(), false);
 
   int h = 0;
 
