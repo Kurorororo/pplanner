@@ -88,6 +88,30 @@ TEST_F(RelaxedSASPlusTest, ActionIdWorks) {
   //EXPECT_EQ(5, r_sas_1_.ActionId(9));
 }
 
+TEST_F(RelaxedSASPlusTest, IdToActionsWorks) {
+  auto actions = r_sas_0_.IdToActions(0);
+  std::sort(actions.begin(), actions.end());
+  EXPECT_EQ(std::vector<int>({0, 1}), actions);
+  actions = r_sas_0_.IdToActions(1);
+  std::sort(actions.begin(), actions.end());
+  EXPECT_EQ(std::vector<int>({2, 3}), actions);
+  actions = r_sas_0_.IdToActions(2);
+  std::sort(actions.begin(), actions.end());
+  EXPECT_EQ(std::vector<int>({4}), actions);
+  actions = r_sas_0_.IdToActions(3);
+  std::sort(actions.begin(), actions.end());
+  EXPECT_EQ(std::vector<int>({5}), actions);
+  actions = r_sas_0_.IdToActions(4);
+  std::sort(actions.begin(), actions.end());
+  EXPECT_EQ(std::vector<int>({6, 7}), actions);
+  actions = r_sas_0_.IdToActions(5);
+  std::sort(actions.begin(), actions.end());
+  EXPECT_EQ(std::vector<int>({8, 9}), actions);
+  actions = r_sas_0_.IdToActions(6);
+  std::sort(actions.begin(), actions.end());
+  EXPECT_EQ(std::vector<int>({10}), actions);
+}
+
 TEST_F(RelaxedSASPlusTest, ActionCostWorks) {
   EXPECT_EQ(1, r_sas_0_.ActionCost(0));
   EXPECT_EQ(1, r_sas_0_.ActionCost(1));

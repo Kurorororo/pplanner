@@ -197,6 +197,20 @@ $(BIN_DIR)/heuristics/test_ff_add: \
 		$(BIN_DIR)/heuristics/relaxed_sas_plus.o \
 		$(BIN_DIR)/libsas_plus.a
 
+$(BIN_DIR)/heuristics/sas_relaxed_graphplan: \
+	$(TEST_DIR)/heuristics/sas_relaxed_graphplan.cc \
+	$(BIN_DIR)/heuristics/rpg.o \
+	$(BIN_DIR)/heuristics/relaxed_sas_plus.o \
+	$(BIN_DIR)/utils/file_utils.o \
+	$(BIN_DIR)/libsas_plus.a
+	$(CXX) $(INCS) $(TEST_FLAG) -o $(BIN_DIR)/heuristics/sas_relaxed_graphplan \
+		$(TEST_DIR)/heuristics/sas_relaxed_graphplan.cc \
+		$(BIN_DIR)/heuristics/rpg.o \
+		$(BIN_DIR)/heuristics/relaxed_sas_plus.o \
+		$(BIN_DIR)/utils/file_utils.o \
+		$(BIN_DIR)/libsas_plus.a \
+		$(LIBS)
+
 $(BIN_DIR)/open_lists/test_fifo_open_list_impl: \
 	$(TEST_DIR)/open_lists/test_fifo_open_list_impl.cc \
 	$(BIN_DIR)/open_lists/open_list_impl.o

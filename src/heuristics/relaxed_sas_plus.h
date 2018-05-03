@@ -23,6 +23,8 @@ class RelaxedSASPlus {
 
   int ActionId(int i) const { return ids_[i]; }
 
+  const std::vector<int>& IdToActions(int i) const { return id_to_actions_[i]; }
+
   int ActionCost(int i) const { return costs_[i]; }
 
   int PreconditionSize(int i) const { return precondition_size_[i]; }
@@ -54,6 +56,7 @@ class RelaxedSASPlus {
   void Simplify();
 
   std::vector<int> ids_;
+  std::vector<std::vector<int> > id_to_actions_;
   std::vector<int> costs_;
   std::vector<int> precondition_size_;
   std::vector<std::vector<int> > preconditions_;

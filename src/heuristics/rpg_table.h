@@ -13,7 +13,7 @@ class RPGTable {
  public:
   RPGTable() : problem_(nullptr) {}
 
-  RPGTable(std::shared_ptr<const RelaxedSASPlus> problem)
+  explicit RPGTable(std::shared_ptr<const RelaxedSASPlus> problem)
     : goal_counter_(problem->n_goal_facts()),
       op_cost_(problem->n_actions(), -1),
       precondition_counter_(problem->n_actions(), -1),

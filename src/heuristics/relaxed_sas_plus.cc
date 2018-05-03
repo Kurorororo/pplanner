@@ -17,6 +17,8 @@ void RelaxedSASPlus::InitActions(const SASPlus &problem, bool simplify) {
   vector<pair<int, int> > pair_precondition;
   vector<pair<int, int> > pair_effect;
   vector<int> precondition;
+  vector<int> actions;
+  int action = 0;
 
   for (int i=0, n=problem.n_actions(); i<n; ++i) {
     problem.CopyPrecondition(i, pair_precondition);
@@ -31,15 +33,19 @@ void RelaxedSASPlus::InitActions(const SASPlus &problem, bool simplify) {
     size_t size = precondition.size();
 
     problem.CopyEffect(i, pair_effect);
+    actions.clear();
 
     for (auto &v : pair_effect) {
       int f = problem.Fact(v.first, v.second);
       ids_.push_back(i);
+      actions.push_back(action++);
       costs_.push_back(cost);
       precondition_size_.push_back(size);
       preconditions_.push_back(precondition);
       effects_.push_back(f);
     }
+
+    id_to_actions_.push_back(actions);
   }
 
   if (simplify) Simplify();
@@ -97,10 +103,12 @@ void RelaxedSASPlus::Simplify() {
   }
 
   vector<int> ids;
+  vector<std::vector<int> > id_to_actions(id_to_actions_.size());
   vector<int> costs;
   vector<int> precondition_size;
   vector<vector<int> > preconditions;
   vector<int> effects;
+  int action = 0;
 
   for (auto &v : umap) {
     auto key = v.first;
@@ -134,6 +142,7 @@ void RelaxedSASPlus::Simplify() {
 
     if (!match) {
       ids.push_back(ids_[a]);
+      id_to_actions[ids_[a]].push_back(action++);
       costs.push_back(cost);
       precondition_size.push_back(p.size());
       preconditions.push_back(p);
@@ -142,6 +151,7 @@ void RelaxedSASPlus::Simplify() {
   }
 
   ids_ = ids;
+  id_to_actions_ = id_to_actions;
   costs_ = costs;
   precondition_size_ = precondition_size;
   preconditions_ = preconditions;

@@ -1,11 +1,12 @@
 #include "utils/file_utils.h"
 
 #include <fstream>
+#include <iostream>
+
+namespace pplanner {
 
 using std::queue;
 using std::string;
-
-namespace pplanner {
 
 queue<string> FileToLines(const string &filename) {
   std::ifstream input;
