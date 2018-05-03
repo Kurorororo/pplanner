@@ -27,9 +27,11 @@ class RelaxedSASPlus {
 
   int PreconditionSize(int i) const { return precondition_size_[i]; }
 
+  const std::vector<int>& Precondition(int i) const { return preconditions_[i]; }
+
   int Effect(int i) const { return effects_[i]; }
 
-  bool IsGoal(int i) const { return is_goal[i]; }
+  bool IsGoal(int i) const { return is_goal_[i]; }
 
   const std::vector<int>& goal() const { return goal_; }
 

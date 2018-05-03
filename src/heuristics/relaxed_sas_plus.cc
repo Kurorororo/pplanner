@@ -1,4 +1,4 @@
-#include "sas_plus/relaxed_sas_plus.h"
+#include "heuristics/relaxed_sas_plus.h"
 
 #include <algorithm>
 #include <iostream>
@@ -18,7 +18,7 @@ void RelaxedSASPlus::InitActions(const SASPlus &problem, bool simplify) {
   vector<pair<int, int> > pair_effect;
   vector<int> precondition;
 
-  for (int i=0, n=problem->n_actions(); i<n; ++i) {
+  for (int i=0, n=problem.n_actions(); i<n; ++i) {
     problem.CopyPrecondition(i, pair_precondition);
     precondition.clear();
 
@@ -27,7 +27,7 @@ void RelaxedSASPlus::InitActions(const SASPlus &problem, bool simplify) {
       precondition.push_back(f);
     }
 
-    size_t cost = problem.ActionCosts(i);
+    size_t cost = problem.ActionCost(i);
     size_t size = precondition.size();
 
     problem.CopyEffect(i, pair_effect);
@@ -46,30 +46,27 @@ void RelaxedSASPlus::InitActions(const SASPlus &problem, bool simplify) {
 
   precondition_map_.resize(problem.n_facts());
 
-  for (int i=0; i<unary_int; ++i)
+  for (int i=0, n=preconditions_.size(); i<n; ++i)
     for (auto f : preconditions_[i])
       precondition_map_[f].push_back(i);
 
   effect_map_.resize(problem.n_facts());
 
-  for (int i=0; i<unary_int; ++i) {
+  for (int i=0, n=effects_.size(); i<n; ++i) {
     int f = effects_[i];
-    r_domain->effect_map[f].push_back(i);
+    effect_map_[f].push_back(i);
   }
-
 }
 
 void RelaxedSASPlus::InitGoal(const SASPlus &problem) {
-  goal_size_ = problem.n_goal_facts();
-
   vector<pair<int, int> > goal;
   problem.CopyGoal(goal);
-  is_goal_.resize(problem.fact_size(), false);
+  is_goal_.resize(problem.n_facts(), false);
 
   for (auto &v : goal) {
-    int f = ToFact(v.first, v.second);
+    int f = problem.Fact(v.first, v.second);
     is_goal_[f] = true;
-    goal.push_back(f);
+    goal_.push_back(f);
   }
 }
 

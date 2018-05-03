@@ -5,7 +5,7 @@
 #include <utility>
 #include <vector>
 
-#include "sas_plus/relaxed_sas_plus.h"
+#include "heuristics/relaxed_sas_plus.h"
 
 namespace pplanner {
 
@@ -14,18 +14,18 @@ class RPGTable {
   RPGTable() : problem_(nullptr) {}
 
   RPGTable(std::shared_ptr<const RelaxedSASPlus> problem)
-    : goal_counter_(problem.n_goal_facts()),
-      op_cost_(problem.n_actions(), -1),
-      precondition_counter_(problem.n_actions(), -1),
-      prop_cost_(problem.n_facts(), -1),
-      best_support_(problem.n_facts(), -1),
-      marked_(problem.n_actions(), false),
-      plan_set_(problem.n_actions(), false),
+    : goal_counter_(problem->n_goal_facts()),
+      op_cost_(problem->n_actions(), -1),
+      precondition_counter_(problem->n_actions(), -1),
+      prop_cost_(problem->n_facts(), -1),
+      best_support_(problem->n_facts(), -1),
+      marked_(problem->n_actions(), false),
+      plan_set_(problem->n_actions(), false),
       problem_(problem) {}
 
   int PlanCost(const std::vector<int> &state);
 
-  int PlanCost(const std::vector<int> &state,
+  int PlanCost(const std::vector<int> &state, const std::vector<int> &applicable,
                std::unordered_set<int> &preferred);
 
   int AdditiveCost(const std::vector<int> &state);

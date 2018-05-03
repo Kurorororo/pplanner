@@ -18,7 +18,7 @@ int RPGTable::PlanCost(const vector<int> &state) {
   int h = 0;
 
   for (int i=0, n=plan_set_.size(); i<n; ++i)
-    if (plan_set_[i]) h += problem_->ActionCosts(i);
+    if (plan_set_[i]) h += problem_->ActionCost(i);
 
   return h;
 }
@@ -27,10 +27,10 @@ int RPGTable::PlanCost(const vector<int> &state, const vector<int> &applicable,
                        unordered_set<int> &helpful) {
   int h = PlanCost(state);
 
-  preferred.clear();
+  helpful.clear();
 
   for (auto a : applicable)
-    if (plan_set_[a]) preferred.insert(a);
+    if (plan_set_[a]) helpful.insert(a);
 
   return h;
 }
@@ -56,10 +56,10 @@ void RPGTable::SetPlan(int g) {
   int unary_a = best_support_[g];
   if (unary_a == -1) return;
 
-  for (auto p : problem_->Preconditions(unary_a))
+  for (auto p : problem_->Precondition(unary_a))
     SetPlan(p);
 
-  int a = ids_[unary_a];
+  int a = problem_->ActionId(unary_a);
   plan_set_[a] = true;
 }
 
@@ -76,7 +76,7 @@ void RPGTable::GeneralizedDijkstra(const vector<int> &state) {
     assert(prop_cost_[f] != -1);
 
     if (prop_cost_[f] < c) continue;
-    if (is_goal_[f] && --goal_counter_ == 0) return;
+    if (problem_->IsGoal(f) && --goal_counter_ == 0) return;
 
     for (auto a : problem_->PreconditionMap(f)) {
       op_cost_[a] += c;
@@ -88,22 +88,22 @@ void RPGTable::GeneralizedDijkstra(const vector<int> &state) {
 }
 
 void RPGTable::SetUp(const vector<int> &state) {
-  table->goal_counter_ = problem_->n_goal_facts();
+  goal_counter_ = problem_->n_goal_facts();
   std::fill(best_support_.begin(), best_support_.end(), -1);
   std::fill(prop_cost_.begin(), prop_cost_.end(), -1);
   q_ = PQueue();
 
   for (int i=0, n=problem_->n_actions(); i<n; ++i) {
     precondition_counter_[i] = problem_->PreconditionSize(i);
-    op_cost_[i] = problem_->ActionCosts(i);
+    op_cost_[i] = problem_->ActionCost(i);
 
     if (precondition_counter_[i] == 0)
-      MayPush(problem_->Effects(i), i);
+      MayPush(problem_->Effect(i), i);
   }
 
   for (auto f : state) {
     prop_cost_[f] = 0;
-    q.push(std::make_pair(0, f));
+    q_.push(std::make_pair(0, f));
   }
 }
 

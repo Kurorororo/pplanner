@@ -1,19 +1,15 @@
 #ifndef ADDITIVE_H_
 #define ADDITIVE_H_
 
-#include <queue>
-#include <limits>
-#include <utility>
 #include <unordered_set>
 #include <vector>
 
-#include "domain/domain.h"
-#include "domain/relaxed_domain.h"
-#include "heuristic/heuristic.h"
+#include "evaluator.h"
+#include "sas_plus.h"
+#include "heuristics/relaxed_sas_plus.h"
+#include "heuristics/rpg_table.h"
 
 namespace pplanner {
-
-int AdditiveCost(const std::vector<int> &goal, const AdditiveTable &table);
 
 class Additive : public Evaluator {
  public:
@@ -21,22 +17,22 @@ class Additive : public Evaluator {
 
   Additive(std::shared_ptr<const SASPlus> problem, bool simplify=true)
     : problem_(problem),
-      r_problem_(std::make_unique<RelaxedSASPlus>(*problem, simplify)),
+      r_problem_(std::make_shared<RelaxedSASPlus>(*problem, simplify)),
       rpg_(nullptr) {
-    rpg_ = std::make_unique<RPGTable>(*r_problem_);
+    rpg_ = std::unique_ptr<RPGTable>(new RPGTable(r_problem_));
   }
 
   ~Additive() {}
 
-  int Evaluate()(const std::vector<int> &state, int node) override {
+  int Evaluate(const std::vector<int> &state, int node) override {
     StateToFactVector(*problem_, state, facts_);
 
     return rpg_->AdditiveCost(facts_);
   }
 
-  int Evaluate()(const std::vector<int> &state, int node,
-                 const std::vector<int> &applicable,
-                 std::unordered_set<int> &preferred) override {
+  int Evaluate(const std::vector<int> &state, int node,
+               const std::vector<int> &applicable,
+               std::unordered_set<int> &preferred) override {
     StateToFactVector(*problem_, state, facts_);
 
     return rpg_->AdditiveCost(facts_);
@@ -45,7 +41,7 @@ class Additive : public Evaluator {
  private:
   std::vector<int> facts_;
   std::shared_ptr<const SASPlus> problem_;
-  std::unique_ptr<RelaxedSASPlus> r_problem_;
+  std::shared_ptr<RelaxedSASPlus> r_problem_;
   std::unique_ptr<RPGTable> rpg_;
 };
 
