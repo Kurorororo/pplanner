@@ -19,7 +19,7 @@ class FFAdd : public Evaluator {
     : problem_(problem),
       r_problem_(std::make_shared<RelaxedSASPlus>(*problem, simplify)),
       rpg_(nullptr) {
-    rpg_ = std::unique_ptr<RPGTable>(new RPGTable(r_problem_));
+    rpg_ = std::unique_ptr<RPGTable>(new RPGTable(problem, r_problem_));
   }
 
   ~FFAdd() {}

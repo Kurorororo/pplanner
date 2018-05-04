@@ -1,6 +1,7 @@
 #include "heuristics/rpg_table.h"
 
 #include <algorithm>
+#include <memory>
 #include <queue>
 #include <string>
 #include <unordered_set>
@@ -18,16 +19,17 @@ std::queue<std::string> ExampleSASPlusLines();
 class RPGTableTest : public ::testing::Test {
  protected:
   virtual void SetUp() {
+    sas_ = std::make_shared<SASPlus>();
     auto lines = ExampleSASPlusLines();
-    sas_.InitFromLines(lines);
+    sas_->InitFromLines(lines);
 
-    r_sas_0_ = std::make_shared<RelaxedSASPlus>(sas_, false);
-    r_sas_1_ = std::make_shared<RelaxedSASPlus>(sas_, true);
-    table_0_ = RPGTable(r_sas_0_);
-    table_1_ = RPGTable(r_sas_1_);
+    r_sas_0_ = std::make_shared<RelaxedSASPlus>(*sas_, false);
+    r_sas_1_ = std::make_shared<RelaxedSASPlus>(*sas_, true);
+    table_0_ = RPGTable(sas_, r_sas_0_);
+    table_1_ = RPGTable(sas_, r_sas_1_);
   }
 
-  SASPlus sas_;
+  std::shared_ptr<SASPlus> sas_;
   std::shared_ptr<RelaxedSASPlus> r_sas_0_;
   std::shared_ptr<RelaxedSASPlus> r_sas_1_;
   RPGTable table_0_;
@@ -37,87 +39,87 @@ class RPGTableTest : public ::testing::Test {
 TEST_F(RPGTableTest, AdditiveCostWorks) {
   std::vector<int> state{0, 1, 0};
   std::vector<int> facts;
-  StateToFactVector(sas_, state, facts);
+  StateToFactVector(*sas_, state, facts);
   EXPECT_EQ(3, table_0_.AdditiveCost(facts));
   state = {0, 0, 2};
-  StateToFactVector(sas_, state, facts);
+  StateToFactVector(*sas_, state, facts);
   EXPECT_EQ(2, table_0_.AdditiveCost(facts));
   state = {1, 1, 0};
-  StateToFactVector(sas_, state, facts);
+  StateToFactVector(*sas_, state, facts);
   EXPECT_EQ(3, table_0_.AdditiveCost(facts));
   state = {1, 0, 2};
-  StateToFactVector(sas_, state, facts);
+  StateToFactVector(*sas_, state, facts);
   EXPECT_EQ(1, table_0_.AdditiveCost(facts));
   state = {1, 1, 1};
-  StateToFactVector(sas_, state, facts);
+  StateToFactVector(*sas_, state, facts);
   EXPECT_EQ(0, table_0_.AdditiveCost(facts));
 
   state = {0, 1, 0};
-  StateToFactVector(sas_, state, facts);
+  StateToFactVector(*sas_, state, facts);
   EXPECT_EQ(3, table_1_.AdditiveCost(facts));
   state = {0, 0, 2};
-  StateToFactVector(sas_, state, facts);
+  StateToFactVector(*sas_, state, facts);
   EXPECT_EQ(2, table_1_.AdditiveCost(facts));
   state = {1, 1, 0};
-  StateToFactVector(sas_, state, facts);
+  StateToFactVector(*sas_, state, facts);
   EXPECT_EQ(3, table_1_.AdditiveCost(facts));
   state = {1, 0, 2};
-  StateToFactVector(sas_, state, facts);
+  StateToFactVector(*sas_, state, facts);
   EXPECT_EQ(1, table_1_.AdditiveCost(facts));
   state = {1, 1, 1};
-  StateToFactVector(sas_, state, facts);
+  StateToFactVector(*sas_, state, facts);
   EXPECT_EQ(0, table_1_.AdditiveCost(facts));
 }
 
 TEST_F(RPGTableTest, PlanCostWorks) {
   std::vector<int> state{0, 1, 0};
   std::vector<int> facts;
-  StateToFactVector(sas_, state, facts);
+  StateToFactVector(*sas_, state, facts);
   int h = table_0_.PlanCost(facts);
   EXPECT_LT(0, h);
   EXPECT_GE(table_0_.AdditiveCost(facts), h);
   state = {0, 0, 2};
-  StateToFactVector(sas_, state, facts);
+  StateToFactVector(*sas_, state, facts);
   h = table_0_.PlanCost(facts);
   EXPECT_LT(0, h);
   EXPECT_GE(table_0_.AdditiveCost(facts), h);
   state = {1, 1, 0};
-  StateToFactVector(sas_, state, facts);
+  StateToFactVector(*sas_, state, facts);
   h = table_0_.PlanCost(facts);
   EXPECT_LT(0, h);
   EXPECT_GE(table_0_.AdditiveCost(facts), h);
   state = {1, 0, 2};
-  StateToFactVector(sas_, state, facts);
+  StateToFactVector(*sas_, state, facts);
   h = table_0_.PlanCost(facts);
   EXPECT_LT(0, h);
   EXPECT_GE(table_0_.AdditiveCost(facts), h);
   state = {1, 1, 1};
-  StateToFactVector(sas_, state, facts);
+  StateToFactVector(*sas_, state, facts);
   h = table_0_.PlanCost(facts);
   EXPECT_EQ(0, h);
 
   state = {0, 1, 0};
-  StateToFactVector(sas_, state, facts);
+  StateToFactVector(*sas_, state, facts);
   h = table_1_.PlanCost(facts);
   EXPECT_LT(0, h);
   EXPECT_GE(table_1_.AdditiveCost(facts), h);
   state = {0, 0, 2};
-  StateToFactVector(sas_, state, facts);
+  StateToFactVector(*sas_, state, facts);
   h = table_1_.PlanCost(facts);
   EXPECT_LT(0, h);
   EXPECT_GE(table_1_.AdditiveCost(facts), h);
   state = {1, 1, 0};
-  StateToFactVector(sas_, state, facts);
+  StateToFactVector(*sas_, state, facts);
   h = table_1_.PlanCost(facts);
   EXPECT_LT(0, h);
   EXPECT_GE(table_1_.AdditiveCost(facts), h);
   state = {1, 0, 2};
-  StateToFactVector(sas_, state, facts);
+  StateToFactVector(*sas_, state, facts);
   h = table_1_.PlanCost(facts);
   EXPECT_LT(0, h);
   EXPECT_GE(table_1_.AdditiveCost(facts), h);
   state = {1, 1, 1};
-  StateToFactVector(sas_, state, facts);
+  StateToFactVector(*sas_, state, facts);
   h = table_1_.PlanCost(facts);
   EXPECT_EQ(0, h);
 }
@@ -130,7 +132,7 @@ TEST_F(RPGTableTest, PlanCostWithHelpfulWorks) {
 
   state = {0, 1, 0};
   applicable = {2, 4};
-  StateToFactVector(sas_, state, facts);
+  StateToFactVector(*sas_, state, facts);
   int h = table_0_.PlanCost(facts, applicable, helpful);
   EXPECT_LT(0, h);
   EXPECT_GE(table_0_.AdditiveCost(facts), h);
@@ -138,7 +140,7 @@ TEST_F(RPGTableTest, PlanCostWithHelpfulWorks) {
 
   state = {0, 0, 2};
   applicable = {0, 2};
-  StateToFactVector(sas_, state, facts);
+  StateToFactVector(*sas_, state, facts);
   h = table_0_.PlanCost(facts, applicable, helpful);
   EXPECT_LT(0, h);
   EXPECT_GE(table_0_.AdditiveCost(facts), h);
@@ -146,7 +148,7 @@ TEST_F(RPGTableTest, PlanCostWithHelpfulWorks) {
 
   state = {1, 0, 2};
   applicable = {1, 3};
-  StateToFactVector(sas_, state, facts);
+  StateToFactVector(*sas_, state, facts);
   h = table_0_.PlanCost(facts, applicable, helpful);
   EXPECT_LT(0, h);
   EXPECT_GE(table_0_.AdditiveCost(facts), h);
@@ -154,14 +156,14 @@ TEST_F(RPGTableTest, PlanCostWithHelpfulWorks) {
 
   state = {1, 1, 1};
   applicable = {3, 5, 6};
-  StateToFactVector(sas_, state, facts);
+  StateToFactVector(*sas_, state, facts);
   h = table_0_.PlanCost(facts, applicable, helpful);
   EXPECT_EQ(0, h);
   EXPECT_TRUE(helpful.empty());
 
   state = {0, 1, 0};
   applicable = {2, 4};
-  StateToFactVector(sas_, state, facts);
+  StateToFactVector(*sas_, state, facts);
   h = table_1_.PlanCost(facts, applicable, helpful);
   EXPECT_LT(0, h);
   EXPECT_GE(table_1_.AdditiveCost(facts), h);
@@ -169,7 +171,7 @@ TEST_F(RPGTableTest, PlanCostWithHelpfulWorks) {
 
   state = {0, 0, 2};
   applicable = {0, 2};
-  StateToFactVector(sas_, state, facts);
+  StateToFactVector(*sas_, state, facts);
   h = table_1_.PlanCost(facts, applicable, helpful);
   EXPECT_LT(0, h);
   EXPECT_GE(table_1_.AdditiveCost(facts), h);
@@ -177,7 +179,7 @@ TEST_F(RPGTableTest, PlanCostWithHelpfulWorks) {
 
   state = {1, 0, 2};
   applicable = {1, 3};
-  StateToFactVector(sas_, state, facts);
+  StateToFactVector(*sas_, state, facts);
   h = table_1_.PlanCost(facts, applicable, helpful);
   EXPECT_LT(0, h);
   EXPECT_GE(table_1_.AdditiveCost(facts), h);
@@ -185,7 +187,7 @@ TEST_F(RPGTableTest, PlanCostWithHelpfulWorks) {
 
   state = {1, 1, 1};
   applicable = {3, 5};
-  StateToFactVector(sas_, state, facts);
+  StateToFactVector(*sas_, state, facts);
   h = table_1_.PlanCost(facts, applicable, helpful);
   EXPECT_EQ(0, h);
   EXPECT_TRUE(helpful.empty());

@@ -96,8 +96,8 @@ class Mrw13 : public Search {
   mutable std::uniform_real_distribution<> dist_;
   std::shared_ptr<const SASPlus> problem_;
   std::unique_ptr<SuccessorGenerator> generator_;
-  std::unique_ptr<Evaluator> evaluator_;
-  std::unique_ptr<Evaluator> preferring_;
+  std::shared_ptr<Evaluator> evaluator_;
+  std::shared_ptr<Evaluator> preferring_;
 };
 
 template<typename T>

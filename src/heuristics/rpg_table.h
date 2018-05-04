@@ -11,17 +11,19 @@ namespace pplanner {
 
 class RPGTable {
  public:
-  RPGTable() : problem_(nullptr) {}
+  RPGTable() : r_problem_(nullptr) {}
 
-  explicit RPGTable(std::shared_ptr<const RelaxedSASPlus> problem)
-    : goal_counter_(problem->n_goal_facts()),
-      op_cost_(problem->n_actions(), -1),
-      precondition_counter_(problem->n_actions(), -1),
-      prop_cost_(problem->n_facts(), -1),
-      best_support_(problem->n_facts(), -1),
-      marked_(problem->n_actions(), false),
+  RPGTable(std::shared_ptr<const SASPlus> problem,
+           std::shared_ptr<const RelaxedSASPlus> r_problem)
+    : goal_counter_(r_problem->n_goal_facts()),
+      op_cost_(r_problem->n_actions(), -1),
+      precondition_counter_(r_problem->n_actions(), -1),
+      prop_cost_(r_problem->n_facts(), -1),
+      best_support_(r_problem->n_facts(), -1),
+      marked_(r_problem->n_actions(), false),
       plan_set_(problem->n_actions(), false),
-      problem_(problem) {}
+      problem_(problem),
+      r_problem_(r_problem) {}
 
   int PlanCost(const std::vector<int> &state);
 
@@ -57,7 +59,8 @@ class RPGTable {
   std::vector<bool> marked_;
   std::vector<bool> plan_set_;
   PQueue q_;
-  std::shared_ptr<const RelaxedSASPlus> problem_;
+  std::shared_ptr<const SASPlus> problem_;
+  std::shared_ptr<const RelaxedSASPlus> r_problem_;
 };
 
 } // namespace pplanner

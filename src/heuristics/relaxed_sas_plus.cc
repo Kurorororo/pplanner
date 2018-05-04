@@ -48,7 +48,11 @@ void RelaxedSASPlus::InitActions(const SASPlus &problem, bool simplify) {
     id_to_actions_.push_back(actions);
   }
 
+  std::cout << ids_.size() << " unary operators" << std::endl;
+
   if (simplify) Simplify();
+
+  std::cout << "simplified to " << ids_.size() << std::endl;
 
   precondition_map_.resize(problem.n_facts());
 

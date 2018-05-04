@@ -7,7 +7,7 @@
 
 namespace pplanner {
 
-std::unique_ptr<Evaluator> EvaluatorFactory(
+std::shared_ptr<Evaluator> EvaluatorFactory(
     std::shared_ptr<const SASPlus> problem,
     const boost::property_tree::ptree &pt) {
 
@@ -16,7 +16,7 @@ std::unique_ptr<Evaluator> EvaluatorFactory(
   if (!name) throw std::runtime_error("Heuristic name is needed.");
 
   if (name.get() == "blind")
-    return std::unique_ptr<Evaluator>(new Blind(problem));
+    return std::make_shared<Blind>(problem);
 
   if (name.get() == "add") {
     bool simplify = false;
@@ -24,7 +24,7 @@ std::unique_ptr<Evaluator> EvaluatorFactory(
     auto option = pt.get_optional<int>("options.simplify");
     if (option) simplify = option.get() == 1;
 
-    return std::unique_ptr<Evaluator>(new Additive(problem, simplify));
+    return std::make_shared<Additive>(problem, simplify);
   }
 
   if (name.get() == "fa") {
@@ -33,7 +33,7 @@ std::unique_ptr<Evaluator> EvaluatorFactory(
     auto option = pt.get_optional<int>("options.simplify");
     if (option) simplify = option.get() == 1;
 
-    return std::unique_ptr<Evaluator>(new FFAdd(problem, simplify));
+    return std::make_shared<FFAdd>(problem, simplify);
   }
 
   if (name.get() == "ff") {
@@ -42,7 +42,7 @@ std::unique_ptr<Evaluator> EvaluatorFactory(
     auto option = pt.get_optional<int>("options.simplify");
     if (option) simplify = option.get() == 1;
 
-    return std::unique_ptr<Evaluator>(new FF(problem, simplify));
+    return std::make_shared<FF>(problem, simplify);
   }
 
   throw std::runtime_error("No such heuristic.");

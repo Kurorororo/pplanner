@@ -71,7 +71,8 @@ void Mrw13::Init(const boost::property_tree::ptree &pt) {
   }
 
   evaluator_ = EvaluatorFactory(problem_, heuristic.get());
-  preferring_ = EvaluatorFactory(problem_, preferring.get());
+
+  if (!same_) preferring_ = EvaluatorFactory(problem_, preferring.get());
 }
 
 vector<int> Mrw13::Plan() {

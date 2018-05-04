@@ -12,7 +12,7 @@ int RPGTable::PlanCost(const vector<int> &state) {
   std::fill(plan_set_.begin(), plan_set_.end(), false);
   std::fill(marked_.begin(), marked_.end(), false);
 
-  for (auto g : problem_->goal())
+  for (auto g : r_problem_->goal())
     SetPlan(g);
 
   int h = 0;
@@ -40,7 +40,7 @@ int RPGTable::AdditiveCost(const vector<int> &state) {
 
   int h = 0;
 
-  for (auto g : problem_->goal()) {
+  for (auto g : r_problem_->goal()) {
     int cost = prop_cost_[g];
     if (cost == -1) return cost;
     h += cost;
@@ -56,10 +56,10 @@ void RPGTable::SetPlan(int g) {
   int unary_a = best_support_[g];
   if (unary_a == -1) return;
 
-  for (auto p : problem_->Precondition(unary_a))
+  for (auto p : r_problem_->Precondition(unary_a))
     SetPlan(p);
 
-  int a = problem_->ActionId(unary_a);
+  int a = r_problem_->ActionId(unary_a);
   plan_set_[a] = true;
 }
 
@@ -76,29 +76,29 @@ void RPGTable::GeneralizedDijkstra(const vector<int> &state) {
     assert(prop_cost_[f] != -1);
 
     if (prop_cost_[f] < c) continue;
-    if (problem_->IsGoal(f) && --goal_counter_ == 0) return;
+    if (r_problem_->IsGoal(f) && --goal_counter_ == 0) return;
 
-    for (auto a : problem_->PreconditionMap(f)) {
+    for (auto a : r_problem_->PreconditionMap(f)) {
       op_cost_[a] += c;
 
       if (--precondition_counter_[a] == 0)
-        MayPush(problem_->Effect(a), a);
+        MayPush(r_problem_->Effect(a), a);
     }
   }
 }
 
 void RPGTable::SetUp(const vector<int> &state) {
-  goal_counter_ = problem_->n_goal_facts();
+  goal_counter_ = r_problem_->n_goal_facts();
   std::fill(best_support_.begin(), best_support_.end(), -1);
   std::fill(prop_cost_.begin(), prop_cost_.end(), -1);
   q_ = PQueue();
 
-  for (int i=0, n=problem_->n_actions(); i<n; ++i) {
-    precondition_counter_[i] = problem_->PreconditionSize(i);
-    op_cost_[i] = problem_->ActionCost(i);
+  for (int i=0, n=r_problem_->n_actions(); i<n; ++i) {
+    precondition_counter_[i] = r_problem_->PreconditionSize(i);
+    op_cost_[i] = r_problem_->ActionCost(i);
 
     if (precondition_counter_[i] == 0)
-      MayPush(problem_->Effect(i), i);
+      MayPush(r_problem_->Effect(i), i);
   }
 
   for (auto f : state) {
