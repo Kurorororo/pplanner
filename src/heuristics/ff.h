@@ -19,7 +19,7 @@ class FF : public Evaluator {
     : problem_(problem),
       r_problem_(std::make_shared<RelaxedSASPlus>(*problem, simplify)),
       rpg_(nullptr) {
-    rpg_ = std::unique_ptr<RPG>(new RPGTable(r_problem_));
+    rpg_ = std::unique_ptr<RPG>(new RPG(r_problem_));
   }
 
   ~FF() {}
@@ -35,7 +35,7 @@ class FF : public Evaluator {
                std::unordered_set<int> &preferred) override {
     StateToFactVector(*problem_, state, facts_);
 
-    return rpg_->PlanCost(facts_, applicable, preferred);
+    return rpg_->PlanCost(facts_, preferred);
   }
 
  private:

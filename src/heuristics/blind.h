@@ -7,17 +7,15 @@
 
 #include "evaluator.h"
 #include "sas_plus.h"
-#include "search_graph.h"
 
 namespace pplanner {
 
 class Blind : public Evaluator {
  public:
-  Blind() : problem_(nullptr), graph_(nullptr) {}
+  Blind() : problem_(nullptr) {}
 
-  Blind(std::shared_ptr<const SASPlus> problem,
-        std::shared_ptr<const SearchGraph> graph)
-      : problem_(problem), graph_(graph) { Init(); }
+  Blind(std::shared_ptr<const SASPlus> problem)
+      : problem_(problem) { Init(); }
 
   ~Blind() {}
 
@@ -38,7 +36,6 @@ class Blind : public Evaluator {
 
   int cheapest_;
   std::shared_ptr<const SASPlus> problem_;
-  std::shared_ptr<const SearchGraph> graph_;
 };
 
 } // namespace pplanner

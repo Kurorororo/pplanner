@@ -10,9 +10,115 @@ RELEASE_FLAG = -Wall -std=c++11 -O3 -DNDEBUG
 TEST_FLAG = -Wall -std=c++11 -Igoogletest/googletest/include \
 						-Lgoogletest/googletest -lgtest -lgtest_main -lpthread
 
+planner: \
+	$(BIN_DIR)/planner.o \
+	$(BIN_DIR)/utils/file_utils.o \
+	$(BIN_DIR)/successor_generator.o \
+	$(BIN_DIR)/libsas_plus.a \
+	$(BIN_DIR)/libsearch_graph.a \
+	$(BIN_DIR)/libevaluators.a \
+	$(BIN_DIR)/libopen_lists.a \
+	$(BIN_DIR)/libsearch.a
+	$(CXX) $(INCS) $(RELEASE_FLAG) -o $(BIN_DIR)/planner \
+		$(BIN_DIR)/planner.o \
+		$(BIN_DIR)/utils/file_utils.o \
+		$(BIN_DIR)/successor_generator.o \
+		$(BIN_DIR)/libsas_plus.a \
+		$(BIN_DIR)/libsearch_graph.a \
+		$(BIN_DIR)/libevaluators.a \
+		$(BIN_DIR)/libopen_lists.a \
+		$(BIN_DIR)/libsearch.a \
+		$(LIBS)
+
+$(BIN_DIR)/heuristics/sas_relaxed_graphplan: \
+	$(TEST_DIR)/heuristics/sas_relaxed_graphplan.cc \
+	$(BIN_DIR)/heuristics/rpg.o \
+	$(BIN_DIR)/heuristics/relaxed_sas_plus.o \
+	$(BIN_DIR)/utils/file_utils.o \
+	$(BIN_DIR)/libsas_plus.a
+	$(CXX) $(INCS) $(TEST_FLAG) -o $(BIN_DIR)/heuristics/sas_relaxed_graphplan \
+		$(TEST_DIR)/heuristics/sas_relaxed_graphplan.cc \
+		$(BIN_DIR)/heuristics/rpg.o \
+		$(BIN_DIR)/heuristics/relaxed_sas_plus.o \
+		$(BIN_DIR)/utils/file_utils.o \
+		$(BIN_DIR)/libsas_plus.a \
+		$(LIBS)
+
+sas_parser: \
+	$(TEST_DIR)/sas_parser.cc \
+	$(BIN_DIR)/utils/file_utils.o \
+	$(BIN_DIR)/libsas_plus.a
+	$(CXX) $(INCS) $(TEST_FLAG) -o $(BIN_DIR)/sas_parser \
+		$(TEST_DIR)/sas_parser.cc \
+		$(BIN_DIR)/utils/file_utils.o \
+		$(BIN_DIR)/libsas_plus.a
+
 $(BIN_DIR)/%.o: $(SRC_DIR)/%.cc
 	@if [ ! -e `dirname $@` ]; then mkdir -p `dirname $@`; fi
 	$(CXX) $(INCS) $(RELEASE_FLAG) -o $@ -c $<
+
+$(BIN_DIR)/libsas_plus.a: \
+	$(BIN_DIR)/sas_plus.o \
+	$(BIN_DIR)/sas_plus/partial_state.o \
+	$(BIN_DIR)/sas_plus/partial_state_vector.o \
+	$(BIN_DIR)/sas_plus/effect_vector.o \
+	$(BIN_DIR)/sas_plus/facts.o \
+	$(BIN_DIR)/sas_plus/mutex_groups.o \
+	$(BIN_DIR)/sas_plus/parse_utils.o
+	ar rcs $(BIN_DIR)/libsas_plus.a \
+		$(BIN_DIR)/sas_plus.o \
+		$(BIN_DIR)/sas_plus/partial_state.o \
+		$(BIN_DIR)/sas_plus/partial_state_vector.o \
+		$(BIN_DIR)/sas_plus/effect_vector.o \
+		$(BIN_DIR)/sas_plus/facts.o \
+		$(BIN_DIR)/sas_plus/mutex_groups.o \
+		$(BIN_DIR)/sas_plus/parse_utils.o
+
+$(BIN_DIR)/libsearch_graph.a: \
+	$(BIN_DIR)/search_graph.o \
+	$(BIN_DIR)/search_graph/state_vector.o \
+	$(BIN_DIR)/search_graph/state_packer.o
+	ar rcs $(BIN_DIR)/libsearch_graph.a \
+		$(BIN_DIR)/search_graph.o \
+		$(BIN_DIR)/search_graph/state_vector.o \
+		$(BIN_DIR)/search_graph/state_packer.o \
+
+$(BIN_DIR)/libevaluators.a: \
+	$(BIN_DIR)/evaluator.o \
+	$(BIN_DIR)/evaluator_factory.o \
+	$(BIN_DIR)/heuristics/blind.o \
+	$(BIN_DIR)/heuristics/rpg.o \
+	$(BIN_DIR)/heuristics/rpg_table.o \
+	$(BIN_DIR)/heuristics/relaxed_sas_plus.o
+	ar rcs $(BIN_DIR)/libevaluators.a \
+		$(BIN_DIR)/evaluator.o \
+		$(BIN_DIR)/evaluator_factory.o \
+		$(BIN_DIR)/heuristics/blind.o \
+		$(BIN_DIR)/heuristics/rpg.o \
+		$(BIN_DIR)/heuristics/rpg_table.o \
+		$(BIN_DIR)/heuristics/relaxed_sas_plus.o
+
+$(BIN_DIR)/libopen_lists.a: \
+	$(BIN_DIR)/open_list.o \
+	$(BIN_DIR)/open_lists/single_open_list.o \
+	$(BIN_DIR)/open_lists/preferred_open_list.o \
+	$(BIN_DIR)/open_lists/open_list_impl_factory.o \
+	$(BIN_DIR)/open_lists/open_list_impl.o
+	ar rcs $(BIN_DIR)/libopen_lists.a \
+		$(BIN_DIR)/open_list.o \
+		$(BIN_DIR)/open_lists/single_open_list.o \
+		$(BIN_DIR)/open_lists/preferred_open_list.o \
+		$(BIN_DIR)/open_lists/open_list_impl_factory.o \
+		$(BIN_DIR)/open_lists/open_list_impl.o
+
+$(BIN_DIR)/libsearch.a: \
+	$(BIN_DIR)/search.o \
+	$(BIN_DIR)/search_factory.o \
+	$(BIN_DIR)/search/mrw13.o
+	ar rcs $(BIN_DIR)/libsearch.a \
+		$(BIN_DIR)/search.o \
+		$(BIN_DIR)/search_factory.o \
+		$(BIN_DIR)/search/mrw13.o
 
 $(BIN_DIR)/sas_plus/test_partial_state: \
 	$(TEST_DIR)/sas_plus/test_partial_state.cc \
@@ -50,23 +156,6 @@ $(BIN_DIR)/sas_plus/test_mutex_groups: \
 	$(CXX) $(INCS) $(TEST_FLAG) -o $(BIN_DIR)/sas_plus/test_mutex_groups \
 		$(TEST_DIR)/sas_plus/test_mutex_groups.cc \
 		$(BIN_DIR)/sas_plus/mutex_groups.o
-
-$(BIN_DIR)/libsas_plus.a: \
-	$(BIN_DIR)/sas_plus.o \
-	$(BIN_DIR)/sas_plus/partial_state.o \
-	$(BIN_DIR)/sas_plus/partial_state_vector.o \
-	$(BIN_DIR)/sas_plus/effect_vector.o \
-	$(BIN_DIR)/sas_plus/facts.o \
-	$(BIN_DIR)/sas_plus/mutex_groups.o \
-	$(BIN_DIR)/sas_plus/parse_utils.o
-	ar rcs $(BIN_DIR)/libsas_plus.a \
-		$(BIN_DIR)/sas_plus.o \
-		$(BIN_DIR)/sas_plus/partial_state.o \
-		$(BIN_DIR)/sas_plus/partial_state_vector.o \
-		$(BIN_DIR)/sas_plus/effect_vector.o \
-		$(BIN_DIR)/sas_plus/facts.o \
-		$(BIN_DIR)/sas_plus/mutex_groups.o \
-		$(BIN_DIR)/sas_plus/parse_utils.o
 
 $(BIN_DIR)/test_sas_plus: \
 	$(TEST_DIR)/test_sas_plus.cc \
@@ -120,15 +209,6 @@ $(BIN_DIR)/search_graph/test_state_vector: \
 		$(BIN_DIR)/search_graph/state_packer.o \
 		$(BIN_DIR)/libsas_plus.a
 
-$(BIN_DIR)/libsearch_graph.a: \
-	$(BIN_DIR)/search_graph.o \
-	$(BIN_DIR)/search_graph/state_vector.o \
-	$(BIN_DIR)/search_graph/state_packer.o
-	ar rcs $(BIN_DIR)/libsearch_graph.a \
-		$(BIN_DIR)/search_graph.o \
-		$(BIN_DIR)/search_graph/state_vector.o \
-		$(BIN_DIR)/search_graph/state_packer.o \
-
 $(BIN_DIR)/test_search_graph: \
 	$(TEST_DIR)/test_search_graph.cc \
 	$(BIN_DIR)/libsas_plus.a \
@@ -142,14 +222,12 @@ $(BIN_DIR)/heuristics/test_blind: \
 	$(TEST_DIR)/heuristics/test_blind.cc \
 	$(BIN_DIR)/heuristics/blind.o \
 	$(BIN_DIR)/evaluator.o \
-	$(BIN_DIR)/libsas_plus.a \
-	$(BIN_DIR)/libsearch_graph.a
+	$(BIN_DIR)/libsas_plus.a
 	$(CXX) $(INCS) $(TEST_FLAG) -o $(BIN_DIR)/heuristics/test_blind \
 		$(TEST_DIR)/heuristics/test_blind.cc \
 		$(BIN_DIR)/heuristics/blind.o \
 		$(BIN_DIR)/evaluator.o \
-		$(BIN_DIR)/libsas_plus.a \
-		$(BIN_DIR)/libsearch_graph.a
+		$(BIN_DIR)/libsas_plus.a
 
 $(BIN_DIR)/heuristics/test_relaxed_sas_plus: \
 	$(TEST_DIR)/heuristics/test_relaxed_sas_plus.cc \
@@ -196,20 +274,6 @@ $(BIN_DIR)/heuristics/test_ff_add: \
 		$(BIN_DIR)/heuristics/rpg_table.o \
 		$(BIN_DIR)/heuristics/relaxed_sas_plus.o \
 		$(BIN_DIR)/libsas_plus.a
-
-$(BIN_DIR)/heuristics/sas_relaxed_graphplan: \
-	$(TEST_DIR)/heuristics/sas_relaxed_graphplan.cc \
-	$(BIN_DIR)/heuristics/rpg.o \
-	$(BIN_DIR)/heuristics/relaxed_sas_plus.o \
-	$(BIN_DIR)/utils/file_utils.o \
-	$(BIN_DIR)/libsas_plus.a
-	$(CXX) $(INCS) $(TEST_FLAG) -o $(BIN_DIR)/heuristics/sas_relaxed_graphplan \
-		$(TEST_DIR)/heuristics/sas_relaxed_graphplan.cc \
-		$(BIN_DIR)/heuristics/rpg.o \
-		$(BIN_DIR)/heuristics/relaxed_sas_plus.o \
-		$(BIN_DIR)/utils/file_utils.o \
-		$(BIN_DIR)/libsas_plus.a \
-		$(LIBS)
 
 $(BIN_DIR)/open_lists/test_fifo_open_list_impl: \
 	$(TEST_DIR)/open_lists/test_fifo_open_list_impl.cc \
@@ -266,28 +330,6 @@ $(BIN_DIR)/open_lists/test_preferred_open_list: \
 		$(BIN_DIR)/open_list.o \
 		$(BIN_DIR)/libsas_plus.a \
 		$(BIN_DIR)/libsearch_graph.a
-
-$(BIN_DIR)/libopen_lists.a : \
-	$(BIN_DIR)/open_list.o \
-	$(BIN_DIR)/open_lists/single_open_list.o \
-	$(BIN_DIR)/open_lists/preferred_open_list.o \
-	$(BIN_DIR)/open_lists/open_list_impl_factory.o \
-	$(BIN_DIR)/open_lists/open_list_impl.o
-	ar rcs $(BIN_DIR)/libopen_lists.a \
-		$(BIN_DIR)/open_list.o \
-		$(BIN_DIR)/open_lists/single_open_list.o \
-		$(BIN_DIR)/open_lists/preferred_open_list.o \
-		$(BIN_DIR)/open_lists/open_list_impl_factory.o \
-		$(BIN_DIR)/open_lists/open_list_impl.o
-
-sas_parser: \
-	$(TEST_DIR)/sas_parser.cc \
-	$(BIN_DIR)/utils/file_utils.o \
-	$(BIN_DIR)/libsas_plus.a
-	$(CXX) $(INCS) $(TEST_FLAG) -o $(BIN_DIR)/sas_parser \
-		$(TEST_DIR)/sas_parser.cc \
-		$(BIN_DIR)/utils/file_utils.o \
-		$(BIN_DIR)/libsas_plus.a
 
 clean:
 	rm -rf $(BIN_DIR)/*

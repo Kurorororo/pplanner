@@ -7,7 +7,6 @@
 #include "gtest/gtest.h"
 
 #include "sas_plus.h"
-#include "search_graph.h"
 
 namespace pplanner {
 
@@ -19,8 +18,7 @@ class BlindTest : public ::testing::Test {
     auto lines = ExampleSASPlusLines();
     auto sas = std::make_shared<SASPlus>();
     sas->InitFromLines(lines);
-    auto graph = std::make_shared<SearchGraph>(*sas);
-    blind_ = Blind(sas, graph);
+    blind_ = Blind(sas);
 
     state = sas->initial();
   }
