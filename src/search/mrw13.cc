@@ -52,13 +52,14 @@ void Mrw13::Init(const boost::property_tree::ptree &pt) {
 
   auto heuristic = pt.get_child_optional("heuristic");
   if (!heuristic) throw std::runtime_error("No heuristic is specified.");
+  evaluator_ = EvaluatorFactory(problem_, heuristic.get());
 
   auto preferring = pt.get_child_optional("preferring");
 
-  if (!preferring) {
+  if (!preferring)
     same_ = true;
-    preferring = heuristic;
-  }
+  else
+    preferring_ = EvaluatorFactory(problem_, preferring.get());
 
   if (auto options = pt.get_child_optional("options")) {
     if (auto uniform = options->get_optional<int>("uniform")) {
@@ -69,10 +70,6 @@ void Mrw13::Init(const boost::property_tree::ptree &pt) {
       fix_ = fix.get() == 1;
     }
   }
-
-  evaluator_ = EvaluatorFactory(problem_, heuristic.get());
-
-  if (!same_) preferring_ = EvaluatorFactory(problem_, preferring.get());
 }
 
 vector<int> Mrw13::Plan() {
