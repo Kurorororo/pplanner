@@ -29,10 +29,17 @@ void GBFS::Init(const boost::property_tree::ptree &pt) {
     preferring_ = EvaluatorFactory(problem_, preferring.get());
   }
 
-  if (auto tie_breaking = pt.get_optional<std::string>("tie-breaking"))
-    open_list_ = OpenListFactory(tie_breaking.get(), evaluators, use_preferred_);
-  else
-    open_list_ = OpenListFactory("fifo", evaluators, use_preferred_);
+  int n_boost = 0;
+
+  if (auto n_boost_opt = pt.get_optional<int>("boost"))
+    n_boost = n_boost_opt.get();
+
+  if (auto tie_breaking = pt.get_optional<std::string>("tie-breaking")) {
+    open_list_ = OpenListFactory(tie_breaking.get(), evaluators, use_preferred_,
+                                 n_boost);
+  } else {
+    open_list_ = OpenListFactory("fifo", evaluators, use_preferred_, n_boost);
+  }
 
   if (auto ram = pt.get_optional<size_t>("ram"))
     graph_->ReserveByRAMSize(ram.get());
@@ -87,6 +94,7 @@ int GBFS::Search() {
       if (use_preferred_) {
         bool is_preferred = preferred.find(o) != preferred.end();
         h = open_list_->EvaluateAndPush(child, child_node, is_preferred);
+        if (is_preferred) ++n_preferred_states_;
       } else {
         h = open_list_->EvaluateAndPush(child, child_node, false);
       }
@@ -103,6 +111,8 @@ int GBFS::Search() {
         std::cout << "New best heuristic value: " << best_h << std::endl;
         std::cout << "[" << evaluated_ << " evaluated, "
                   << expanded_ << " expanded]" << std::endl;
+
+        if (use_preferred_) open_list_->Boost();
       }
     }
   }
@@ -115,7 +125,8 @@ void GBFS::DumpStatistics() const {
   std::cout << "Evaluated " << evaluated_ << " state(s)" << std::endl;
   std::cout << "Generated " << generated_ << " state(s)" << std::endl;
   std::cout << "Dead ends " << dead_ends_ << " state(s)" << std::endl;
-  std::cout << "Preferred operators  " << n_preferreds_ << " state(s)"
+  std::cout << "Preferred operators " << n_preferreds_ << std::endl;
+  std::cout << "Preferred successors " << n_preferred_states_ << " state(s)"
             << std::endl;
 }
 

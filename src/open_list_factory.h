@@ -11,7 +11,8 @@ namespace pplanner {
 std::unique_ptr<OpenList> OpenListFactory(
     const std::string &tie_breaking,
     const std::vector<std::shared_ptr<Evaluator> > &evaluators,
-    bool preferred=false);
+    bool preferred,
+    int n_boost);
 
 } // namespace pplanner
 

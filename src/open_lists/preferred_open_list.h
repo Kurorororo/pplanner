@@ -17,7 +17,7 @@ class PreferredOpenList : public OpenList {
  public:
   PreferredOpenList() : boost_(1000) {}
 
-  PreferredOpenList(const std::string &tie_breaking, int boost=1000)
+  PreferredOpenList(const std::string &tie_breaking, int boost=0)
       : boost_(boost) { Init(tie_breaking); }
 
   PreferredOpenList(const std::string &tie_breaking,

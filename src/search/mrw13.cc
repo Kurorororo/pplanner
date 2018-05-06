@@ -318,8 +318,7 @@ void Mrw13::DumpStatistics() const {
   std::cout << "Evaluated " << evaluated_ << " state(s)" << std::endl;
   std::cout << "Generated " << generated_ << " state(s)" << std::endl;
   std::cout << "Dead ends " << dead_ends_ << " state(s)" << std::endl;
-  std::cout << "Preferred operators  " << n_preferreds_ << " state(s)"
-            << std::endl;
+  std::cout << "Preferred operators  " << n_preferreds_ << std::endl;
 }
 
 } // namespace pplanner
