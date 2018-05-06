@@ -65,10 +65,14 @@ int main(int argc, char *argv[]) {
     std::cout << "number " << o << " " << sas->ActionName(o) << std::endl;
   }
 
+  if (result_cost != cost) {
+    std::cerr << "cost of plan and plan cost do not match" << std::endl;
+    exit(1);
+  }
+
   std::cout << std::endl;
 
   std::cout << "plan step: " << result.size() << std::endl;
-  assert(cost == result_cost);
   std::cout << "plan cost: " << cost << std::endl;
   std::cout << std::endl;
 
@@ -141,7 +145,6 @@ int main(int argc, char *argv[]) {
   std::cout << "OK!" << std::endl;
 
   std::cout << "plan step: " << result.size() << std::endl;
-  assert(cost == result_cost);
   std::cout << "plan cost: " << cost << std::endl;
   std::cout << "number of preferred operators: " << preferred.size()
             << std::endl;
