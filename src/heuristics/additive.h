@@ -1,6 +1,7 @@
 #ifndef ADDITIVE_H_
 #define ADDITIVE_H_
 
+#include <memory>
 #include <unordered_set>
 #include <vector>
 

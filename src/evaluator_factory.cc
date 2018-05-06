@@ -4,6 +4,8 @@
 #include "heuristics/blind.h"
 #include "heuristics/ff.h"
 #include "heuristics/ff_add.h"
+#include "heuristics/new_operator.h"
+#include "heuristics/width.h"
 
 namespace pplanner {
 
@@ -43,6 +45,19 @@ std::shared_ptr<Evaluator> EvaluatorFactory(
     if (option) simplify = option.get() == 1;
 
     return std::make_shared<FF>(problem, simplify);
+  }
+
+  if (name.get() == "width") {
+    bool is_ge_1 = false;
+
+    auto option = pt.get_optional<int>("option.ge_1");
+    if (option) is_ge_1 = option.get() == 1;
+
+    return std::make_shared<Width>(problem, is_ge_1);
+  }
+
+  if (name.get() == "new_op") {
+    return std::make_shared<NewOperator>(problem);
   }
 
   throw std::runtime_error("No such heuristic.");
