@@ -1,6 +1,8 @@
 #ifndef SAS_PLUS_H_
 #define SAS_PLUS_H_
 
+#include <cassert>
+
 #include <memory>
 #include <queue>
 #include <string>

@@ -1,6 +1,8 @@
 #ifndef PARTIAL_STATE_VECTORS_H_
 #define PARTIAL_STATE_VECTORS_H_
 
+#include <cassert>
+
 #include <vector>
 
 namespace pplanner {
