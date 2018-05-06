@@ -58,6 +58,13 @@ class SearchGraph {
     states_->Get(i, state);
   }
 
+  virtual int GenerateNodeIfNotClosed(const std::vector<int> &state,
+                                      int parent, int action);
+
+  virtual int GetStateAndClosed(int i, std::vector<int> &state) const {
+    return states_->GetStateAndClosed(i, state);
+  }
+
  private:
   std::vector<int> actions_;
   std::vector<int> parents_;

@@ -6,8 +6,11 @@ int PreferredOpenList::EvaluateAndPush(const std::vector<int> &state, int node,
                                        bool preferred) {
   values_.clear();
 
-  for (auto evaluator : evaluators_)
-    values_.push_back(evaluator->Evaluate(state, node));
+  for (auto evaluator : evaluators_) {
+    int value = evaluator->Evaluate(state, node);
+    if (value == -1) return value;
+    values_.push_back(value);
+  }
 
   Push(values_, node, preferred);
 

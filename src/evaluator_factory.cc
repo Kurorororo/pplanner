@@ -21,7 +21,7 @@ std::shared_ptr<Evaluator> EvaluatorFactory(
   if (name.get() == "add") {
     bool simplify = false;
 
-    auto option = pt.get_optional<int>("options.simplify");
+    auto option = pt.get_optional<int>("option.simplify");
     if (option) simplify = option.get() == 1;
 
     return std::make_shared<Additive>(problem, simplify);
@@ -30,7 +30,7 @@ std::shared_ptr<Evaluator> EvaluatorFactory(
   if (name.get() == "fa") {
     bool simplify = false;
 
-    auto option = pt.get_optional<int>("options.simplify");
+    auto option = pt.get_optional<int>("option.simplify");
     if (option) simplify = option.get() == 1;
 
     return std::make_shared<FFAdd>(problem, simplify);
@@ -39,7 +39,7 @@ std::shared_ptr<Evaluator> EvaluatorFactory(
   if (name.get() == "ff") {
     bool simplify = false;
 
-    auto option = pt.get_optional<int>("options.simplify");
+    auto option = pt.get_optional<int>("option.simplify");
     if (option) simplify = option.get() == 1;
 
     return std::make_shared<FF>(problem, simplify);

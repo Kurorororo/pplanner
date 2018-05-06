@@ -8,6 +8,7 @@
 
 #include "sas_plus.h"
 #include "search.h"
+#include "search/gbfs.h"
 #include "search/mrw13.h"
 
 namespace pplanner {

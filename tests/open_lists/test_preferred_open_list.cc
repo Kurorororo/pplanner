@@ -8,7 +8,6 @@
 
 #include "evaluator.h"
 #include "sas_plus.h"
-#include "search_graph.h"
 #include "heuristics/blind.h"
 
 namespace pplanner {
@@ -25,8 +24,7 @@ class PreferredOpenListTest: public ::testing::Test {
     auto lines = ExampleSASPlusLines();
     auto sas = std::make_shared<SASPlus>();
     sas->InitFromLines(lines);
-    auto graph = std::make_shared<SearchGraph>(*sas);
-    evaluators.push_back(std::make_shared<Blind>(sas, graph));
+    evaluators.push_back(std::make_shared<Blind>(sas));
     list_1_ = std::unique_ptr<PreferredOpenList>(
        new PreferredOpenList("fifo", evaluators, 2));
 

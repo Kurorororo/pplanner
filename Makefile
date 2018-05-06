@@ -100,12 +100,14 @@ $(BIN_DIR)/libevaluators.a: \
 
 $(BIN_DIR)/libopen_lists.a: \
 	$(BIN_DIR)/open_list.o \
+	$(BIN_DIR)/open_list_factory.o \
 	$(BIN_DIR)/open_lists/single_open_list.o \
 	$(BIN_DIR)/open_lists/preferred_open_list.o \
 	$(BIN_DIR)/open_lists/open_list_impl_factory.o \
 	$(BIN_DIR)/open_lists/open_list_impl.o
 	ar rcs $(BIN_DIR)/libopen_lists.a \
 		$(BIN_DIR)/open_list.o \
+		$(BIN_DIR)/open_list_factory.o \
 		$(BIN_DIR)/open_lists/single_open_list.o \
 		$(BIN_DIR)/open_lists/preferred_open_list.o \
 		$(BIN_DIR)/open_lists/open_list_impl_factory.o \
@@ -114,10 +116,12 @@ $(BIN_DIR)/libopen_lists.a: \
 $(BIN_DIR)/libsearch.a: \
 	$(BIN_DIR)/search.o \
 	$(BIN_DIR)/search_factory.o \
+	$(BIN_DIR)/search/gbfs.o \
 	$(BIN_DIR)/search/mrw13.o
 	ar rcs $(BIN_DIR)/libsearch.a \
 		$(BIN_DIR)/search.o \
 		$(BIN_DIR)/search_factory.o \
+		$(BIN_DIR)/search/gbfs.o \
 		$(BIN_DIR)/search/mrw13.o
 
 $(BIN_DIR)/sas_plus/test_partial_state: \

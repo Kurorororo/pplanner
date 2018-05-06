@@ -56,7 +56,15 @@ class StateVector {
 
   void Close(int node);
 
-  int GetClosed(const std::vector<int> &state) const;
+  int GetClosed(const std::vector<int> &state) const {
+    packer_->Pack(state, tmp_packed_.data());
+
+    return GetClosedFromPacked(tmp_packed_.data());
+  }
+
+  int AddIfNotClosed(const std::vector<int> &state);
+
+  int GetStateAndClosed(int i, std::vector<int> &state) const;
 
  private:
   void InitClosed() {
@@ -70,6 +78,8 @@ class StateVector {
   }
 
   void ResizeClosed();
+
+  int GetClosedFromPacked(const uint32_t *ptr) const;
 
   size_t n_closed_;
   int closed_exponent_;
