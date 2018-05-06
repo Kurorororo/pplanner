@@ -12,8 +12,8 @@ TEST_FLAG = -Wall -std=c++11 -Igoogletest/googletest/include \
 
 planner: \
 	$(BIN_DIR)/planner.o \
-	$(BIN_DIR)/utils/file_utils.o \
 	$(BIN_DIR)/successor_generator.o \
+	$(BIN_DIR)/utils/file_utils.o \
 	$(BIN_DIR)/libsas_plus.a \
 	$(BIN_DIR)/libsearch_graph.a \
 	$(BIN_DIR)/libevaluators.a \
@@ -21,13 +21,13 @@ planner: \
 	$(BIN_DIR)/libsearch.a
 	$(CXX) $(INCS) $(RELEASE_FLAG) -o $(BIN_DIR)/planner \
 		$(BIN_DIR)/planner.o \
-		$(BIN_DIR)/utils/file_utils.o \
 		$(BIN_DIR)/successor_generator.o \
-		$(BIN_DIR)/libsas_plus.a \
-		$(BIN_DIR)/libsearch_graph.a \
-		$(BIN_DIR)/libevaluators.a \
-		$(BIN_DIR)/libopen_lists.a \
+		$(BIN_DIR)/utils/file_utils.o \
 		$(BIN_DIR)/libsearch.a \
+		$(BIN_DIR)/libopen_lists.a \
+		$(BIN_DIR)/libevaluators.a \
+		$(BIN_DIR)/libsearch_graph.a \
+		$(BIN_DIR)/libsas_plus.a \
 		$(LIBS)
 
 $(BIN_DIR)/heuristics/sas_relaxed_graphplan: \
@@ -81,7 +81,7 @@ $(BIN_DIR)/libsearch_graph.a: \
 	ar rcs $(BIN_DIR)/libsearch_graph.a \
 		$(BIN_DIR)/search_graph.o \
 		$(BIN_DIR)/search_graph/state_vector.o \
-		$(BIN_DIR)/search_graph/state_packer.o \
+		$(BIN_DIR)/search_graph/state_packer.o
 
 $(BIN_DIR)/libevaluators.a: \
 	$(BIN_DIR)/evaluator.o \

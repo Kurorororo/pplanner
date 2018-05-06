@@ -1,5 +1,7 @@
 #include "search_graph/state_packer.h"
 
+#include <cmath>
+
 #include <iostream>
 
 using std::vector;

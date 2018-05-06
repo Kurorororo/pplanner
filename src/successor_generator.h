@@ -1,6 +1,8 @@
 #ifndef SUCCESSOR_GENERATOR_H_
 #define SUCCESSOR_GENERATOR_H_
 
+#include <cassert>
+
 #include <random>
 #include <utility>
 #include <vector>

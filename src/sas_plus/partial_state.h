@@ -1,6 +1,8 @@
 #ifndef PARTIAL_STATE_H_
 #define PARTIAL_STATE_H_
 
+#include <cstddef>
+
 #include <utility>
 #include <vector>
 

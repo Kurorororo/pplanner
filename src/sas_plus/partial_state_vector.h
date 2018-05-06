@@ -2,6 +2,7 @@
 #define PARTIAL_STATE_VECTORS_H_
 
 #include <cassert>
+#include <cstddef>
 
 #include <vector>
 

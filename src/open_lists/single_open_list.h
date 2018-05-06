@@ -1,6 +1,8 @@
 #ifndef SINGLE_OPEN_LIST_H_
 #define SINGLE_OPEN_LIST_H_
 
+#include <cassert>
+
 #include <memory>
 #include <string>
 #include <vector>
