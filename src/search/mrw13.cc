@@ -319,6 +319,9 @@ void Mrw13::DumpStatistics() const {
   std::cout << "Generated " << generated_ << " state(s)" << std::endl;
   std::cout << "Dead ends " << dead_ends_ << " state(s)" << std::endl;
   std::cout << "Preferred operators " << n_preferreds_ << std::endl;
+  double p_p_e = static_cast<double>(n_preferreds_)
+    / static_cast<double>(evaluated_);
+  std::cout << "Preferreds per state " << p_p_e << std::endl;
 }
 
 } // namespace pplanner
