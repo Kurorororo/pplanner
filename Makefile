@@ -87,16 +87,20 @@ $(BIN_DIR)/libevaluators.a: \
 	$(BIN_DIR)/evaluator.o \
 	$(BIN_DIR)/evaluator_factory.o \
 	$(BIN_DIR)/heuristics/blind.o \
+	$(BIN_DIR)/heuristics/new_operator.o \
 	$(BIN_DIR)/heuristics/rpg.o \
 	$(BIN_DIR)/heuristics/rpg_table.o \
-	$(BIN_DIR)/heuristics/relaxed_sas_plus.o
+	$(BIN_DIR)/heuristics/relaxed_sas_plus.o \
+	$(BIN_DIR)/heuristics/width.o
 	ar rcs $(BIN_DIR)/libevaluators.a \
 		$(BIN_DIR)/evaluator.o \
 		$(BIN_DIR)/evaluator_factory.o \
 		$(BIN_DIR)/heuristics/blind.o \
+		$(BIN_DIR)/heuristics/new_operator.o \
 		$(BIN_DIR)/heuristics/rpg.o \
 		$(BIN_DIR)/heuristics/rpg_table.o \
-		$(BIN_DIR)/heuristics/relaxed_sas_plus.o
+		$(BIN_DIR)/heuristics/relaxed_sas_plus.o \
+		$(BIN_DIR)/heuristics/width.o
 
 $(BIN_DIR)/libopen_lists.a: \
 	$(BIN_DIR)/open_list.o \
