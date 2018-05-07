@@ -63,13 +63,11 @@ void Mrw13::Init(const boost::property_tree::ptree &pt) {
   else
     preferring_ = EvaluatorFactory(problem_, preferring.get());
 
-  if (auto option = pt.get_child_optional("option")) {
-    if (auto uniform = option->get_optional<int>("uniform"))
-      uniform_ = uniform.get() == 1;
+  if (auto uniform = pt.get_optional<int>("uniform"))
+    uniform_ = uniform.get() == 1;
 
-    if (auto fix = option->get_optional<int>("fix"))
-      fix_ = fix.get() == 1;
-  }
+  if (auto fix = pt.get_optional<int>("fix"))
+    fix_ = fix.get() == 1;
 
   if (auto option = pt.get_optional<int>("measure"))
     measure_ = option.get() == 1;
