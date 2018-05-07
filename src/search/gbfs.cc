@@ -79,8 +79,9 @@ int GBFS::Search() {
     if (use_preferred_) {
       preferring_->Evaluate(state, node, applicable, preferred);
       n_preferreds_ += preferred.size();
-      ++n_preferred_evaluated_;
     }
+
+    ++n_preferred_evaluated_;
 
     for (auto o : applicable) {
       child = state;
