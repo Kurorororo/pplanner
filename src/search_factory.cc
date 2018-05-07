@@ -1,5 +1,9 @@
 #include "search_factory.h"
 
+#include "search/gbfs.h"
+#include "search/lazy_gbfs.h"
+#include "search/mrw13.h"
+
 namespace pplanner {
 
 std::unique_ptr<Search> SearchFactory(const std::shared_ptr<SASPlus> &problem,
@@ -15,6 +19,9 @@ std::unique_ptr<Search> SearchFactory(const std::shared_ptr<SASPlus> &problem,
 
   if (search.get() == "gbfs")
     return std::unique_ptr<GBFS>(new GBFS(problem, option.get()));
+
+  if (search.get() == "lazy_gbfs")
+    return std::unique_ptr<LazyGBFS>(new LazyGBFS(problem, option.get()));
 
   throw std::runtime_error("No such search algorithm.");
 }

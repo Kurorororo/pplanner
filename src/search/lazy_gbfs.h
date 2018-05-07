@@ -1,39 +1,76 @@
 #ifndef LAZY_GBFS_H_
 #define LAZY_GBFS_H_
 
+#include <memory>
+#include <random>
+#include <string>
+#include <unordered_set>
 #include <vector>
 
-#include "node/node_vector.h"
-#include "node/state_packer.h"
-#include "domain/domain.h"
-#include "trie/trie.h"
+#include <boost/property_tree/ptree.hpp>
 
-namespace rwls {
+#include "evaluator.h"
+#include "sas_plus.h"
+#include "search.h"
+#include "search_graph.h"
+#include "successor_generator.h"
+#include "open_list.h"
 
-template<class H>
-class LazyGBFS {
+namespace pplanner {
+
+class LazyGBFS : public Search {
  public:
-  LazyGBFS() : generated_(0), expanded_(0), evaluated_(0), deadend_(0) {}
+  LazyGBFS(std::shared_ptr<const SASPlus> problem,
+       const boost::property_tree::ptree &pt)
+    : use_preferred_(false),
+      same_(false),
+      generated_(0),
+      expanded_(0),
+      evaluated_(0),
+      dead_ends_(0),
+      n_preferreds_(0),
+      problem_(problem),
+      preferring_(nullptr),
+      generator_(std::unique_ptr<SuccessorGenerator>(
+            new SuccessorGenerator(problem))),
+      graph_(std::unique_ptr<SearchGraph>(new SearchGraph(*problem_))),
+      open_list_(nullptr) { Init(pt); }
 
-  std::vector<int> operator()(const Domain &domain);
+  ~LazyGBFS() {}
 
-  inline int generated() const { return generated_; }
-  inline int expanded() const { return expanded_; }
-  inline int evaluated() const { return evaluated_; }
-  inline int deadend() const { return deadend_; }
+  std::vector<int> Plan() override {
+    int goal = Search();
+
+    return ExtractPath(*graph_, goal);
+  }
+
+  void DumpStatistics() const override;
 
  private:
-  int Search(const Domain &domain, const TrieTable &table,
-             const StatePacker &packer, NodeVector &vec);
+  void Init(const boost::property_tree::ptree &pt);
 
+  int Search();
+
+  int Evaluate(const std::vector<int> &state, int node,
+               const std::vector<int> &applicable,
+               std::unordered_set<int> &preferred);
+
+  bool use_preferred_;
+  bool same_;
   int generated_;
   int expanded_;
   int evaluated_;
-  int deadend_;
+  int dead_ends_;
+  int n_preferreds_;
+  std::vector<int> values_;
+  std::shared_ptr<const SASPlus> problem_;
+  std::vector<std::shared_ptr<Evaluator> > evaluators_;
+  std::shared_ptr<Evaluator> preferring_;
+  std::unique_ptr<SuccessorGenerator> generator_;
+  std::unique_ptr<SearchGraph> graph_;
+  std::unique_ptr<OpenList> open_list_;
 };
 
-} // namespace rwls
-
-#include "./details/lazy_gbfs.h"
+} // namespace pplanner
 
 #endif // LAZY_GBFS_H_
