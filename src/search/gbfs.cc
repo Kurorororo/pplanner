@@ -79,6 +79,7 @@ int GBFS::Search() {
     if (use_preferred_) {
       preferring_->Evaluate(state, node, applicable, preferred);
       n_preferreds_ += preferred.size();
+      ++n_preferred_evaluated_;
     }
 
     for (auto o : applicable) {
@@ -125,9 +126,14 @@ void GBFS::DumpStatistics() const {
   std::cout << "Evaluated " << evaluated_ << " state(s)" << std::endl;
   std::cout << "Generated " << generated_ << " state(s)" << std::endl;
   std::cout << "Dead ends " << dead_ends_ << " state(s)" << std::endl;
+  std::cout << "Preferred evaluated " << n_preferred_evaluated_ << " state(s)"
+            << std::endl;
   std::cout << "Preferred operators " << n_preferreds_ << std::endl;
   std::cout << "Preferred successors " << n_preferred_states_ << " state(s)"
             << std::endl;
+  double p_p_e = static_cast<double>(n_preferreds_)
+    / static_cast<double>(n_preferred_evaluated_);
+  std::cout << "Preferreds per state " << p_p_e << std::endl;
 }
 
 } // namespace pplanner

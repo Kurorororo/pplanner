@@ -27,6 +27,7 @@ class GBFS : public Search {
       expanded_(0),
       evaluated_(0),
       dead_ends_(0),
+      n_preferred_evaluated_(0),
       n_preferreds_(0),
       n_preferred_states_(0),
       problem_(problem),
@@ -56,6 +57,7 @@ class GBFS : public Search {
   int expanded_;
   int evaluated_;
   int dead_ends_;
+  int n_preferred_evaluated_;
   int n_preferreds_;
   int n_preferred_states_;
   std::shared_ptr<const SASPlus> problem_;
