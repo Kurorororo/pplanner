@@ -518,7 +518,7 @@ void Mrw13::DumpPreferringMetrics() const {
   double st_re = 0.0;
 
   if (st_tp + st_fn != 0)
-    st_pr = static_cast<double>(st_tp) / static_cast<double>(st_tp + st_fn);
+    st_re = static_cast<double>(st_tp) / static_cast<double>(st_tp + st_fn);
 
   double st_f = 0.0;
 
