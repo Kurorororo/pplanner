@@ -45,9 +45,7 @@ void RPG::ConstructGraph(const vector<int> &state) {
   }
 
   while (!scheduled_facts_.empty()) {
-    bool is_end = FactLayer();
-
-    if (is_end) {
+    if (FactLayer()) {
       ++n_layers_;
       return;
     }
@@ -66,7 +64,7 @@ void RPG::Reset() {
             fact_layer_membership_.end(), -1);
   std::fill(action_layer_membership_.begin(),
             action_layer_membership_.end(), -1);
-  std::fill(closed_.begin(), closed_.end(), 0);
+  std::fill(closed_.begin(), closed_.end(), false);
   std::fill(precondition_counter_.begin(),
             precondition_counter_.end(), 0);
   scheduled_facts_.clear();
@@ -114,7 +112,7 @@ void RPG::ConstructRRPG(const std::vector<int> &state,
   Reset();
 
   for (auto f : state) {
-    closed_[f] = 1;
+    closed_[f] = true;
     scheduled_facts_.push_back(f);
   }
 
