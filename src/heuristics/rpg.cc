@@ -151,11 +151,11 @@ vector<int> RPG::ExtractPlan() {
   vector< vector<int> > tmp(m);
 
   for (int i=m; i>0; --i) {
-    std::fill(marked_[0].begin(), marked_[0].end(), 0);
-    std::fill(marked_[1].begin(), marked_[1].end(), 0);
+    std::fill(marked_[0].begin(), marked_[0].end(), false);
+    std::fill(marked_[1].begin(), marked_[1].end(), false);
 
     for (auto g : g_set_[i]) {
-      if (marked_[1][g] == 1) continue;
+      if (marked_[1][g]) continue;
       int o = ExtractAction(i, g);
       tmp[i-1].push_back(o);
     }
@@ -175,11 +175,11 @@ int RPG::ExtractCost() {
   int h = 0;
 
   for (int i=m; i>0; --i) {
-    std::fill(marked_[0].begin(), marked_[0].end(), 0);
-    std::fill(marked_[1].begin(), marked_[1].end(), 0);
+    std::fill(marked_[0].begin(), marked_[0].end(), false);
+    std::fill(marked_[1].begin(), marked_[1].end(), false);
 
     for (auto g : g_set_[i]) {
-      if (marked_[1][g] == 1) continue;
+      if (marked_[1][g]) continue;
       int o = ExtractAction(i, g);
       h += problem_->ActionCost(o);
     }
@@ -194,7 +194,7 @@ int RPG::ExtractAction(int i, int g) {
   for (int f : problem_->Precondition(o)) {
     int j = fact_layer_membership_[f];
 
-    if (j != 0 && marked_[0][f] == 0)
+    if (j != 0 && !marked_[0][f])
       g_set_[j].push_back(f);
   }
 
@@ -202,8 +202,8 @@ int RPG::ExtractAction(int i, int g) {
 
   for (auto a : problem_->IdToActions(id)) {
     int f = problem_->Effect(a);
-    marked_[0][f] = 1;
-    marked_[1][f] = 1;
+    marked_[0][f] = true;
+    marked_[1][f] = true;
   }
 
   return o;
