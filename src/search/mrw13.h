@@ -25,6 +25,7 @@ class Mrw13 : public Search {
     : uniform_(false),
       fix_(false),
       same_(false),
+      measure_(false),
       generated_(0),
       expanded_(0),
       evaluated_(0),
@@ -59,8 +60,8 @@ class Mrw13 : public Search {
   int Evaluate(const std::vector<int> &state, const std::vector<int> &applicable,
                std::unordered_set<int> &preferred);
 
-  int MHA(const std::vector<int> &applicable, std::unordered_set<int> &preferred)
-    const;
+  int MHA(const std::vector<int> &applicable,
+          std::unordered_set<int> &preferred);
 
   void UpdateQ(const std::vector<int> &applicable,
                const std::unordered_set<int> &preferred);
@@ -73,9 +74,14 @@ class Mrw13 : public Search {
            std::vector<int> &sequence,  std::vector<int> &applicable,
            std::unordered_set<int> &preferred);
 
+  void ActionElimination();
+
+  void DumpPreferringMetrics() const;
+
   bool uniform_;
   bool fix_;
   bool same_;
+  bool measure_;
   int generated_;
   int expanded_;
   int evaluated_;
@@ -86,18 +92,26 @@ class Mrw13 : public Search {
   double qw_max_;
   double e1_;
   double ew_;
+  std::vector<int> plan_;
   std::vector<double> rls_;
   std::vector<int> ls_;
   std::vector<int> value_rls_;
   std::vector<int> cost_rls_;
   std::vector<double> q1_;
   std::vector<double> qw_;
-  mutable std::default_random_engine engine_;
-  mutable std::uniform_real_distribution<> dist_;
+  std::default_random_engine engine_;
+  std::uniform_real_distribution<> dist_;
   std::shared_ptr<const SASPlus> problem_;
   std::unique_ptr<SuccessorGenerator> generator_;
   std::shared_ptr<Evaluator> evaluator_;
   std::shared_ptr<Evaluator> preferring_;
+  std::vector<bool> is_preferred_operator_;
+  std::vector<bool> is_preferred_successor_;
+  std::vector<bool> tmp_is_preferred_successor_;
+  std::vector<int> n_preferred_successors_;
+  std::vector<int> tmp_n_preferred_successors_;
+  std::vector<int> n_successors_;
+  std::vector<int> tmp_n_successors_;
 };
 
 template<typename T>

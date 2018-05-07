@@ -2,12 +2,14 @@
 
 #include <array>
 #include <iostream>
+#include <utility>
 
 #include "evaluator_factory.h"
 
 namespace pplanner {
 
 using std::array;
+using std::pair;
 using std::unordered_set;
 using std::vector;
 
@@ -68,6 +70,12 @@ void Mrw13::Init(const boost::property_tree::ptree &pt) {
     if (auto fix = option->get_optional<int>("fix"))
       fix_ = fix.get() == 1;
   }
+
+  if (auto option = pt.get_optional<int>("measure"))
+    measure_ = option.get() == 1;
+
+  if (measure_)
+    is_preferred_operator_.resize(problem_->n_actions(), false);
 }
 
 vector<int> Mrw13::Plan() {
@@ -81,11 +89,10 @@ vector<int> Mrw13::Plan() {
   int best_h = Evaluate(best_state, best_applicable, best_preferred);
   ++evaluated_;
 
-  if (best_h== -1) return vector<int>{-1};
+  if (best_h == -1) return vector<int>{-1};
   std::cout << "initial h value: " << best_h << std::endl;
 
-  vector<int> plan;
-  if (problem_->IsGoal(best_state)) return plan;
+  if (problem_->IsGoal(best_state)) return plan_;
 
   int initial_h = best_h;
   auto initial_applicable = best_applicable;
@@ -112,6 +119,12 @@ vector<int> Mrw13::Plan() {
     int arg_rl = ChoiceRl(eps_, value_rls_, cost_rls_, engine_);
     int h;
 
+    if (measure_) {
+      tmp_is_preferred_successor_.clear();
+      tmp_n_preferred_successors_.clear();
+      tmp_n_successors_.clear();
+    }
+
     if (fix_) {
       int length = GetRl<int>(arg_rl, ls_);
       h = Walk(best_h, length, state, sequence, applicable, preferred);
@@ -124,9 +137,22 @@ vector<int> Mrw13::Plan() {
     ++walks;
 
     if (problem_->IsGoal(state)) {
-      plan.insert(plan.end(), sequence.begin(), sequence.end());
+      plan_.insert(plan_.end(), sequence.begin(), sequence.end());
 
-      return plan;
+      if (measure_) {
+        is_preferred_successor_.insert(is_preferred_successor_.end(),
+                                       tmp_is_preferred_successor_.begin(),
+                                       tmp_is_preferred_successor_.end());
+        n_preferred_successors_.insert(n_preferred_successors_.end(),
+                                       tmp_n_preferred_successors_.begin(),
+                                       tmp_n_preferred_successors_.end());
+        n_successors_.insert(n_successors_.end(), tmp_n_successors_.begin(),
+                             tmp_n_successors_.end());
+      }
+
+      if (measure_) ActionElimination();
+
+      return plan_;
     }
 
     int cost = evaluated_ - before_evaluated;
@@ -138,8 +164,19 @@ vector<int> Mrw13::Plan() {
       best_state = state;
       best_applicable = applicable;
       best_preferred = preferred;
-      plan.insert(plan.end(), sequence.begin(), sequence.end());
+      plan_.insert(plan_.end(), sequence.begin(), sequence.end());
       li = w;
+
+      if (measure_) {
+        is_preferred_successor_.insert(is_preferred_successor_.end(),
+                                       tmp_is_preferred_successor_.begin(),
+                                       tmp_is_preferred_successor_.end());
+        n_preferred_successors_.insert(n_preferred_successors_.end(),
+                                       tmp_n_preferred_successors_.begin(),
+                                       tmp_n_preferred_successors_.end());
+        n_successors_.insert(n_successors_.end(), tmp_n_successors_.begin(),
+                             tmp_n_successors_.end());
+      }
 
       //std::cout << "New best heuristic value : " << h
       //          << std::endl;
@@ -163,7 +200,12 @@ vector<int> Mrw13::Plan() {
       best_preferred = initial_preferred;
 
       best_h = Evaluate(best_state, best_applicable, best_preferred);
-      plan.clear();
+      plan_.clear();
+
+      if (measure_) {
+        is_preferred_successor_.clear();
+        n_preferred_successors_.clear();
+      }
 
       std::fill(q1_.begin(), q1_.end(), 1.0);
       std::fill(qw_.begin(), qw_.end(), 1.0);
@@ -174,7 +216,7 @@ vector<int> Mrw13::Plan() {
 }
 
 void Mrw13::UpdateQ(const vector<int> &applicable,
-                   const unordered_set<int> &preferred) {
+                    const unordered_set<int> &preferred) {
   qw_max_ = 1.0;
 
   for (auto a : preferred) {
@@ -182,6 +224,8 @@ void Mrw13::UpdateQ(const vector<int> &applicable,
     qw_[a] = std::min(qw_[a] * ew_, 1.0e250);
 
     if (qw_[a] > qw_max_) qw_max_ = qw_[a];
+
+    if (measure_) is_preferred_operator_[a] = true;
   }
 }
 
@@ -229,6 +273,12 @@ int Mrw13::Walk(int best_h, int length, vector<int> &state,
       sequence.resize(path_length);
       ++dead_ends_;
 
+    if (measure_) {
+      tmp_is_preferred_successor_.resize(path_length);
+      tmp_n_preferred_successors_.resize(path_length);
+      tmp_n_successors_.resize(path_length);
+    }
+
       return best_h;
     }
 
@@ -251,6 +301,12 @@ int Mrw13::Walk(int best_h, int length, vector<int> &state,
   }
 
   sequence.resize(path_length);
+
+  if (measure_) {
+    tmp_is_preferred_successor_.resize(path_length);
+    tmp_n_preferred_successors_.resize(path_length);
+    tmp_n_successors_.resize(path_length);
+  }
 
   return best_h;
 }
@@ -284,8 +340,7 @@ int Mrw13::Walk(int best_h, double rl, vector<int> &state, vector<int> &sequence
   }
 }
 
-int Mrw13::MHA(const vector<int> &applicable, unordered_set<int> &preferred)
-  const {
+int Mrw13::MHA(const vector<int> &applicable, unordered_set<int> &preferred) {
   assert(!applicable.empty());
 
   double cumsum = 0.0;
@@ -310,6 +365,16 @@ int Mrw13::MHA(const vector<int> &applicable, unordered_set<int> &preferred)
     if (p < score / cumsum) best = a;
   }
 
+  if (measure_) {
+    if (preferred.find(best) != preferred.end())
+      tmp_is_preferred_successor_.push_back(true);
+    else
+      tmp_is_preferred_successor_.push_back(false);
+
+    tmp_n_preferred_successors_.push_back(preferred.size());
+    tmp_n_successors_.push_back(applicable.size());
+  }
+
   return best;
 }
 
@@ -322,6 +387,140 @@ void Mrw13::DumpStatistics() const {
   double p_p_e = static_cast<double>(n_preferreds_)
     / static_cast<double>(evaluated_);
   std::cout << "Preferreds per state " << p_p_e << std::endl;
+
+  if (measure_) DumpPreferringMetrics();
+}
+
+void Mrw13::ActionElimination() {
+  auto state = problem_->initial();
+
+  int i = 0;
+  int n = plan_.size();
+  vector<bool> marked(plan_.size(), false);
+
+  while (i < n) {
+    marked[i] = true;
+    auto successor = state;
+    vector<pair<int, int> > precondition;
+
+    for (int j=i+1; j<n; ++j) {
+      problem_->CopyPrecondition(plan_[j], precondition);
+
+      for (auto p : precondition) {
+        if (successor[p.first] != p.second) {
+          marked[j] = true;
+          break;
+        }
+      }
+
+      if (!marked[j]) problem_->ApplyEffect(plan_[j], successor);
+    }
+
+    if (problem_->IsGoal(successor)) {
+      vector<int> new_plan;
+      vector<bool> new_is_preferred_successor_;
+      vector<int> new_n_preferred_successors_;
+      vector<int> new_n_successors_;
+
+      for (int j=0; j<n; ++j) {
+        if (marked[j]) continue;
+
+        new_plan.push_back(plan_[j]);
+        new_is_preferred_successor_.push_back(is_preferred_successor_[j]);
+        new_n_preferred_successors_.push_back(n_preferred_successors_[j]);
+        new_n_successors_.push_back(n_successors_[j]);
+      }
+
+      plan_.swap(new_plan);
+      is_preferred_successor_.swap(new_is_preferred_successor_);
+      n_preferred_successors_.swap(new_n_preferred_successors_);
+      n_successors_.swap(new_n_successors_);
+      marked.resize(plan_.size());
+      n = plan_.size();
+      continue;
+    } else {
+      problem_->ApplyEffect(plan_[i], state);
+      ++i;
+    }
+
+    std::fill(marked.begin(), marked.end(), false);
+  }
+}
+
+void Mrw13::DumpPreferringMetrics() const {
+  vector<bool> in_plan(problem_->n_actions(), false);
+
+  for (auto a : plan_)
+    in_plan[a] = true;
+
+  int op_tp = 0;
+  int op_fn = 0;
+  int op_fp = 0;
+  int op_tn = 0;
+
+  for (int i=0, n=problem_->n_actions(); i<n; ++i) {
+    if (in_plan[i] && is_preferred_operator_[i])
+      ++op_tp;
+
+    if (in_plan[i] && !is_preferred_operator_[i])
+      ++op_fn;
+
+    if (!in_plan[i] && is_preferred_operator_[i])
+      ++op_fp;
+
+    if (!in_plan[i] && !is_preferred_operator_[i])
+      ++op_tn;
+  }
+
+  double op_ac = static_cast<double>(op_tp + op_tn)
+    / static_cast<double>(op_tp + op_fn + op_fp + op_tn);
+  double op_pr = static_cast<double>(op_tp) / static_cast<double>(op_tp + op_fp);
+  double op_re = static_cast<double>(op_tp) / static_cast<double>(op_tp + op_fn);
+  double op_f = (2.0 * op_re * op_pr) / (op_re + op_pr);
+
+  int st_tp = 0;
+  int st_fn = 0;
+  int st_fp = 0;
+  int st_tn = 0;
+
+  for (int i=0, n=plan_.size(); i<n; ++i) {
+    if (is_preferred_successor_[i]) {
+      ++st_tp;
+      st_fp += n_preferred_successors_[i] - 1;
+      st_tn += n_successors_[i] - n_preferred_successors_[i];
+    } else {
+      ++st_fn;
+      st_fp += n_preferred_successors_[i];
+      st_tn += n_successors_[i] - n_preferred_successors_[i] - 1;
+    }
+  }
+
+  double st_ac = static_cast<double>(st_tp + st_tn)
+    / static_cast<double>(st_tp + st_fn + st_fp + st_tn);
+  double st_pr = static_cast<double>(st_tp) / static_cast<double>(st_tp + st_fp);
+  double st_re = static_cast<double>(st_tp) / static_cast<double>(st_tp + st_fn);
+  double st_f = (2.0 * st_re * st_pr) / (st_re + st_pr);
+
+  std::cout << std::endl;
+  std::cout << "Operator TP " << op_tp << std::endl;
+  std::cout << "Operator FN " << op_fn << std::endl;
+  std::cout << "Operator FP " << op_fp << std::endl;
+  std::cout << "Operator TN " << op_tn << std::endl;
+  std::cout << "Operator Accuracy " << op_ac << std::endl;
+  std::cout << "Operator Precision " << op_pr << std::endl;
+  std::cout << "Operator Recall " << op_re << std::endl;
+  std::cout << "Operator F " << op_f << std::endl;
+
+  std::cout << std::endl;
+  std::cout << "State TP " << st_tp << std::endl;
+  std::cout << "State FN " << st_fn << std::endl;
+  std::cout << "State FP " << st_fp << std::endl;
+  std::cout << "State TN " << st_tn << std::endl;
+  std::cout << "State Accuracy " << st_ac << std::endl;
+  std::cout << "State Precision " << st_pr << std::endl;
+  std::cout << "State Recall " << st_re << std::endl;
+  std::cout << "State F " << st_f << std::endl;
+  std::cout << std::endl;
 }
 
 } // namespace pplanner
