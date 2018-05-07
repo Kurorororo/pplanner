@@ -59,14 +59,16 @@ void RPG::ConstructGraph(const vector<int> &state) {
 
 void RPG::Reset() {
   n_layers_ = 0;
-  goal_counter_ = 0;
+  goal_counter_ = problem_->n_goal_facts();
   std::fill(fact_layer_membership_.begin(),
             fact_layer_membership_.end(), -1);
   std::fill(action_layer_membership_.begin(),
             action_layer_membership_.end(), -1);
   std::fill(closed_.begin(), closed_.end(), false);
-  std::fill(precondition_counter_.begin(),
-            precondition_counter_.end(), 0);
+
+  for (int i=0, n=precondition_counter_.size(); i<n; ++i)
+    precondition_counter_[i] = problem_->PreconditionSize(i);
+
   scheduled_facts_.clear();
   scheduled_actions_.clear();
 
@@ -80,11 +82,11 @@ bool RPG::FactLayer() {
     scheduled_facts_.pop_back();
     fact_layer_membership_[f] = n_layers_;
 
-    if (problem_->IsGoal(f) && ++goal_counter_ == problem_->n_goal_facts())
+    if (problem_->IsGoal(f) && --goal_counter_ == 0)
       return true;
 
     for (auto o : problem_->PreconditionMap(f)) {
-      if (++precondition_counter_[o] == problem_->PreconditionSize(o))
+      if (--precondition_counter_[o] == 0)
         scheduled_actions_.push_back(o);
     }
   }
@@ -130,7 +132,7 @@ void RPG::RistrictedFactLayer(const unordered_set<int> &black_list) {
     fact_layer_membership_[f] = n_layers_;
 
     for (auto o : problem_->PreconditionMap(f)) {
-      if (++precondition_counter_[o] == problem_->PreconditionSize(o)
+      if (--precondition_counter_[o] == 0
           && black_list.find(problem_->ActionId(o)) == black_list.end())
         scheduled_actions_.push_back(o);
     }

@@ -16,9 +16,9 @@ class RPG {
 
   explicit RPG(std::shared_ptr<const RelaxedSASPlus> problem)
     : n_layers_(0),
-      goal_counter_(0),
+      goal_counter_(problem->n_goal_facts()),
       fact_layer_membership_(problem->n_facts(), -1),
-      action_layer_membership_(problem->n_actions(), -1),
+      action_layer_membership_(problem->n_actions(), 0),
       precondition_counter_(problem->n_actions(), -1),
       closed_(problem->n_facts(), false),
       problem_(problem) {
