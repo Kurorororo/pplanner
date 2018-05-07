@@ -13,6 +13,7 @@ TEST_FLAG = -Wall -std=c++11 -Igoogletest/googletest/include \
 planner: \
 	$(BIN_DIR)/planner.o \
 	$(BIN_DIR)/successor_generator.o \
+	$(BIN_DIR)/postprocess/action_elimination.o \
 	$(BIN_DIR)/utils/file_utils.o \
 	$(BIN_DIR)/libsas_plus.a \
 	$(BIN_DIR)/libsearch_graph.a \
@@ -22,6 +23,7 @@ planner: \
 	$(CXX) $(INCS) $(RELEASE_FLAG) -o $(BIN_DIR)/planner \
 		$(BIN_DIR)/planner.o \
 		$(BIN_DIR)/successor_generator.o \
+		$(BIN_DIR)/postprocess/action_elimination.o \
 		$(BIN_DIR)/utils/file_utils.o \
 		$(BIN_DIR)/libsearch.a \
 		$(BIN_DIR)/libopen_lists.a \

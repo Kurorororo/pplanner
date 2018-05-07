@@ -7,6 +7,7 @@
 
 #include "sas_plus.h"
 #include "search_factory.h"
+#include "postprocess/action_elimination.h"
 #include "utils/file_utils.h"
 
 using namespace pplanner;
@@ -41,7 +42,8 @@ int main(int argc, char *argv[]) {
   opt.add_options()
     ("help,h", "help")
     ("file,f", po::value<std::string>(), "input sas+ file name")
-    ("property,p", po::value<std::string>(), "run property file name");
+    ("config,c", po::value<std::string>(), "run config file name")
+    ("postprocess,p", "postprocess plan");
   po::variables_map vm;
 
   try {
@@ -52,7 +54,7 @@ int main(int argc, char *argv[]) {
 
   po::notify(vm);
 
-  if (vm.count("help") || !vm.count("file") || !vm.count("property")) {
+  if (vm.count("help") || !vm.count("file") || !vm.count("config")) {
     std::cout << opt << std::endl;
     exit(0);
   }
@@ -62,11 +64,11 @@ int main(int argc, char *argv[]) {
   auto sas = std::make_shared<SASPlus>();
   sas->InitFromLines(lines);
 
-  auto property_filename = vm["property"].as<std::string>();
+  auto config_filename = vm["config"].as<std::string>();
   boost::property_tree::ptree pt;
-  read_json(property_filename, pt);
+  read_json(config_filename, pt);
   auto child = pt.get_child_optional("config");
-  if (!child) throw std::runtime_error("Invalid property file.");
+  if (!child) throw std::runtime_error("Invalid config file.");
 
   auto chrono_start = std::chrono::system_clock::now();
   auto search = SearchFactory(sas, child.get());
@@ -75,6 +77,8 @@ int main(int argc, char *argv[]) {
   auto ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
      chrono_end - chrono_start).count();
   auto search_time = static_cast<double>(ns) / 1e9;
+
+  if (vm.count("postprocess")) result = ActionElimination(*sas, result);
 
   WritePlan(*sas, result);
   search->DumpStatistics();
