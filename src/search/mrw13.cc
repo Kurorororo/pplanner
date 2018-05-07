@@ -474,9 +474,21 @@ void Mrw13::DumpPreferringMetrics() const {
 
   double op_ac = static_cast<double>(op_tp + op_tn)
     / static_cast<double>(op_tp + op_fn + op_fp + op_tn);
-  double op_pr = static_cast<double>(op_tp) / static_cast<double>(op_tp + op_fp);
-  double op_re = static_cast<double>(op_tp) / static_cast<double>(op_tp + op_fn);
-  double op_f = (2.0 * op_re * op_pr) / (op_re + op_pr);
+
+  double op_pr = 0.0;
+
+  if (op_tp + op_fp != 0)
+    op_pr = static_cast<double>(op_tp) / static_cast<double>(op_tp + op_fp);
+
+  double op_re = 0.0;
+
+  if (op_tp + op_fn != 0)
+    op_re = static_cast<double>(op_tp) / static_cast<double>(op_tp + op_fn);
+
+  double op_f = 0.0;
+
+  if (op_re + op_pr != 0)
+    op_f = (2.0 * op_re * op_pr) / (op_re + op_pr);
 
   int st_tp = 0;
   int st_fn = 0;
@@ -497,9 +509,21 @@ void Mrw13::DumpPreferringMetrics() const {
 
   double st_ac = static_cast<double>(st_tp + st_tn)
     / static_cast<double>(st_tp + st_fn + st_fp + st_tn);
-  double st_pr = static_cast<double>(st_tp) / static_cast<double>(st_tp + st_fp);
-  double st_re = static_cast<double>(st_tp) / static_cast<double>(st_tp + st_fn);
-  double st_f = (2.0 * st_re * st_pr) / (st_re + st_pr);
+
+  double st_pr = 0.0;
+
+  if (st_tp + st_fp != 0)
+    st_pr = static_cast<double>(st_tp) / static_cast<double>(st_tp + st_fp);
+
+  double st_re = 0.0;
+
+  if (st_tp + st_fn != 0)
+    st_pr = static_cast<double>(st_tp) / static_cast<double>(st_tp + st_fn);
+
+  double st_f = 0.0;
+
+  if (st_re + st_pr != 0)
+    st_f = (2.0 * st_re * st_pr) / (st_re + st_pr);
 
   std::cout << std::endl;
   std::cout << "Operator TP " << op_tp << std::endl;

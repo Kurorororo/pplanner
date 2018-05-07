@@ -8,6 +8,8 @@ using std::vector;
 int NewOperator::Evaluate(const vector<int> &state, int node,
                           const vector<int> &applicable,
                           unordered_set<int> &preferred) {
+  preferred.clear();
+
   for (auto o : applicable) {
     if (is_new_[o]) {
       is_new_[o] = false;
