@@ -20,7 +20,7 @@ class SearchGraph {
   virtual void ReserveByRAMSize(size_t ram_size) {
     assert(states_ != nullptr);
 
-    size_t node_size = 2 * sizeof(int) + states_->size();
+    size_t node_size = 2 * sizeof(int) + states_->state_size();
     size_t size = (ram_size - states_->closed_size()) / node_size;
     Reserve(size);
   }
