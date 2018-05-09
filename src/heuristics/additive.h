@@ -14,10 +14,13 @@ namespace pplanner {
 
 class Additive : public Evaluator {
  public:
-  Additive() : problem_(nullptr), r_problem_(nullptr), rpg_(nullptr) {}
+  Additive() : unit_cost_(false), problem_(nullptr), r_problem_(nullptr),
+               rpg_(nullptr) {}
 
-  Additive(std::shared_ptr<const SASPlus> problem, bool simplify=true)
-    : problem_(problem),
+  Additive(std::shared_ptr<const SASPlus> problem, bool simplify=true,
+           bool unit_cost=false)
+    : unit_cost_(unit_cost),
+      problem_(problem),
       r_problem_(std::make_shared<RelaxedSASPlus>(*problem, simplify)),
       rpg_(nullptr) {
     rpg_ = std::unique_ptr<RPGTable>(new RPGTable(problem, r_problem_));
@@ -28,7 +31,7 @@ class Additive : public Evaluator {
   int Evaluate(const std::vector<int> &state, int node) override {
     StateToFactVector(*problem_, state, facts_);
 
-    return rpg_->AdditiveCost(facts_);
+    return rpg_->AdditiveCost(facts_, unit_cost_);
   }
 
   int Evaluate(const std::vector<int> &state, int node,
@@ -36,10 +39,11 @@ class Additive : public Evaluator {
                std::unordered_set<int> &preferred) override {
     StateToFactVector(*problem_, state, facts_);
 
-    return rpg_->AdditiveCost(facts_);
+    return rpg_->AdditiveCost(facts_, unit_cost_);
   }
 
  private:
+  bool unit_cost_;
   std::vector<int> facts_;
   std::shared_ptr<const SASPlus> problem_;
   std::shared_ptr<RelaxedSASPlus> r_problem_;

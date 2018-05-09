@@ -5,8 +5,8 @@ namespace pplanner {
 using std::unordered_set;
 using std::vector;
 
-int RPGTable::PlanCost(const vector<int> &state) {
-  int additive_h = AdditiveCost(state);
+int RPGTable::PlanCost(const vector<int> &state, bool unit_cost) {
+  int additive_h = AdditiveCost(state, unit_cost);
   if (additive_h == -1) return -1;
 
   std::fill(plan_set_.begin(), plan_set_.end(), false);
@@ -17,15 +17,21 @@ int RPGTable::PlanCost(const vector<int> &state) {
 
   int h = 0;
 
-  for (int i=0, n=plan_set_.size(); i<n; ++i)
-    if (plan_set_[i]) h += problem_->ActionCost(i);
+  for (int i=0, n=plan_set_.size(); i<n; ++i) {
+    if (plan_set_[i]) {
+      if (unit_cost)
+        ++h;
+      else
+        h += problem_->ActionCost(i);
+    }
+  }
 
   return h;
 }
 
 int RPGTable::PlanCost(const vector<int> &state, const vector<int> &applicable,
-                       unordered_set<int> &helpful) {
-  int h = PlanCost(state);
+                       unordered_set<int> &helpful, bool unit_cost) {
+  int h = PlanCost(state, unit_cost);
 
   helpful.clear();
 
@@ -35,7 +41,8 @@ int RPGTable::PlanCost(const vector<int> &state, const vector<int> &applicable,
   return h;
 }
 
-int RPGTable::AdditiveCost(const vector<int> &state) {
+int RPGTable::AdditiveCost(const vector<int> &state, bool unit_cost) {
+  SetUp(state, unit_cost);
   GeneralizedDijkstra(state);
 
   int h = 0;
@@ -64,8 +71,6 @@ void RPGTable::SetPlan(int g) {
 }
 
 void RPGTable::GeneralizedDijkstra(const vector<int> &state) {
-  SetUp(state);
-
   while (!q_.empty()) {
     auto top = q_.top();
     q_.pop();
@@ -87,7 +92,7 @@ void RPGTable::GeneralizedDijkstra(const vector<int> &state) {
   }
 }
 
-void RPGTable::SetUp(const vector<int> &state) {
+void RPGTable::SetUp(const vector<int> &state, bool unit_cost) {
   goal_counter_ = r_problem_->n_goal_facts();
   std::fill(best_support_.begin(), best_support_.end(), -1);
   std::fill(prop_cost_.begin(), prop_cost_.end(), -1);
@@ -95,7 +100,11 @@ void RPGTable::SetUp(const vector<int> &state) {
 
   for (int i=0, n=r_problem_->n_actions(); i<n; ++i) {
     precondition_counter_[i] = r_problem_->PreconditionSize(i);
-    op_cost_[i] = r_problem_->ActionCost(i);
+
+    if (unit_cost)
+      op_cost_[i] = 1;
+    else
+      op_cost_[i] = r_problem_->ActionCost(i);
 
     if (precondition_counter_[i] == 0)
       MayPush(r_problem_->Effect(i), i);
@@ -117,4 +126,4 @@ void RPGTable::MayPush(int f, int a) {
   }
 }
 
-} // namespace pplanner
+} // namespace pplanne

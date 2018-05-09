@@ -34,7 +34,7 @@ class GBFS : public Search {
       preferring_(nullptr),
       generator_(std::unique_ptr<SuccessorGenerator>(
             new SuccessorGenerator(problem))),
-      graph_(std::unique_ptr<SearchGraph>(new SearchGraph(*problem_))),
+      graph_(nullptr),
       open_list_(nullptr) { Init(pt); }
 
   ~GBFS() {}

@@ -18,7 +18,7 @@ class SearchGraphTest : public ::testing::Test {
     auto lines = ExampleSASPlusLines();
     SASPlus sas_0;
     sas_0.InitFromLines(lines);
-    graph_0_ = SearchGraph(sas_0);
+    graph_0_ = SearchGraph(sas_0, 10);
     state_0_ = std::vector<int>{0, 1, 0};
     state_1_ = std::vector<int>{0, 0, 0};
   }
@@ -29,58 +29,58 @@ class SearchGraphTest : public ::testing::Test {
 };
 
 TEST_F(SearchGraphTest, GenerateNodeTest) {
-  int node = graph_0_.GenerateNode(state_0_, -1, -1);
+  int node = graph_0_.GenerateNode(state_0_, -1, -1, false);
   EXPECT_EQ(0, node);
-  node = graph_0_.GenerateNode(state_1_, node, 4);
+  node = graph_0_.GenerateNode(state_1_, node, 4, false);
   EXPECT_EQ(1, node);
 }
 
 TEST_F(SearchGraphTest, ActionWorks) {
-  int node = graph_0_.GenerateNode(state_0_, -1, -1);
+  int node = graph_0_.GenerateNode(state_0_, -1, -1, false);
   EXPECT_EQ(-1, graph_0_.Action(node));
-  node = graph_0_.GenerateNode(state_1_, node, 4);
+  node = graph_0_.GenerateNode(state_1_, node, 4, false);
   EXPECT_EQ(4, graph_0_.Action(node));
 }
 
 TEST_F(SearchGraphTest, ParentWorks) {
-  int node = graph_0_.GenerateNode(state_0_, -1, -1);
+  int node = graph_0_.GenerateNode(state_0_, -1, -1, false);
   EXPECT_EQ(-1, graph_0_.Parent(node));
-  node = graph_0_.GenerateNode(state_1_, node, 4);
+  node = graph_0_.GenerateNode(state_1_, node, 4, false);
   EXPECT_EQ(0, graph_0_.Parent(node));
 }
 
 TEST_F(SearchGraphTest, CloseWorks) {
   ASSERT_EQ(-1, graph_0_.GetClosed(state_0_));
-  int node = graph_0_.GenerateNode(state_0_, -1, -1);
+  int node = graph_0_.GenerateNode(state_0_, -1, -1, false);
   graph_0_.Close(node);
   EXPECT_EQ(node, graph_0_.GetClosed(state_0_));
 }
 
 TEST_F(SearchGraphTest, StateWorks) {
-  int node = graph_0_.GenerateNode(state_0_, -1, -1);
+  int node = graph_0_.GenerateNode(state_0_, -1, -1, false);
   std::vector<int> tmp_state(state_0_.size());
   graph_0_.State(node, tmp_state);
   EXPECT_EQ(state_0_, tmp_state);
-  node = graph_0_.GenerateNode(state_1_, node, 4);
+  node = graph_0_.GenerateNode(state_1_, node, 4, false);
   graph_0_.State(node, tmp_state);
   EXPECT_EQ(state_1_, tmp_state);
 }
 
 TEST_F(SearchGraphTest, GenerateNodeIfNotClosedTest) {
-  int node = graph_0_.GenerateNodeIfNotClosed(state_0_, -1, -1);
+  int node = graph_0_.GenerateNodeIfNotClosed(state_0_, -1, -1, false);
   EXPECT_EQ(0, node);
   graph_0_.Close(node);
-  node = graph_0_.GenerateNodeIfNotClosed(state_0_, -1, -1);
+  node = graph_0_.GenerateNodeIfNotClosed(state_0_, -1, -1, false);
   EXPECT_EQ(-1, node);
-  node = graph_0_.GenerateNodeIfNotClosed(state_1_, node, 4);
+  node = graph_0_.GenerateNodeIfNotClosed(state_1_, node, 4, false);
   EXPECT_EQ(1, node);
   graph_0_.Close(node);
-  node = graph_0_.GenerateNodeIfNotClosed(state_1_, node, 4);
+  node = graph_0_.GenerateNodeIfNotClosed(state_1_, node, 4, false);
   EXPECT_EQ(-1, node);
 }
 
 TEST_F(SearchGraphTest, GetStateAndClosedWorks) {
-  int node = graph_0_.GenerateNode(state_0_, -1, -1);
+  int node = graph_0_.GenerateNode(state_0_, -1, -1, false);
   std::vector<int> tmp_state(state_0_.size());
   ASSERT_EQ(-1, graph_0_.GetStateAndClosed(node, tmp_state));
   graph_0_.Close(node);
@@ -89,15 +89,15 @@ TEST_F(SearchGraphTest, GetStateAndClosedWorks) {
 }
 
 TEST_F(SearchGraphTest, ExtractPathWorks) {
-  int node = graph_0_.GenerateNode(state_0_, -1, -1);
-  node = graph_0_.GenerateNode(state_1_, node, 4);
+  int node = graph_0_.GenerateNode(state_0_, -1, -1, false);
+  node = graph_0_.GenerateNode(state_1_, node, 4, false);
   std::vector<int> tmp_state(state_1_);
   tmp_state[0] = 1;
   tmp_state[3] = 2;
-  node = graph_0_.GenerateNode(tmp_state, node, 2);
+  node = graph_0_.GenerateNode(tmp_state, node, 2, false);
   tmp_state[1] = 0;
   tmp_state[3] = 1;
-  node = graph_0_.GenerateNode(tmp_state, node, 1);
+  node = graph_0_.GenerateNode(tmp_state, node, 1, false);
   auto result = ExtractPath(graph_0_, node);
   ASSERT_EQ(3, result.size());
   EXPECT_EQ(4, result[0]);

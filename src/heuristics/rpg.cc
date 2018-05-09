@@ -7,8 +7,7 @@ using std::vector;
 
 namespace pplanner {
 
-vector<int> RPG::Plan(const vector<int> &state,
-                      unordered_set<int> &helpful) {
+vector<int> RPG::Plan(const vector<int> &state, unordered_set<int> &helpful) {
   helpful.clear();
   ConstructGraph(state);
   if (n_layers_ == -1) return vector<int>{-1};
@@ -20,17 +19,18 @@ vector<int> RPG::Plan(const vector<int> &state,
   return result;
 }
 
-int RPG::PlanCost(const vector<int> &state) {
+int RPG::PlanCost(const vector<int> &state, bool unit_cost) {
   ConstructGraph(state);
   if (n_layers_ == -1) return -1;
   InitializeGSet();
 
-  return ExtractCost();
+  return ExtractCost(unit_cost);
 }
 
-int RPG::PlanCost(const vector<int> &state, unordered_set<int> &helpful) {
+int RPG::PlanCost(const vector<int> &state, unordered_set<int> &helpful,
+                  bool unit_cost) {
   helpful.clear();
-  int h = PlanCost(state);
+  int h = PlanCost(state, unit_cost);
   ExtractHelpful(helpful);
 
   return h;
@@ -167,7 +167,7 @@ vector<int> RPG::ExtractPlan() {
   return result;
 }
 
-int RPG::ExtractCost() {
+int RPG::ExtractCost(bool unit_cost) {
   int m = n_layers_ - 1;
   int h = 0;
 
@@ -178,7 +178,11 @@ int RPG::ExtractCost() {
     for (auto g : g_set_[i]) {
       if (marked_[1][g]) continue;
       int o = ExtractAction(i, g);
-      h += problem_->ActionCost(o);
+
+      if (unit_cost)
+        ++h;
+      else
+        h += problem_->ActionCost(o);
     }
   }
 
@@ -227,7 +231,6 @@ int RPG::ChooseAction(int index, int i) const {
 
   return argmin;
 }
-
 void RPG::ExtractHelpful(unordered_set<int> &helpful) {
   if (n_layers_ < 2) return;
 

@@ -5,8 +5,8 @@
 namespace pplanner {
 
 int SearchGraph::GenerateNodeIfNotClosed(const std::vector<int> &state,
-                                         int parent,
-                                         int action) {
+                                         int parent, int action,
+                                         bool is_preferred) {
   int node = states_->AddIfNotClosed(state);
 
   if (node != -1) {

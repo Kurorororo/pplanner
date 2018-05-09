@@ -16,6 +16,14 @@ using std::unordered_set;
 using std::vector;
 
 void LazyGBFS::Init(const boost::property_tree::ptree &pt) {
+  int closed_exponent = 22;
+
+  if (auto closed_exponent_opt = pt.get_optional<int>("closed_exponent"))
+    closed_exponent = closed_exponent_opt.get();
+
+  graph_ = std::unique_ptr<SearchGraph>(
+      new SearchGraph(*problem_, closed_exponent));
+
   BOOST_FOREACH (const boost::property_tree::ptree::value_type& child,
                  pt.get_child("evaluators")) {
     auto e = child.second;
@@ -53,7 +61,7 @@ void LazyGBFS::Init(const boost::property_tree::ptree &pt) {
 
 int LazyGBFS::Search() {
   auto state = problem_->initial();
-  int node = graph_->GenerateNode(state, -1, -1);
+  int node = graph_->GenerateNode(state, -1, -1, true);
   ++generated_;
   ++expanded_;
 
@@ -105,10 +113,10 @@ int LazyGBFS::Search() {
       child = state;
       problem_->ApplyEffect(o, child);
 
-      int child_node = graph_->GenerateNode(child, node, o);
+      bool is_preferred = use_preferred_ && preferred.find(o) != preferred.end();
+      int child_node = graph_->GenerateNode(child, node, o, is_preferred);
       ++generated_;
 
-      bool is_preferred = use_preferred_ && preferred.find(o) != preferred.end();
       open_list_->Push(values_, child_node, is_preferred);
 
       if (is_preferred) ++n_preferreds_;

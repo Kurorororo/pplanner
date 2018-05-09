@@ -25,19 +25,19 @@ class RPGTable {
       problem_(problem),
       r_problem_(r_problem) {}
 
-  int PlanCost(const std::vector<int> &state);
+  int PlanCost(const std::vector<int> &state, bool unit_cost=false);
 
   int PlanCost(const std::vector<int> &state, const std::vector<int> &applicable,
-               std::unordered_set<int> &preferred);
+               std::unordered_set<int> &preferred, bool unit_cost=false);
 
-  int AdditiveCost(const std::vector<int> &state);
+  int AdditiveCost(const std::vector<int> &state, bool unit_cost=false);
 
  private:
   void SetPlan(int g);
 
   void GeneralizedDijkstra(const std::vector<int> &state);
 
-  void SetUp(const std::vector<int> &state);
+  void SetUp(const std::vector<int> &state, bool unit_cost);
 
   void MayPush(int f, int a);
 

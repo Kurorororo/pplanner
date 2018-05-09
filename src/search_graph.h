@@ -1,6 +1,8 @@
 #ifndef SEARCH_GRAPH_H_
 #define SEARCH_GRAPH_H_
 
+#include <cassert>
+
 #include <vector>
 
 #include "search_graph/state_vector.h"
@@ -12,17 +14,15 @@ class SearchGraph {
   SearchGraph()
     : states_(nullptr) {}
 
-  virtual ~SearchGraph() {}
-
-  explicit SearchGraph(const SASPlus &problem, int closed_exponent=22)
+  SearchGraph(const SASPlus &problem, int closed_exponent)
     : states_(std::make_shared<StateVector>(problem, closed_exponent)) {}
 
-  virtual void ReserveByRAMSize(size_t ram_size) {
+  virtual ~SearchGraph() {}
+
+  virtual size_t NodeSize() const {
     assert(states_ != nullptr);
 
-    size_t node_size = 2 * sizeof(int) + states_->state_size();
-    size_t size = (ram_size - states_->closed_size()) / node_size;
-    Reserve(size);
+    return 2 * sizeof(int) + states_->state_size();
   }
 
   virtual void Reserve(size_t size) {
@@ -33,8 +33,13 @@ class SearchGraph {
     states_->Reserve(size);
   }
 
+  void ReserveByRAMSize(size_t ram_size) {
+    size_t size = (ram_size - states_->closed_size()) / NodeSize();
+    Reserve(size);
+  }
+
   virtual int GenerateNode(const std::vector<int> &state, int parent,
-                           int action) {
+                           int action, bool is_preferred) {
     int node = states_->Add(state);
     parents_.push_back(parent);
     actions_.push_back(action);
@@ -59,11 +64,13 @@ class SearchGraph {
   }
 
   virtual int GenerateNodeIfNotClosed(const std::vector<int> &state,
-                                      int parent, int action);
+                                      int parent, int action, bool is_preferred);
 
   virtual int GetStateAndClosed(int i, std::vector<int> &state) const {
     return states_->GetStateAndClosed(i, state);
   }
+
+  virtual void DumpPlanMetrics(const std::vector<int> &plan) const {}
 
  private:
   std::vector<int> actions_;

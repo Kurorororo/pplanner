@@ -29,9 +29,10 @@ class RPG {
   std::vector<int> Plan(const std::vector<int> &state,
                         std::unordered_set<int> &helpful);
 
-  int PlanCost(const std::vector<int> &state);
+  int PlanCost(const std::vector<int> &state, bool unit_cost=false);
 
-  int PlanCost(const std::vector<int> &state, std::unordered_set<int> &helpful);
+  int PlanCost(const std::vector<int> &state, std::unordered_set<int> &helpful,
+               bool unit_cost=false);
 
   void ConstructRRPG(const std::vector<int> &state,
                      const std::unordered_set<int> &black_list);
@@ -51,7 +52,7 @@ class RPG {
 
   std::vector<int> ExtractPlan();
 
-  int ExtractCost();
+  int ExtractCost(bool unit_cost);
 
   int ExtractAction(int i, int g);
 

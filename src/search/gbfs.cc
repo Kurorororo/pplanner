@@ -16,6 +16,14 @@ using std::unordered_set;
 using std::vector;
 
 void GBFS::Init(const boost::property_tree::ptree &pt) {
+  int closed_exponent = 22;
+
+  if (auto closed_exponent_opt = pt.get_optional<int>("closed_exponent"))
+    closed_exponent = closed_exponent_opt.get();
+
+  graph_ = std::unique_ptr<SearchGraph>(
+      new SearchGraph(*problem_, closed_exponent));
+
   vector<std::shared_ptr<Evaluator> > evaluators;
 
   BOOST_FOREACH (const boost::property_tree::ptree::value_type& child,
@@ -49,7 +57,7 @@ void GBFS::Init(const boost::property_tree::ptree &pt) {
 
 int GBFS::Search() {
   auto state = problem_->initial();
-  int node = graph_->GenerateNode(state, -1, -1);
+  int node = graph_->GenerateNode(state, -1, -1, true);
   ++generated_;
 
   int best_h = open_list_->EvaluateAndPush(state, node, true);
@@ -87,26 +95,22 @@ int GBFS::Search() {
       child = state;
       problem_->ApplyEffect(o, child);
 
-      int child_node = graph_->GenerateNodeIfNotClosed(child, node, o);
+      bool is_preferred = use_preferred_ && preferred.find(o) != preferred.end();
+
+      int child_node = graph_->GenerateNodeIfNotClosed(child, node, o,
+                                                       is_preferred);
       if (child_node == -1) continue;
       ++generated_;
 
-      int h = -1;
-
-      if (use_preferred_) {
-        bool is_preferred = preferred.find(o) != preferred.end();
-        h = open_list_->EvaluateAndPush(child, child_node, is_preferred);
-        if (is_preferred) ++n_preferred_states_;
-      } else {
-        h = open_list_->EvaluateAndPush(child, child_node, false);
-      }
-
+      int h = open_list_->EvaluateAndPush(child, child_node, is_preferred);
       ++evaluated_;
 
       if (h == -1) {
         ++dead_ends_;
         continue;
       }
+
+      if (is_preferred) ++n_preferred_states_;
 
       if (h < best_h) {
         best_h = h;

@@ -26,7 +26,12 @@ std::shared_ptr<Evaluator> EvaluatorFactory(
     auto option = pt.get_optional<int>("option.simplify");
     if (option) simplify = option.get() == 1;
 
-    return std::make_shared<Additive>(problem, simplify);
+    bool unit_cost = problem->metric() == 0;
+
+    option = pt.get_optional<int>("option.unit_cost");
+    if (option && !unit_cost) unit_cost = option.get() == 1;
+
+    return std::make_shared<Additive>(problem, simplify, unit_cost);
   }
 
   if (name.get() == "fa") {
@@ -35,7 +40,12 @@ std::shared_ptr<Evaluator> EvaluatorFactory(
     auto option = pt.get_optional<int>("option.simplify");
     if (option) simplify = option.get() == 1;
 
-    return std::make_shared<FFAdd>(problem, simplify);
+    bool unit_cost = problem->metric() == 0;
+
+    option = pt.get_optional<int>("option.unit_cost");
+    if (option && !unit_cost) unit_cost = option.get() == 1;
+
+    return std::make_shared<FFAdd>(problem, simplify, unit_cost);
   }
 
   if (name.get() == "ff") {
@@ -44,7 +54,12 @@ std::shared_ptr<Evaluator> EvaluatorFactory(
     auto option = pt.get_optional<int>("option.simplify");
     if (option) simplify = option.get() == 1;
 
-    return std::make_shared<FF>(problem, simplify);
+    bool unit_cost = problem->metric() == 0;
+
+    option = pt.get_optional<int>("option.unit_cost");
+    if (option && !unit_cost) unit_cost = option.get() == 1;
+
+    return std::make_shared<FF>(problem, simplify, unit_cost);
   }
 
   if (name.get() == "width") {
