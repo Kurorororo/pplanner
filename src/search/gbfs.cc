@@ -84,10 +84,8 @@ int GBFS::Search() {
       continue;
     }
 
-    if (use_preferred_) {
+    if (use_preferred_)
       preferring_->Evaluate(state, node, applicable, preferred);
-      n_preferreds_ += preferred.size();
-    }
 
     ++n_preferred_evaluated_;
 
@@ -110,7 +108,8 @@ int GBFS::Search() {
         continue;
       }
 
-      if (is_preferred) ++n_preferred_states_;
+      if (is_preferred) ++n_preferreds_;
+      ++n_branching_;
 
       if (h < best_h) {
         best_h = h;
@@ -133,12 +132,17 @@ void GBFS::DumpStatistics() const {
   std::cout << "Dead ends " << dead_ends_ << " state(s)" << std::endl;
   std::cout << "Preferred evaluated " << n_preferred_evaluated_ << " state(s)"
             << std::endl;
-  std::cout << "Preferred operators " << n_preferreds_ << std::endl;
-  std::cout << "Preferred successors " << n_preferred_states_ << " state(s)"
+  std::cout << "Preferred successors " << n_preferreds_ << " state(s)"
             << std::endl;
   double p_p_e = static_cast<double>(n_preferreds_)
     / static_cast<double>(n_preferred_evaluated_);
   std::cout << "Preferreds per state " << p_p_e << std::endl;
+  double b_f = static_cast<double>(n_branching_)
+    / static_cast<double>(n_preferred_evaluated_);
+  std::cout << "Average branching factor " << b_f << std::endl;
+  double p_p_b = static_cast<double>(n_preferreds_)
+    / static_cast<double>(n_branching_);
+  std::cout << "Preferred ratio " << p_p_b  << std::endl;
 }
 
 } // namespace pplanner

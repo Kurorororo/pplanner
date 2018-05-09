@@ -28,6 +28,7 @@ class LazyGBFS : public Search {
       expanded_(0),
       evaluated_(0),
       dead_ends_(0),
+      n_branching_(0),
       n_preferreds_(0),
       problem_(problem),
       preferring_(nullptr),
@@ -61,6 +62,7 @@ class LazyGBFS : public Search {
   int expanded_;
   int evaluated_;
   int dead_ends_;
+  int n_branching_;
   int n_preferreds_;
   std::vector<int> values_;
   std::shared_ptr<const SASPlus> problem_;

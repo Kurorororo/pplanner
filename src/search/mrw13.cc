@@ -198,6 +198,7 @@ vector<int> Mrw13::Plan() {
       best_preferred = initial_preferred;
 
       best_h = Evaluate(best_state, best_applicable, best_preferred);
+      ++evaluated_;
       plan_.clear();
 
       if (measure_) {
@@ -229,6 +230,8 @@ void Mrw13::UpdateQ(const vector<int> &applicable,
 
 int Mrw13::Evaluate(const vector<int> &state, const vector<int> &applicable,
                     unordered_set<int> &preferred) {
+  n_branching_ += applicable.size();
+
   if (uniform_) return evaluator_->Evaluate(state, -1);
 
   if (same_) {
@@ -271,11 +274,11 @@ int Mrw13::Walk(int best_h, int length, vector<int> &state,
       sequence.resize(path_length);
       ++dead_ends_;
 
-    if (measure_) {
-      tmp_is_preferred_successor_.resize(path_length);
-      tmp_n_preferred_successors_.resize(path_length);
-      tmp_n_successors_.resize(path_length);
-    }
+      if (measure_) {
+        tmp_is_preferred_successor_.resize(path_length);
+        tmp_n_preferred_successors_.resize(path_length);
+        tmp_n_successors_.resize(path_length);
+      }
 
       return best_h;
     }
@@ -385,6 +388,12 @@ void Mrw13::DumpStatistics() const {
   double p_p_e = static_cast<double>(n_preferreds_)
     / static_cast<double>(evaluated_);
   std::cout << "Preferreds per state " << p_p_e << std::endl;
+  double b_f = static_cast<double>(n_branching_)
+    / static_cast<double>(evaluated_);
+  std::cout << "Average branching factor " << b_f << std::endl;
+  double p_ratio = static_cast<double>(n_preferreds_)
+    / static_cast<double>(n_branching_);
+  std::cout << "Prefererd ratio " << p_ratio << std::endl;
 
   if (measure_) DumpPreferringMetrics();
 }
@@ -542,6 +551,23 @@ void Mrw13::DumpPreferringMetrics() const {
   std::cout << "State Precision " << st_pr << std::endl;
   std::cout << "State Recall " << st_re << std::endl;
   std::cout << "State F " << st_f << std::endl;
+  std::cout << std::endl;
+
+  double sum = 0.0;
+
+  for (auto q : q1_)
+    sum += q;
+
+  double mean = 1.0 / static_cast<double>(problem_->n_actions());
+  double variance = 0.0;
+
+  for (auto q : q1_)
+    variance += (q / sum - mean) * (q / sum - mean);
+
+  variance /= static_cast<double>(problem_->n_actions());
+
+  std::cout << "Q mean " << mean << std::endl;
+  std::cout << "Q variance " << variance << std::endl;
   std::cout << std::endl;
 }
 

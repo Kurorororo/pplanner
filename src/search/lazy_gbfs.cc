@@ -120,6 +120,7 @@ int LazyGBFS::Search() {
       open_list_->Push(values_, child_node, is_preferred);
 
       if (is_preferred) ++n_preferreds_;
+      ++n_branching_;
     }
 
     node = open_list_->Pop();
@@ -177,6 +178,12 @@ void LazyGBFS::DumpStatistics() const {
   double p_p_e = static_cast<double>(n_preferreds_)
     / static_cast<double>(evaluated_);
   std::cout << "Preferreds per state " << p_p_e << std::endl;
+  double b_f = static_cast<double>(n_branching_)
+    / static_cast<double>(evaluated_);
+  std::cout << "Average branching factor " << b_f << std::endl;
+  double p_p_b = static_cast<double>(n_preferreds_)
+    / static_cast<double>(n_branching_);
+  std::cout << "Preferred ratio " << p_p_b  << std::endl;
 }
 
 } // namespace pplanner

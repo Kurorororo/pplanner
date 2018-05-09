@@ -30,6 +30,7 @@ class Mrw13 : public Search {
       expanded_(0),
       evaluated_(0),
       dead_ends_(0),
+      n_branching_(0),
       n_preferreds_(0),
       tg_(1000),
       eps_(0.1),
@@ -86,6 +87,7 @@ class Mrw13 : public Search {
   int expanded_;
   int evaluated_;
   int dead_ends_;
+  int n_branching_;
   int n_preferreds_;
   int tg_;
   double eps_;

@@ -28,8 +28,8 @@ class GBFS : public Search {
       evaluated_(0),
       dead_ends_(0),
       n_preferred_evaluated_(0),
+      n_branching_(0),
       n_preferreds_(0),
-      n_preferred_states_(0),
       problem_(problem),
       preferring_(nullptr),
       generator_(std::unique_ptr<SuccessorGenerator>(
@@ -58,8 +58,8 @@ class GBFS : public Search {
   int evaluated_;
   int dead_ends_;
   int n_preferred_evaluated_;
+  int n_branching_;
   int n_preferreds_;
-  int n_preferred_states_;
   std::shared_ptr<const SASPlus> problem_;
   std::shared_ptr<Evaluator> preferring_;
   std::unique_ptr<SuccessorGenerator> generator_;
