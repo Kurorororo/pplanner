@@ -393,7 +393,7 @@ void Mrw13::DumpStatistics() const {
   std::cout << "Average branching factor " << b_f << std::endl;
   double p_ratio = static_cast<double>(n_preferreds_)
     / static_cast<double>(n_branching_);
-  std::cout << "Prefererd ratio " << p_ratio << std::endl;
+  std::cout << "Preferred ratio " << p_ratio << std::endl;
 
   if (measure_) DumpPreferringMetrics();
 }
