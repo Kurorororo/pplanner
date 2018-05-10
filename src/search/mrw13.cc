@@ -74,6 +74,9 @@ void Mrw13::Init(const boost::property_tree::ptree &pt) {
 
   if (measure_)
     is_preferred_operator_.resize(problem_->n_actions(), false);
+
+  if (auto option = pt.get_optional<int>("action_elimination"))
+    action_elimination_ = option.get() == 1;
 }
 
 vector<int> Mrw13::Plan() {
@@ -90,7 +93,11 @@ vector<int> Mrw13::Plan() {
   if (best_h == -1) return vector<int>{-1};
   std::cout << "initial h value: " << best_h << std::endl;
 
-  if (problem_->IsGoal(best_state)) return plan_;
+  if (problem_->IsGoal(best_state)) {
+    solved_ = true;
+
+    return plan_;
+  }
 
   int initial_h = best_h;
   auto initial_applicable = best_applicable;
@@ -148,10 +155,14 @@ vector<int> Mrw13::Plan() {
                              tmp_n_successors_.end());
       }
 
-      if (measure_) ActionElimination();
+      if (measure_ && action_elimination_) ActionElimination();
+      solved_ = true;
 
       return plan_;
     }
+
+    if (max_expansion_ > 0 && expanded_ >= max_expansion_)
+      return vector<int>{-1};
 
     int cost = evaluated_ - before_evaluated;
 
@@ -176,10 +187,7 @@ vector<int> Mrw13::Plan() {
                              tmp_n_successors_.end());
       }
 
-      //std::cout << "New best heuristic value : " << h
-      //          << std::endl;
-      //std::cout << "#walks " << walks << std::endl;
-      //std::cout << "[" << evaluated_
+      //std::cout << "New best heuristic value : " << h //          << std::endl; //std::cout << "#walks " << walks << std::endl; //std::cout << "[" << evaluated_
       //          << " evaluated, " << expanded_ << " expanded]" << std::endl;
     } else {
       Feedback(arg_rl, 0, cost, value_rls_, cost_rls_);
@@ -299,6 +307,8 @@ int Mrw13::Walk(int best_h, int length, vector<int> &state,
       applicable = current_applicable;
       preferred = current_preferred;
     }
+
+    if (max_expansion_ > 0 && expanded_ >= max_expansion_) return best_h;
   }
 
   sequence.resize(path_length);
@@ -338,6 +348,8 @@ int Mrw13::Walk(int best_h, double rl, vector<int> &state, vector<int> &sequence
     if (h < best_h) return h;
 
     if (dist_(engine_) < rl) return -1;
+
+    if (max_expansion_ > 0 && expanded_ >= max_expansion_) return -1;
   }
 }
 
@@ -395,7 +407,27 @@ void Mrw13::DumpStatistics() const {
     / static_cast<double>(n_branching_);
   std::cout << "Preferred ratio " << p_ratio << std::endl;
 
-  if (measure_) DumpPreferringMetrics();
+  if (measure_ && solved_) DumpPreferringMetrics();
+
+  if (measure_) {
+
+    double sum = 0.0;
+
+    for (auto q : q1_)
+      sum += q;
+
+    double mean = 1.0 / static_cast<double>(problem_->n_actions());
+    double variance = 0.0;
+
+    for (auto q : q1_)
+      variance += (q / sum - mean) * (q / sum - mean);
+
+    variance /= static_cast<double>(problem_->n_actions());
+
+    std::cout << "Q mean " << mean << std::endl;
+    std::cout << "Q variance " << variance << std::endl;
+    std::cout << std::endl;
+  }
 }
 
 void Mrw13::ActionElimination() {
@@ -551,23 +583,6 @@ void Mrw13::DumpPreferringMetrics() const {
   std::cout << "State Precision " << st_pr << std::endl;
   std::cout << "State Recall " << st_re << std::endl;
   std::cout << "State F " << st_f << std::endl;
-  std::cout << std::endl;
-
-  double sum = 0.0;
-
-  for (auto q : q1_)
-    sum += q;
-
-  double mean = 1.0 / static_cast<double>(problem_->n_actions());
-  double variance = 0.0;
-
-  for (auto q : q1_)
-    variance += (q / sum - mean) * (q / sum - mean);
-
-  variance /= static_cast<double>(problem_->n_actions());
-
-  std::cout << "Q mean " << mean << std::endl;
-  std::cout << "Q variance " << variance << std::endl;
   std::cout << std::endl;
 }
 

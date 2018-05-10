@@ -7,7 +7,8 @@
 namespace pplanner {
 
 std::unique_ptr<Search> SearchFactory(const std::shared_ptr<SASPlus> &problem,
-                                      const boost::property_tree::ptree &pt) {
+                                      const boost::property_tree::ptree &pt,
+                                      int max_expansion) {
   auto search = pt.get_optional<std::string>("search");
   if (!search) throw std::runtime_error("Parameter search is needed.");
 
@@ -15,7 +16,8 @@ std::unique_ptr<Search> SearchFactory(const std::shared_ptr<SASPlus> &problem,
   if (!option) throw std::runtime_error("Parameter option is needed.");
 
   if (search.get() == "mrw")
-    return std::unique_ptr<Mrw13>(new Mrw13(problem, option.get()));
+    return std::unique_ptr<Mrw13>(
+        new Mrw13(problem, option.get(), max_expansion));
 
   if (search.get() == "gbfs")
     return std::unique_ptr<GBFS>(new GBFS(problem, option.get()));

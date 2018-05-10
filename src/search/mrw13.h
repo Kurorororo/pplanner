@@ -21,17 +21,21 @@ namespace pplanner {
 class Mrw13 : public Search {
  public:
   Mrw13(std::shared_ptr<const SASPlus> problem,
-        const boost::property_tree::ptree &pt)
+        const boost::property_tree::ptree &pt,
+        int max_expansion)
     : uniform_(false),
       fix_(false),
       same_(false),
       measure_(false),
+      action_elimination_(false),
+      solved_(false),
       generated_(0),
       expanded_(0),
       evaluated_(0),
       dead_ends_(0),
       n_branching_(0),
       n_preferreds_(0),
+      max_expansion_(max_expansion),
       tg_(1000),
       eps_(0.1),
       e1_(exp(0.1)),
@@ -83,12 +87,15 @@ class Mrw13 : public Search {
   bool fix_;
   bool same_;
   bool measure_;
+  bool action_elimination_;
+  bool solved_;
   int generated_;
   int expanded_;
   int evaluated_;
   int dead_ends_;
   int n_branching_;
   int n_preferreds_;
+  int max_expansion_;
   int tg_;
   double eps_;
   double qw_max_;

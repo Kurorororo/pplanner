@@ -43,6 +43,7 @@ int main(int argc, char *argv[]) {
     ("help,h", "help")
     ("file,f", po::value<std::string>(), "input sas+ file name")
     ("config,c", po::value<std::string>(), "run config file name")
+    ("max_expansion,m", po::value<int>(), "limit of node expansion")
     ("postprocess,p", "postprocess plan");
   po::variables_map vm;
 
@@ -70,8 +71,11 @@ int main(int argc, char *argv[]) {
   auto child = pt.get_child_optional("config");
   if (!child) throw std::runtime_error("Invalid config file.");
 
+  int max_expansion = -1;
+  if (vm.count("max_expansion")) max_expansion = vm["max_expansion"].as<int>();
+
   auto chrono_start = std::chrono::system_clock::now();
-  auto search = SearchFactory(sas, child.get());
+  auto search = SearchFactory(sas, child.get(), max_expansion);
   auto result = search->Plan();
   auto chrono_end = std::chrono::system_clock::now();
   auto ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
@@ -80,8 +84,16 @@ int main(int argc, char *argv[]) {
 
   if (vm.count("postprocess")) result = ActionElimination(*sas, result);
 
-  WritePlan(*sas, result);
+  if (result.empty() || result[0] > 0)
+    WritePlan(*sas, result);
+
   search->DumpStatistics();
 
   std::cout << "Search time: " << search_time << "s" << std::endl;
+
+  if (!result.empty() && result[0] == -1) {
+    std::cerr << "faild to solve instance" << std::endl;
+    exit(1);
+  }
+
 }

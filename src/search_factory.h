@@ -12,7 +12,8 @@
 namespace pplanner {
 
 std::unique_ptr<Search> SearchFactory(const std::shared_ptr<SASPlus> &problem,
-                                      const boost::property_tree::ptree &pt);
+                                      const boost::property_tree::ptree &pt,
+                                      int max_expansion);
 
 
 
