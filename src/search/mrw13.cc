@@ -416,11 +416,11 @@ void Mrw13::DumpStatistics() const {
     for (auto q : q1_)
       sum += q;
 
-    double mean = 1.0 / static_cast<double>(problem_->n_actions());
+    double mean = sum / static_cast<double>(problem_->n_actions());
     double variance = 0.0;
 
     for (auto q : q1_)
-      variance += (q / sum - mean) * (q / sum - mean);
+      variance += (q - mean) * (q - mean);
 
     variance /= static_cast<double>(problem_->n_actions());
 
