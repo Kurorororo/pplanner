@@ -11,7 +11,6 @@
 #include "open_list_factory.h"
 
 namespace pplanner {
-
 using std::unordered_set;
 using std::vector;
 
@@ -119,7 +118,11 @@ int LazyGBFS::Search() {
 
       open_list_->Push(values_, child_node, is_preferred);
 
-      if (is_preferred) ++n_preferreds_;
+      if (is_preferred) {
+        is_preferred_action_[o] = true;
+        ++n_preferreds_;
+      }
+
       ++n_branching_;
     }
 
@@ -184,6 +187,61 @@ void LazyGBFS::DumpStatistics() const {
   double p_p_b = static_cast<double>(n_preferreds_)
     / static_cast<double>(n_branching_);
   std::cout << "Preferred ratio " << p_p_b  << std::endl;
+
+  DumpPreferringMetrics();
+}
+
+void LazyGBFS::DumpPreferringMetrics() const {
+  vector<bool> in_plan(problem_->n_actions(), false);
+
+  for (auto a : plan_)
+    in_plan[a] = true;
+
+  int tp = 0;
+  int fn = 0;
+  int fp = 0;
+  int tn = 0;
+
+  for (int i=0, n=problem_->n_actions(); i<n; ++i) {
+    if (in_plan[i] && is_preferred_action_[i]) ++tp;
+    if (in_plan[i] && !is_preferred_action_[i]) ++fn;
+    if (!in_plan[i] && is_preferred_action_[i]) ++fp;
+    if (!in_plan[i] && !is_preferred_action_[i]) ++tn;
+  }
+
+  double accuracy = static_cast<double>(tp + tn)
+    / static_cast<double>(tp + fn + fp + tn);
+
+  double precision = 0.0;
+
+  if (tp + fp != 0)
+    precision = static_cast<double>(tp) / static_cast<double>(tp + fp);
+
+  double recall = 0.0;
+
+  if (tp + fn != 0)
+    recall = static_cast<double>(tp) / static_cast<double>(tp + fn);
+
+  double f = 0.0;
+
+  if (precision + recall > 1.0e-14)
+    f = (2.0 * recall * precision) / (recall + precision);
+
+  std::cout << std::endl;
+  std::cout << "Operator TP " << tp << std::endl;
+  std::cout << "Operator FN " << fn << std::endl;
+  std::cout << "Operator FP " << fp << std::endl;
+  std::cout << "Operator TN " << tn << std::endl;
+  std::cout << "Operator Accuracy " << accuracy << std::endl;
+  std::cout << "Operator Precision " << precision << std::endl;
+  std::cout << "Operator Recall " << recall << std::endl;
+  std::cout << "Operator F " << f << std::endl;
+
+  double step = plan_.size();
+  double normalized_f = f / step;
+
+  std::cout << "Normalized F " << normalized_f << std::endl;
+  std::cout << std::endl;
 }
 
 } // namespace pplanner

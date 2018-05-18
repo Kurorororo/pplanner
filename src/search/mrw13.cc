@@ -408,26 +408,6 @@ void Mrw13::DumpStatistics() const {
   std::cout << "Preferred ratio " << p_ratio << std::endl;
 
   if (measure_ && solved_) DumpPreferringMetrics();
-
-  if (measure_) {
-
-    double sum = 0.0;
-
-    for (auto q : q1_)
-      sum += q;
-
-    double mean = sum / static_cast<double>(problem_->n_actions());
-    double variance = 0.0;
-
-    for (auto q : q1_)
-      variance += (q - mean) * (q - mean);
-
-    variance /= static_cast<double>(problem_->n_actions());
-
-    std::cout << "Q mean " << mean << std::endl;
-    std::cout << "Q variance " << variance << std::endl;
-    std::cout << std::endl;
-  }
 }
 
 void Mrw13::ActionElimination() {
@@ -526,7 +506,7 @@ void Mrw13::DumpPreferringMetrics() const {
 
   double op_f = 0.0;
 
-  if (op_re + op_pr != 0)
+  if (op_re + op_pr > 1.0e-14)
     op_f = (2.0 * op_re * op_pr) / (op_re + op_pr);
 
   int st_tp = 0;
@@ -573,6 +553,11 @@ void Mrw13::DumpPreferringMetrics() const {
   std::cout << "Operator Precision " << op_pr << std::endl;
   std::cout << "Operator Recall " << op_re << std::endl;
   std::cout << "Operator F " << op_f << std::endl;
+
+  double step = plan_.size();
+  double normalized_f = op_f / step;
+
+  std::cout << "Normalized F " << normalized_f << std::endl;
 
   std::cout << std::endl;
   std::cout << "State TP " << st_tp << std::endl;

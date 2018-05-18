@@ -30,6 +30,7 @@ class LazyGBFS : public Search {
       dead_ends_(0),
       n_branching_(0),
       n_preferreds_(0),
+      is_preferred_action_(problem->n_actions(), false),
       problem_(problem),
       preferring_(nullptr),
       generator_(std::unique_ptr<SuccessorGenerator>(
@@ -41,8 +42,9 @@ class LazyGBFS : public Search {
 
   std::vector<int> Plan() override {
     int goal = Search();
+    plan_ = ExtractPath(*graph_, goal);
 
-    return ExtractPath(*graph_, goal);
+    return plan_;
   }
 
   void DumpStatistics() const override;
@@ -56,6 +58,8 @@ class LazyGBFS : public Search {
                const std::vector<int> &applicable,
                std::unordered_set<int> &preferred);
 
+  void DumpPreferringMetrics() const;
+
   bool use_preferred_;
   bool same_;
   int generated_;
@@ -64,6 +68,8 @@ class LazyGBFS : public Search {
   int dead_ends_;
   int n_branching_;
   int n_preferreds_;
+  std::vector<int> plan_;
+  std::vector<bool> is_preferred_action_;
   std::vector<int> values_;
   std::shared_ptr<const SASPlus> problem_;
   std::vector<std::shared_ptr<Evaluator> > evaluators_;
