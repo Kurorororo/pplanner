@@ -59,7 +59,12 @@ std::shared_ptr<Evaluator> EvaluatorFactory(
     option = pt.get_optional<int>("option.unit_cost");
     if (option && !unit_cost) unit_cost = option.get() == 1;
 
-    return std::make_shared<FF>(problem, simplify, unit_cost);
+    bool common_precond = false;
+
+    option = pt.get_optional<int>("option.common_precond");
+    if (option) common_precond = option.get() == 1;
+
+    return std::make_shared<FF>(problem, simplify, unit_cost, common_precond);
   }
 
   if (name.get() == "width") {

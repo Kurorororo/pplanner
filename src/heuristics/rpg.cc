@@ -7,30 +7,32 @@ using std::vector;
 
 namespace pplanner {
 
-vector<int> RPG::Plan(const vector<int> &state, unordered_set<int> &helpful) {
+vector<int> RPG::Plan(const vector<int> &state, unordered_set<int> &helpful,
+                      bool common_precond) {
   helpful.clear();
   ConstructGraph(state);
   if (n_layers_ == -1) return vector<int>{-1};
 
   InitializeGSet();
-  auto result = ExtractPlan();
+  auto result = ExtractPlan(common_precond);
   ExtractHelpful(helpful);
 
   return result;
 }
 
-int RPG::PlanCost(const vector<int> &state, bool unit_cost) {
+int RPG::PlanCost(const vector<int> &state, bool unit_cost,
+                  bool common_precond) {
   ConstructGraph(state);
   if (n_layers_ == -1) return -1;
   InitializeGSet();
 
-  return ExtractCost(unit_cost);
+  return ExtractCost(unit_cost, common_precond);
 }
 
 int RPG::PlanCost(const vector<int> &state, unordered_set<int> &helpful,
-                  bool unit_cost) {
+                  bool unit_cost, bool common_precond) {
   helpful.clear();
-  int h = PlanCost(state, unit_cost);
+  int h = PlanCost(state, unit_cost, common_precond);
   ExtractHelpful(helpful);
 
   return h;
@@ -71,6 +73,8 @@ void RPG::Reset() {
 
   for (auto &g : g_set_)
     g.clear();
+
+  std::fill(selected_.begin(), selected_.end(), false);
 }
 
 bool RPG::FactLayer() {
@@ -139,11 +143,13 @@ void RPG::RistrictedFactLayer(const unordered_set<int> &black_list) {
 void RPG::InitializeGSet() {
   g_set_.resize(n_layers_);
 
-  for (auto g : problem_->goal())
+  for (auto g : problem_->goal()) {
     g_set_[fact_layer_membership_[g]].push_back(g);
+    selected_[g] = true;
+  }
 }
 
-vector<int> RPG::ExtractPlan() {
+vector<int> RPG::ExtractPlan(bool common_precond) {
   int m = n_layers_ - 1;
   vector< vector<int> > tmp(m);
 
@@ -153,7 +159,7 @@ vector<int> RPG::ExtractPlan() {
 
     for (auto g : g_set_[i]) {
       if (marked_[1][g]) continue;
-      int o = ExtractAction(i, g);
+      int o = ExtractAction(i, g, common_precond);
       tmp[i-1].push_back(o);
     }
   }
@@ -167,7 +173,7 @@ vector<int> RPG::ExtractPlan() {
   return result;
 }
 
-int RPG::ExtractCost(bool unit_cost) {
+int RPG::ExtractCost(bool unit_cost, bool common_precond) {
   int m = n_layers_ - 1;
   int h = 0;
 
@@ -177,7 +183,7 @@ int RPG::ExtractCost(bool unit_cost) {
 
     for (auto g : g_set_[i]) {
       if (marked_[1][g]) continue;
-      int o = ExtractAction(i, g);
+      int o = ExtractAction(i, g, common_precond);
 
       if (unit_cost)
         ++h;
@@ -189,11 +195,12 @@ int RPG::ExtractCost(bool unit_cost) {
   return h;
 }
 
-int RPG::ExtractAction(int i, int g) {
-  int o = ChooseAction(g, i);
+int RPG::ExtractAction(int i, int g, bool common_precond) {
+  int o = ChooseAction(g, i, common_precond);
 
   for (int f : problem_->Precondition(o)) {
     int j = fact_layer_membership_[f];
+    selected_[j] = true;
 
     if (j != 0 && !marked_[0][f])
       g_set_[j].push_back(f);
@@ -210,19 +217,26 @@ int RPG::ExtractAction(int i, int g) {
   return o;
 }
 
-int RPG::ChooseAction(int index, int i) const {
+int RPG::ChooseAction(int index, int i, bool common_precond) const {
   int min = -1;
   int argmin = 0;
+  int max_n = 0;
 
   for (auto o : problem_->EffectMap(index)) {
     if (action_layer_membership_[o] != i-1) continue;
     int difficulty = 0;
+    int n = 0;
 
-    for (auto p : problem_->Precondition(o))
+    for (auto p : problem_->Precondition(o)) {
       difficulty += fact_layer_membership_[p];
 
-    if (difficulty < min || min == -1) {
+      if (selected_[p]) ++n;
+    }
+
+    if ((difficulty < min || min == -1)
+        || (common_precond && difficulty == min && n > max_n)) {
       min = difficulty;
+      max_n = n;
       argmin = o;
     }
   }
