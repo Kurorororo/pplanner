@@ -13,8 +13,8 @@ namespace pplanner {
 
 class FF : public Evaluator {
  public:
-  FF() : unit_cost_(false), problem_(nullptr), r_problem_(nullptr),
-         rpg_(nullptr) {}
+  FF() : unit_cost_(false), common_precond_(false), problem_(nullptr),
+         r_problem_(nullptr), rpg_(nullptr) {}
 
   FF(std::shared_ptr<const SASPlus> problem, bool simplify=false,
      bool unit_cost=false, bool common_precond=false)

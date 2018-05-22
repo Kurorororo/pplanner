@@ -13,12 +13,13 @@ namespace pplanner {
 
 class FFAdd : public Evaluator {
  public:
-  FFAdd() : unit_cost_(false), problem_(nullptr), r_problem_(nullptr),
-            rpg_(nullptr) {}
+  FFAdd() : unit_cost_(false), more_helpful_(false), problem_(nullptr),
+            r_problem_(nullptr), rpg_(nullptr) {}
 
   FFAdd(std::shared_ptr<const SASPlus> problem, bool simplify=true,
-        bool unit_cost=false)
+        bool unit_cost=false, bool more_helpful=false)
     : unit_cost_(unit_cost),
+      more_helpful_(more_helpful),
       problem_(problem),
       r_problem_(std::make_shared<RelaxedSASPlus>(*problem, simplify)),
       rpg_(nullptr) {
@@ -38,11 +39,12 @@ class FFAdd : public Evaluator {
                std::unordered_set<int> &preferred) override {
     StateToFactVector(*problem_, state, facts_);
 
-    return rpg_->PlanCost(facts_, applicable, preferred, unit_cost_);
+    return rpg_->PlanCost(facts_, preferred, unit_cost_, more_helpful_);
   }
 
  private:
   bool unit_cost_;
+  bool more_helpful_;
   std::vector<int> facts_;
   std::shared_ptr<const SASPlus> problem_;
   std::shared_ptr<RelaxedSASPlus> r_problem_;

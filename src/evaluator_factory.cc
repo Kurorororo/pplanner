@@ -45,7 +45,12 @@ std::shared_ptr<Evaluator> EvaluatorFactory(
     option = pt.get_optional<int>("option.unit_cost");
     if (option && !unit_cost) unit_cost = option.get() == 1;
 
-    return std::make_shared<FFAdd>(problem, simplify, unit_cost);
+    bool more_helpful = false;
+
+    option = pt.get_optional<int>("option.more");
+    if (option) more_helpful = option.get() == 1;
+
+    return std::make_shared<FFAdd>(problem, simplify, unit_cost, more_helpful);
   }
 
   if (name.get() == "ff") {

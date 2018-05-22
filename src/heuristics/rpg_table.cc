@@ -5,15 +5,17 @@ namespace pplanner {
 using std::unordered_set;
 using std::vector;
 
-int RPGTable::PlanCost(const vector<int> &state, bool unit_cost) {
-  int additive_h = AdditiveCost(state, unit_cost);
+int RPGTable::PlanCost(const vector<int> &state, unordered_set<int> &helpful,
+                       bool unit_cost, bool more_helpful) {
+  int additive_h = AdditiveCost(state, unit_cost, more_helpful);
   if (additive_h == -1) return -1;
 
   std::fill(plan_set_.begin(), plan_set_.end(), false);
   std::fill(marked_.begin(), marked_.end(), false);
+  helpful.clear();
 
   for (auto g : r_problem_->goal())
-    SetPlan(g);
+    SetPlan(g, helpful, more_helpful);
 
   int h = 0;
 
@@ -29,21 +31,10 @@ int RPGTable::PlanCost(const vector<int> &state, bool unit_cost) {
   return h;
 }
 
-int RPGTable::PlanCost(const vector<int> &state, const vector<int> &applicable,
-                       unordered_set<int> &helpful, bool unit_cost) {
-  int h = PlanCost(state, unit_cost);
-
-  helpful.clear();
-
-  for (auto a : applicable)
-    if (plan_set_[a]) helpful.insert(a);
-
-  return h;
-}
-
-int RPGTable::AdditiveCost(const vector<int> &state, bool unit_cost) {
-  SetUp(state, unit_cost);
-  GeneralizedDijkstra(state);
+int RPGTable::AdditiveCost(const vector<int> &state, bool unit_cost,
+                           bool more_helpful) {
+  SetUp(state, unit_cost, more_helpful);
+  GeneralizedDijkstra(state, more_helpful);
 
   int h = 0;
 
@@ -56,21 +47,29 @@ int RPGTable::AdditiveCost(const vector<int> &state, bool unit_cost) {
   return h;
 }
 
-void RPGTable::SetPlan(int g) {
+void RPGTable::SetPlan(int g, unordered_set<int> &helpful, bool more_helpful) {
   if (marked_[g]) return;
 
   marked_[g] = true;
   int unary_a = best_support_[g];
   if (unary_a == -1) return;
-
-  for (auto p : r_problem_->Precondition(unary_a))
-    SetPlan(p);
-
   int a = r_problem_->ActionId(unary_a);
   plan_set_[a] = true;
+
+  if (prop_cost_[g] == r_problem_->ActionCost(unary_a)) {
+    helpful.insert(a);
+
+    if (more_helpful)
+      for (auto supporter : supporters_[g])
+        helpful.insert(r_problem_->ActionId(supporter));
+  }
+
+  for (auto p : r_problem_->Precondition(unary_a))
+    SetPlan(p, helpful, more_helpful);
 }
 
-void RPGTable::GeneralizedDijkstra(const vector<int> &state) {
+void RPGTable::GeneralizedDijkstra(const vector<int> &state,
+                                   bool more_helpful) {
   while (!q_.empty()) {
     auto top = q_.top();
     q_.pop();
@@ -87,16 +86,20 @@ void RPGTable::GeneralizedDijkstra(const vector<int> &state) {
       op_cost_[a] += c;
 
       if (--precondition_counter_[a] == 0)
-        MayPush(r_problem_->Effect(a), a);
+        MayPush(r_problem_->Effect(a), a, more_helpful);
     }
   }
 }
 
-void RPGTable::SetUp(const vector<int> &state, bool unit_cost) {
+void RPGTable::SetUp(const vector<int> &state, bool unit_cost,
+                     bool more_helpful) {
   goal_counter_ = r_problem_->n_goal_facts();
   std::fill(best_support_.begin(), best_support_.end(), -1);
   std::fill(prop_cost_.begin(), prop_cost_.end(), -1);
   q_ = PQueue();
+
+  for (int i=0, n=r_problem_->n_facts(); i<n; ++i)
+    supporters_[i].clear();
 
   for (int i=0, n=r_problem_->n_actions(); i<n; ++i) {
     precondition_counter_[i] = r_problem_->PreconditionSize(i);
@@ -107,7 +110,7 @@ void RPGTable::SetUp(const vector<int> &state, bool unit_cost) {
       op_cost_[i] = r_problem_->ActionCost(i);
 
     if (precondition_counter_[i] == 0)
-      MayPush(r_problem_->Effect(i), i);
+      MayPush(r_problem_->Effect(i), i, more_helpful);
   }
 
   for (auto f : state) {
@@ -116,14 +119,20 @@ void RPGTable::SetUp(const vector<int> &state, bool unit_cost) {
   }
 }
 
-void RPGTable::MayPush(int f, int a) {
+void RPGTable::MayPush(int f, int a, bool more_helpful) {
   int op_c = op_cost_[a];
 
   if (op_c < prop_cost_[f] || prop_cost_[f] == -1) {
+    if (more_helpful) supporters_[f].clear();
+
     best_support_[f] = a;
     prop_cost_[f] = op_c;
     q_.push(std::make_pair(op_c, f));
   }
+
+  if (more_helpful && op_c == prop_cost_[f])
+    supporters_[f].push_back(a);
 }
+
 
 } // namespace pplanne
