@@ -233,9 +233,8 @@ int RPG::ChooseAction(int index, int i, bool common_precond) const {
       if (selected_[p]) ++n;
     }
 
-    if ((common_precond && (n > max_n || max_n == 0))
-        || difficulty < min
-        || min == -1) {
+    if ((difficulty < min || min == -1)
+        || (common_precond && difficulty == min && n > max_n)) {
       min = difficulty;
       max_n = n;
       argmin = o;
