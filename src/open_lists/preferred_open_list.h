@@ -27,7 +27,7 @@ class PreferredOpenList : public OpenList {
 
   ~PreferredOpenList() {}
 
-  void Push(const std::vector<int> &values, int node, bool preferred) override {
+  void Push(std::vector<int> &values, int node, bool preferred) override {
     lists_[0]->Push(values, node);
     if (preferred) lists_[1]->Push(values, node);
   }

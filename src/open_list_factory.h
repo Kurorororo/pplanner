@@ -3,16 +3,18 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 
+#include <boost/property_tree/ptree.hpp>
+
+#include "evaluator.h"
 #include "open_list.h"
 
 namespace pplanner {
 
 std::unique_ptr<OpenList> OpenListFactory(
-    const std::string &tie_breaking,
-    const std::vector<std::shared_ptr<Evaluator> > &evaluators,
-    bool preferred,
-    int n_boost);
+    const boost::property_tree::ptree &pt,
+    const std::vector<std::shared_ptr<Evaluator> > &evaluators);
 
 } // namespace pplanner
 

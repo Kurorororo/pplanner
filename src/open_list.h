@@ -9,8 +9,7 @@ class OpenList {
  public:
   virtual ~OpenList() = 0;
 
-  virtual void Push(const std::vector<int> &values, int node, bool preferred)
-    = 0;
+  virtual void Push(std::vector<int> &values, int node, bool preferred) = 0;
 
   virtual int EvaluateAndPush(const std::vector<int> &state, int node,
                               bool preferred) = 0;

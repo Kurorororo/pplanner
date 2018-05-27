@@ -37,17 +37,8 @@ void GBFS::Init(const boost::property_tree::ptree &pt) {
     preferring_ = EvaluatorFactory(problem_, preferring.get());
   }
 
-  int n_boost = 0;
-
-  if (auto n_boost_opt = pt.get_optional<int>("boost"))
-    n_boost = n_boost_opt.get();
-
-  if (auto tie_breaking = pt.get_optional<std::string>("tie-breaking")) {
-    open_list_ = OpenListFactory(tie_breaking.get(), evaluators, use_preferred_,
-                                 n_boost);
-  } else {
-    open_list_ = OpenListFactory("fifo", evaluators, use_preferred_, n_boost);
-  }
+  auto open_list_option = pt.get_child("open_list");
+  open_list_ = OpenListFactory(open_list_option, evaluators);
 
   if (auto ram = pt.get_optional<size_t>("ram"))
     graph_->ReserveByRAMSize(ram.get());
