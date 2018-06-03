@@ -8,65 +8,53 @@
 
 #include "landmark/landmark.h"
 
-namespace rwls {
+namespace pplanner {
 
 class LandmarkGraph {
  public:
-  LandmarkGraph() {
-    orderings_size_ = 0;
-  }
+  enum OrderingType { GREEDY, NATURAL, REASONABLE, OBEDIENT, };
+
+  LandmarkGraph() : orderings_size_(0) {}
 
   ~LandmarkGraph() {}
 
-  inline const Landmark& GetLandmark(size_t id) const {
-    return id_to_landmark_[id];
-  }
+  const Landmark& GetLandmark(int id) const { return id_to_landmark_[id]; }
 
-  inline Landmark CopyLandmark(size_t id) const {
-    return id_to_landmark_[id];
-  }
+  Landmark CopyLandmark(int id) const { return id_to_landmark_[id]; }
 
-  inline const std::vector<Landmark>& GetLandmarks() const {
-    return id_to_landmark_;
-  }
+  const std::vector<Landmark>& GetLandmarks() const { return id_to_landmark_; }
 
-  inline std::vector<Landmark> CopyLandmarks() const {
-    return id_to_landmark_;
-  }
+  std::vector<Landmark> CopyLandmarks() const { return id_to_landmark_; }
 
-  inline size_t GetLandmarksSize() const {
-    return landmark_to_id_.size();
-  }
+  size_t GetLandmarksSize() const { return landmark_to_id_.size(); }
 
-  inline size_t GetOrderingsSize() const {
-    return orderings_size_;
-  }
+  size_t GetOrderingsSize() const { return orderings_size_; }
 
-  inline size_t ToId(const Landmark &landmark) const {
+  int ToId(const Landmark &landmark) const {
     return landmark_to_id_.at(landmark);
   }
 
-  inline bool IsIn(const Landmark &landmark) const {
+  bool IsIn(const Landmark &landmark) const {
     return landmark_to_id_.find(landmark) != landmark_to_id_.end();
   }
 
-  inline bool IsAdjacent(size_t init_id, size_t term_id) const {
+  bool IsAdjacent(int init_id, int term_id) const {
     return adjacent_matrix_[init_id][term_id];
   }
 
-  inline int GetOrderingType(size_t init_id, size_t term_id) const {
+  OrderingType GetOrderingType(int init_id, int term_id) const {
     return ordering_types_[init_id][term_id];
   }
 
-  inline const std::vector<size_t>& GetTermIdsByInitId(size_t id) const {
+  const std::vector<int>& GetTermIdsByInitId(int id) const {
     return init_id_to_term_ids_[id];
   }
 
-  inline const std::vector<size_t>& GetInitIdsByTermId(size_t id) const {
+  const std::vector<int>& GetInitIdsByTermId(int id) const {
     return term_id_to_init_ids_[id];
   }
 
-  inline void AddOrdering(size_t init_id, size_t term_id, int type) {
+  void AddOrdering(int init_id, int term_id, OrderingType type) {
     if (IsAdjacent(init_id, term_id)
         && type >= GetOrderingType(init_id, term_id)) return;
     ++orderings_size_;
@@ -76,77 +64,72 @@ class LandmarkGraph {
     term_id_to_init_ids_[term_id].push_back(init_id);
   }
 
-  void DeleteOrdering(size_t init_id, size_t term_id);
+  void DeleteOrdering(int init_id, int term_id);
 
-  size_t Add(const Landmark &landmark);
+  int Add(const Landmark &landmark);
 
-  size_t Add(Landmark &&landmark);
+  int Add(Landmark &&landmark);
 
-  void Delete(size_t id);
+  void Delete(int id);
 
   void Delete(const Landmark &landmark);
 
-  void PushPossibleAchiever(size_t id, int action) {
+  void PushPossibleAchiever(int id, int action) {
     possible_achievers_[id].push_back(action);
   }
 
-  const std::vector<int>& GetPossibleAchievers(size_t id) const {
+  const std::vector<int>& GetPossibleAchievers(int id) const {
     return possible_achievers_[id];
   }
 
-  size_t GetPossibleAchieversSize(size_t id) const {
+  size_t GetPossibleAchieversSize(int id) const {
     return possible_achievers_[id].size();
   }
 
-  void PushFirstAchiever(size_t id, int action) {
+  void PushFirstAchiever(int id, int action) {
     first_achievers_[id].push_back(action);
   }
 
-  const std::vector<int>& GetFirstAchievers(size_t id) const {
+  const std::vector<int>& GetFirstAchievers(int id) const {
     return first_achievers_[id];
   }
 
-  size_t GetFirstAchieversSize(size_t id) const {
+  size_t GetFirstAchieversSize(int id) const {
     return first_achievers_[id].size();
   }
 
-  void GetAncestors(size_t start, std::vector<size_t> &ancestors);
+  void GetAncestors(int start, std::vector<int> &ancestors);
 
-  int RemoveCycles(size_t start_id);
-
-  static constexpr int GREEDY = 0;
-  static constexpr int NATURAL = 1;
-  static constexpr int REASONABLE = 2;
-  static constexpr int OBEDIENT = 3;
+  int RemoveCycles(int start_id);
 
  private:
-  void PrepareOrderings(size_t id);
+  void PrepareOrderings(int id);
 
-  void RemoveEdge(size_t start);
+  void RemoveEdge(int start);
 
-  bool FindCycle(size_t start);
+  bool FindCycle(int start);
 
   size_t orderings_size_;
 
-  std::unordered_map<Landmark, size_t, LandmarkHash> landmark_to_id_;
+  std::unordered_map<Landmark, int, LandmarkHash> landmark_to_id_;
   std::vector<Landmark> id_to_landmark_;
 
   std::vector< std::vector<bool> > adjacent_matrix_;
-  std::vector< std::vector<int> > ordering_types_;
-  std::vector< std::vector<size_t> > init_id_to_term_ids_;
-  std::vector< std::vector<size_t> > term_id_to_init_ids_;
+  std::vector< std::vector<OrderingType> > ordering_types_;
+  std::vector< std::vector<int> > init_id_to_term_ids_;
+  std::vector< std::vector<int> > term_id_to_init_ids_;
 
   std::vector< std::vector<int> > possible_achievers_;
   std::vector< std::vector<int> > first_achievers_;
 
-  std::stack<size_t> open_;
-  std::unordered_set<size_t> closed_;
-  std::vector<size_t> path_;
-
+  std::stack<int> open_;
+  std::unordered_set<int> closed_;
+  std::vector<int> path_;
 };
 
-bool TypeCheck(const std::vector<int> &allowd_types, int type);
+bool TypeCheck(const std::vector<LandmarkGraph::OrderingType> &allowd_types,
+               LandmarkGraph::OrderingType type);
 
-} // namespace rwls
+} // namespace pplanner
 
 #endif // LANDMAK_GRAPH_H_

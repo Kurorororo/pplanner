@@ -14,7 +14,9 @@ class Landmark {
   Landmark() {}
 
   explicit Landmark(const std::vector<std::pair<int, int> > &var_values)
-    : var_values_(var_values) {}
+    : var_values_(var_values) {
+    std::sort(var_values_.begin(), var_values_.end());
+  }
 
   explicit Landmark(const std::pair<int, int> &p) {
     var_values_.push_back(p);

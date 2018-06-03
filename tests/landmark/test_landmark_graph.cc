@@ -1,258 +1,237 @@
 #include "landmark/landmark_graph.h"
 
-#include <iostream>
+#include <memory>
+#include <utility>
 #include <vector>
 
-#include "domain/var_value.h"
+#include "gtest/gtest.h"
+
 #include "landmark/landmark.h"
 
-using namespace rwls;
+namespace pplanner {
 
-void TestConstructor() {
-  LandmarkGraph graph;
+class LandmarkGraphTest : public ::testing::Test {
+ protected:
+  virtual void SetUp() {
+    l_0_ = std::make_shared<Landmark>(0, 2);
+    std::vector<std::pair<int, int> > v_1{
+      std::make_pair(1, 4), std::make_pair(2, 3)};
+    l_1_ = std::make_shared<Landmark>(v_1);
+    std::vector<std::pair<int, int> > v_2{
+      std::make_pair(0, 1), std::make_pair(2, 5)};
+    l_2_ = std::make_shared<Landmark>(v_2);
+    l_3_ = std::make_shared<Landmark>(3, 1);
+    l_4_ = std::make_shared<Landmark>(1, 2);
+    l_5_ = std::make_shared<Landmark>(4, 1);
+    l_6_ = std::make_shared<Landmark>(3, 0);
 
-  std::cout << "passed Constructor" << std::endl;
+    graph_0_ = std::make_shared<LandmarkGraph>();
+
+    graph_1_ = std::make_shared<LandmarkGraph>();
+    graph_1_->Add(*l_0_);
+    graph_1_->Add(*l_1_);
+    graph_1_->Add(*l_2_);
+    graph_1_->Add(*l_3_);
+
+    id_0_ = graph_1_->ToId(*l_0_);
+    id_1_ = graph_1_->ToId(*l_1_);
+    id_2_ = graph_1_->ToId(*l_2_);
+    id_3_ = graph_1_->ToId(*l_3_);
+
+    graph_2_ = std::make_shared<LandmarkGraph>();
+    graph_2_->Add(*l_0_);
+    graph_2_->Add(*l_1_);
+    graph_2_->Add(*l_2_);
+    graph_2_->Add(*l_3_);
+    graph_2_->Add(*l_4_);
+    graph_2_->Add(*l_5_);
+    graph_2_->Add(*l_6_);
+  }
+
+  std::shared_ptr<LandmarkGraph> graph_0_;
+  std::shared_ptr<LandmarkGraph> graph_1_;
+  std::shared_ptr<LandmarkGraph> graph_2_;
+  std::shared_ptr<Landmark> l_0_;
+  std::shared_ptr<Landmark> l_1_;
+  std::shared_ptr<Landmark> l_2_;
+  std::shared_ptr<Landmark> l_3_;
+  std::shared_ptr<Landmark> l_4_;
+  std::shared_ptr<Landmark> l_5_;
+  std::shared_ptr<Landmark> l_6_;
+  int id_0_;
+  int id_1_;
+  int id_2_;
+  int id_3_;
+};
+
+TEST_F(LandmarkGraphTest, Landmarks) {
+  EXPECT_EQ(0, graph_0_->GetLandmarksSize());
+
+  graph_0_->Add(*l_0_);
+  EXPECT_EQ(1, graph_0_->GetLandmarksSize());
+  EXPECT_TRUE(graph_0_->IsIn(*l_0_));
+  EXPECT_EQ(0, graph_0_->ToId(*l_0_));
+  EXPECT_EQ(*l_0_, graph_0_->GetLandmark(0));
+  EXPECT_EQ(*l_0_, graph_0_->CopyLandmark(0));
+
+  Landmark l(*l_1_);
+  EXPECT_FALSE(graph_0_->IsIn(*l_1_));
+  graph_0_->Add(std::move(l));
+  EXPECT_EQ(2, graph_0_->GetLandmarksSize());
+  EXPECT_TRUE(graph_0_->IsIn(*l_1_));
+  EXPECT_EQ(1, graph_0_->ToId(*l_1_));
+  EXPECT_EQ(*l_1_, graph_0_->GetLandmark(1));
+  EXPECT_EQ(*l_1_, graph_0_->CopyLandmark(1));
+  EXPECT_EQ(*l_0_, graph_0_->GetLandmarks()[0]);
+  EXPECT_EQ(*l_1_, graph_0_->GetLandmarks()[1]);
+
+  graph_0_->Delete(*l_0_);
+  EXPECT_FALSE(graph_0_->IsIn(*l_0_));
+  EXPECT_TRUE(graph_0_->GetLandmarks()[0].IsEmpty());
+
+  graph_0_->Delete(1);
+  EXPECT_FALSE(graph_0_->IsIn(*l_1_));
+  EXPECT_TRUE(graph_0_->GetLandmarks()[1].IsEmpty());
 }
 
-void TestLandmarks() {
-  LandmarkGraph graph;
-
-  assert(0 == graph.GetLandmarksSize());
-
-  VarValue v;
-  EncodeVarValue(0, 2, &v);
-  Landmark landmark(v);
-  graph.Add(landmark);
-  assert(1 == graph.GetLandmarksSize());
-  assert(graph.IsIn(landmark));
-  assert(0 == graph.ToId(landmark));
-  assert(landmark == graph.GetLandmark(0));
-  assert(landmark == graph.CopyLandmark(0));
-
-  EncodeVarValue(1, 4, &v);
-  Landmark landmark2(v);
-  EncodeVarValue(2, 3, &v);
-  landmark2.AddVarValue(v);
-  Landmark landmark3(landmark2);
-  assert(!graph.IsIn(landmark2));
-  graph.Add(std::move(landmark3));
-  assert(2 == graph.GetLandmarksSize());
-  assert(graph.IsIn(landmark2));
-  assert(1 == graph.ToId(landmark2));
-  assert(landmark2 == graph.GetLandmark(1));
-  assert(landmark2 == graph.CopyLandmark(1));
-  assert(landmark == graph.GetLandmarks()[0]);
-  assert(landmark2 == graph.GetLandmarks()[1]);
-
-  graph.Delete(landmark);
-  assert(!graph.IsIn(landmark));
-  assert(graph.GetLandmarks()[0].IsEmpty());
-
-  graph.Delete(1);
-  assert(!graph.IsIn(landmark2));
-  assert(graph.GetLandmarks()[1].IsEmpty());
-
-  std::cout << "passed Landmarks" << std::endl;
-}
-
-void TestOrderings() {
+TEST_F(LandmarkGraphTest, Orderings) {
   /*
   0 -> 1 ->_{gn} 2
         |        A
          ->_r 3__|o
   */
+  EXPECT_TRUE(graph_1_->GetTermIdsByInitId(id_0_).empty());
+  EXPECT_TRUE(graph_1_->GetTermIdsByInitId(id_1_).empty());
+  EXPECT_TRUE(graph_1_->GetTermIdsByInitId(id_2_).empty());
+  EXPECT_TRUE(graph_1_->GetTermIdsByInitId(id_3_).empty());
 
-  LandmarkGraph graph;
+  EXPECT_TRUE(graph_1_->GetInitIdsByTermId(id_0_).empty());
+  EXPECT_TRUE(graph_1_->GetInitIdsByTermId(id_1_).empty());
+  EXPECT_TRUE(graph_1_->GetInitIdsByTermId(id_2_).empty());
+  EXPECT_TRUE(graph_1_->GetInitIdsByTermId(id_3_).empty());
 
-  VarValue v;
-  EncodeVarValue(0, 2, &v);
-  Landmark landmark(v);
-  graph.Add(landmark);
-  EncodeVarValue(1, 4, &v);
-  Landmark landmark1(v);
-  EncodeVarValue(2, 3, &v);
-  landmark1.AddVarValue(v);
-  graph.Add(landmark1);
-  EncodeVarValue(0, 1, &v);
-  Landmark landmark2(v);
-  EncodeVarValue(2, 5, &v);
-  landmark2.AddVarValue(v);
-  graph.Add(landmark2);
-  EncodeVarValue(3, 1, &v);
-  Landmark landmark3(v);
-  landmark3.AddVarValue(v);
-  graph.Add(landmark3);
+  EXPECT_EQ(0, graph_1_->GetOrderingsSize());
 
-  size_t id_0 = graph.ToId(landmark);
-  size_t id_1 = graph.ToId(landmark1);
-  size_t id_2 = graph.ToId(landmark2);
-  size_t id_3 = graph.ToId(landmark3);
+  EXPECT_FALSE(graph_1_->IsAdjacent(id_0_, id_1_));
+  graph_1_->AddOrdering(id_0_, id_1_, LandmarkGraph::NATURAL);
+  EXPECT_EQ(1, graph_1_->GetOrderingsSize());
+  EXPECT_TRUE(graph_1_->IsAdjacent(id_0_, id_1_));
+  EXPECT_FALSE(graph_1_->IsAdjacent(id_1_, id_0_));
+  EXPECT_EQ(LandmarkGraph::NATURAL , graph_1_->GetOrderingType(id_0_, id_1_));
 
-  assert(graph.GetTermIdsByInitId(id_0).empty());
-  assert(graph.GetTermIdsByInitId(id_1).empty());
-  assert(graph.GetTermIdsByInitId(id_2).empty());
-  assert(graph.GetTermIdsByInitId(id_3).empty());
+  EXPECT_EQ(1, graph_1_->GetTermIdsByInitId(id_0_).size());
+  EXPECT_EQ(id_1_, graph_1_->GetTermIdsByInitId(id_0_)[0]);
+  EXPECT_EQ(1, graph_1_->GetInitIdsByTermId(id_1_).size());
+  EXPECT_EQ(id_0_, graph_1_->GetInitIdsByTermId(id_1_)[0]);
 
-  assert(graph.GetInitIdsByTermId(id_0).empty());
-  assert(graph.GetInitIdsByTermId(id_1).empty());
-  assert(graph.GetInitIdsByTermId(id_2).empty());
-  assert(graph.GetInitIdsByTermId(id_3).empty());
+  EXPECT_FALSE(graph_1_->IsAdjacent(id_1_, id_2_));
+  graph_1_->AddOrdering(id_1_, id_2_, LandmarkGraph::GREEDY);
+  EXPECT_EQ(2, graph_1_->GetOrderingsSize());
+  EXPECT_TRUE(graph_1_->IsAdjacent(id_1_, id_2_));
+  EXPECT_FALSE(graph_1_->IsAdjacent(id_2_, id_1_));
+  EXPECT_EQ(LandmarkGraph::GREEDY, graph_1_->GetOrderingType(id_1_, id_2_));
 
-  assert(0 == graph.GetOrderingsSize());
+  EXPECT_EQ(1,graph_1_->GetTermIdsByInitId(id_1_).size());
+  EXPECT_EQ(id_2_, graph_1_->GetTermIdsByInitId(id_1_)[0]);
+  EXPECT_EQ(1, graph_1_->GetInitIdsByTermId(id_2_).size());
+  EXPECT_EQ(id_1_, graph_1_->GetInitIdsByTermId(id_2_)[0]);
 
-  assert(!graph.IsAdjacent(id_0, id_1));
-  graph.AddOrdering(id_0, id_1, LandmarkGraph::NATURAL);
-  assert(1 == graph.GetOrderingsSize());
-  assert(graph.IsAdjacent(id_0, id_1));
-  assert(!graph.IsAdjacent(id_1, id_0));
-  assert(LandmarkGraph::NATURAL == graph.GetOrderingType(id_0, id_1));
+  EXPECT_FALSE(graph_1_->IsAdjacent(id_1_, id_3_));
+  graph_1_->AddOrdering(id_1_, id_3_, LandmarkGraph::REASONABLE);
+  EXPECT_EQ(3, graph_1_->GetOrderingsSize());
+  EXPECT_TRUE(graph_1_->IsAdjacent(id_1_, id_3_));
+  EXPECT_EQ(LandmarkGraph::REASONABLE, graph_1_->GetOrderingType(id_1_, id_3_));
 
-  assert(1 == graph.GetTermIdsByInitId(id_0).size());
-  assert(id_1 == graph.GetTermIdsByInitId(id_0)[0]);
-  assert(1 == graph.GetInitIdsByTermId(id_1).size());
-  assert(id_0 == graph.GetInitIdsByTermId(id_1)[0]);
+  EXPECT_EQ(2, graph_1_->GetTermIdsByInitId(id_1_).size());
+  EXPECT_EQ(id_3_, graph_1_->GetTermIdsByInitId(id_1_)[1]);
+  EXPECT_EQ(1, graph_1_->GetInitIdsByTermId(id_3_).size());
+  EXPECT_EQ(id_1_, graph_1_->GetInitIdsByTermId(id_3_)[0]);
 
-  assert(!graph.IsAdjacent(id_1, id_2));
-  graph.AddOrdering(id_1, id_2, LandmarkGraph::GREEDY);
-  assert(2 == graph.GetOrderingsSize());
-  assert(graph.IsAdjacent(id_1, id_2));
-  assert(!graph.IsAdjacent(id_2, id_1));
-  assert(LandmarkGraph::GREEDY == graph.GetOrderingType(id_1, id_2));
+  EXPECT_FALSE(graph_1_->IsAdjacent(id_3_, id_2_));
+  graph_1_->AddOrdering(id_3_, id_2_, LandmarkGraph::OBEDIENT);
+  EXPECT_EQ(4, graph_1_->GetOrderingsSize());
+  EXPECT_TRUE(graph_1_->IsAdjacent(id_3_, id_2_));
+  EXPECT_EQ(LandmarkGraph::OBEDIENT, graph_1_->GetOrderingType(id_3_, id_2_));
 
-  assert(1 == graph.GetTermIdsByInitId(id_1).size());
-  assert(id_2 == graph.GetTermIdsByInitId(id_1)[0]);
-  assert(1 == graph.GetInitIdsByTermId(id_2).size());
-  assert(id_1 == graph.GetInitIdsByTermId(id_2)[0]);
+  EXPECT_EQ(1, graph_1_->GetTermIdsByInitId(id_3_).size());
+  EXPECT_EQ(id_2_, graph_1_->GetTermIdsByInitId(id_3_)[0]);
+  EXPECT_EQ(2, graph_1_->GetInitIdsByTermId(id_2_).size());
+  EXPECT_EQ(id_3_, graph_1_->GetInitIdsByTermId(id_2_)[1]);
 
-  assert(!graph.IsAdjacent(id_1, id_3));
-  graph.AddOrdering(id_1, id_3, LandmarkGraph::REASONABLE);
-  assert(3 == graph.GetOrderingsSize());
-  assert(graph.IsAdjacent(id_1, id_3));
-  assert(LandmarkGraph::REASONABLE == graph.GetOrderingType(id_1, id_3));
+  graph_1_->DeleteOrdering(id_1_, id_3_);
+  EXPECT_EQ(3, graph_1_->GetOrderingsSize());
+  EXPECT_FALSE(graph_1_->IsAdjacent(id_1_, id_3_));
+  EXPECT_EQ(1, graph_1_->GetTermIdsByInitId(id_1_).size());
+  EXPECT_EQ(id_2_, graph_1_->GetTermIdsByInitId(id_1_)[0]);
+  EXPECT_TRUE(graph_1_->GetInitIdsByTermId(id_3_).empty());
 
-  assert(2 == graph.GetTermIdsByInitId(id_1).size());
-  assert(id_3 == graph.GetTermIdsByInitId(id_1)[1]);
-  assert(1 == graph.GetInitIdsByTermId(id_3).size());
-  assert(id_1 == graph.GetInitIdsByTermId(id_3)[0]);
-
-  assert(!graph.IsAdjacent(id_3, id_2));
-  graph.AddOrdering(id_3, id_2, LandmarkGraph::OBEDIENT);
-  assert(4 == graph.GetOrderingsSize());
-  assert(graph.IsAdjacent(id_3, id_2));
-  assert(LandmarkGraph::OBEDIENT == graph.GetOrderingType(id_3, id_2));
-
-  assert(1 == graph.GetTermIdsByInitId(id_3).size());
-  assert(id_2 == graph.GetTermIdsByInitId(id_3)[0]);
-  assert(2 == graph.GetInitIdsByTermId(id_2).size());
-  assert(id_3 == graph.GetInitIdsByTermId(id_2)[1]);
-
-  graph.DeleteOrdering(id_1, id_3);
-  assert(3 == graph.GetOrderingsSize());
-  assert(!graph.IsAdjacent(id_1, id_3));
-  assert(1 == graph.GetTermIdsByInitId(id_1).size());
-  assert(id_2 == graph.GetTermIdsByInitId(id_1)[0]);
-  assert(graph.GetInitIdsByTermId(id_3).empty());
-
-  graph.Delete(id_1);
-  assert(1 == graph.GetOrderingsSize());
-  assert(graph.GetTermIdsByInitId(id_0).empty());
-  assert(1 == graph.GetInitIdsByTermId(id_2).size());
-
-  std::cout << "passed Orderings" << std::endl;
+  graph_1_->Delete(id_1_);
+  EXPECT_EQ(1, graph_1_->GetOrderingsSize());
+  EXPECT_TRUE(graph_1_->GetTermIdsByInitId(id_0_).empty());
+  EXPECT_EQ(1, graph_1_->GetInitIdsByTermId(id_2_).size());
 }
 
-void TestGetAncestors() {
+TEST_F(LandmarkGraphTest, GetAncestorsWorks) {
   /*
   0 -> 1 ->_{gn} 2
         |        A
          ->_r 3__|o
   */
+  LandmarkGraph::OrderingType natural = LandmarkGraph::NATURAL;
+  LandmarkGraph::OrderingType greedy = LandmarkGraph::GREEDY;
+  LandmarkGraph::OrderingType reasonable = LandmarkGraph::REASONABLE;
+  LandmarkGraph::OrderingType obedient = LandmarkGraph::OBEDIENT;
 
-  LandmarkGraph graph;
+  graph_1_->AddOrdering(id_0_, id_1_, natural);
+  graph_1_->AddOrdering(id_1_, id_2_, greedy);
+  graph_1_->AddOrdering(id_1_, id_3_, reasonable);
+  graph_1_->AddOrdering(id_3_, id_2_, obedient);
 
-  VarValue v;
-  EncodeVarValue(0, 2, &v);
-  Landmark landmark(v);
-  graph.Add(landmark);
-  EncodeVarValue(1, 4, &v);
-  Landmark landmark1(v);
-  EncodeVarValue(2, 3, &v);
-  landmark1.AddVarValue(v);
-  graph.Add(landmark1);
-  EncodeVarValue(0, 1, &v);
-  Landmark landmark2(v);
-  EncodeVarValue(2, 5, &v);
-  landmark2.AddVarValue(v);
-  graph.Add(landmark2);
-  EncodeVarValue(3, 1, &v);
-  Landmark landmark3(v);
-  landmark3.AddVarValue(v);
-  graph.Add(landmark3);
+  std::vector<int> ancestors;
+  graph_1_->GetAncestors(id_0_, ancestors);
+  EXPECT_TRUE(ancestors.empty());
+  graph_1_->GetAncestors(id_1_, ancestors);
+  EXPECT_EQ(id_1_, ancestors.size());
+  EXPECT_EQ(id_0_, ancestors[0]);
+  graph_1_->GetAncestors(id_2_, ancestors);
+  EXPECT_EQ(id_3_, ancestors.size());
+  auto result = std::find(ancestors.begin(), ancestors.end(), id_0_);
+  EXPECT_NE(result, ancestors.end());
+  result = std::find(ancestors.begin(), ancestors.end(), id_1_);
+  EXPECT_NE(result, ancestors.end());
+  result = std::find(ancestors.begin(), ancestors.end(), id_3_);
+  EXPECT_NE(result, ancestors.end());
+  graph_1_->GetAncestors(id_3_, ancestors);
+  EXPECT_EQ(id_2_, ancestors.size());
 
-  size_t id_0 = graph.ToId(landmark);
-  size_t id_1 = graph.ToId(landmark1);
-  size_t id_2 = graph.ToId(landmark2);
-  size_t id_3 = graph.ToId(landmark3);
+  graph_1_->DeleteOrdering(id_1_, id_3_);
+  graph_1_->GetAncestors(id_0_, ancestors);
+  EXPECT_TRUE(ancestors.empty());
+  graph_1_->GetAncestors(id_1_, ancestors);
+  EXPECT_EQ(id_1_, ancestors.size());
+  EXPECT_EQ(id_0_, ancestors[0]);
+  graph_1_->GetAncestors(id_2_, ancestors);
+  EXPECT_EQ(id_3_, ancestors.size());
+  result = std::find(ancestors.begin(), ancestors.end(), id_0_);
+  EXPECT_NE(result, ancestors.end());
+  result = std::find(ancestors.begin(), ancestors.end(), id_1_);
+  EXPECT_NE(result, ancestors.end());
+  result = std::find(ancestors.begin(), ancestors.end(), id_3_);
+  EXPECT_NE(result, ancestors.end());
+  graph_1_->GetAncestors(id_3_, ancestors);
+  EXPECT_TRUE(ancestors.empty());
 
-  int natural = LandmarkGraph::NATURAL;
-  int greedy = LandmarkGraph::GREEDY;
-  int reasonable = LandmarkGraph::REASONABLE;
-  int obedient = LandmarkGraph::OBEDIENT;
-
-  graph.AddOrdering(id_0, id_1, natural);
-  graph.AddOrdering(id_1, id_2, greedy);
-  graph.AddOrdering(id_1, id_3, reasonable);
-  graph.AddOrdering(id_3, id_2, obedient);
-
-  std::vector<size_t> ancestors;
-  graph.GetAncestors(id_0, ancestors);
-  assert(ancestors.empty());
-  graph.GetAncestors(id_1, ancestors);
-  assert(id_1 == ancestors.size());
-  assert(id_0 == ancestors[0]);
-  graph.GetAncestors(id_2, ancestors);
-  assert(id_3 == ancestors.size());
-  auto result = std::find(ancestors.begin(), ancestors.end(), id_0);
-  assert(result != ancestors.end());
-  result = std::find(ancestors.begin(), ancestors.end(), id_1);
-  assert(result != ancestors.end());
-  result = std::find(ancestors.begin(), ancestors.end(), id_3);
-  assert(result != ancestors.end());
-  graph.GetAncestors(id_3, ancestors);
-  assert(id_2 == ancestors.size());
-  result = std::find(ancestors.begin(), ancestors.end(), id_1);
-  result = std::find(ancestors.begin(), ancestors.end(), id_0);
-
-  graph.DeleteOrdering(id_1, id_3);
-  graph.GetAncestors(id_0, ancestors);
-  assert(ancestors.empty());
-  graph.GetAncestors(id_1, ancestors);
-  assert(id_1 == ancestors.size());
-  assert(id_0 == ancestors[0]);
-  graph.GetAncestors(id_2, ancestors);
-  assert(id_3 == ancestors.size());
-  result = std::find(ancestors.begin(), ancestors.end(), id_0);
-  assert(result != ancestors.end());
-  result = std::find(ancestors.begin(), ancestors.end(), id_1);
-  assert(result != ancestors.end());
-  result = std::find(ancestors.begin(), ancestors.end(), id_3);
-  assert(result != ancestors.end());
-  graph.GetAncestors(id_3, ancestors);
-  assert(ancestors.empty());
-
-  graph.Delete(id_1);
-  graph.GetAncestors(id_0, ancestors);
-  assert(ancestors.empty());
-  graph.GetAncestors(id_2, ancestors);
-  assert(id_1 == ancestors.size());
-  assert(id_3 == ancestors[0]);
-  graph.GetAncestors(id_3, ancestors);
-  assert(ancestors.empty());
-
-  std::cout << "passed GetAncestors" << std::endl;
+  graph_1_->Delete(id_1_);
+  graph_1_->GetAncestors(id_0_, ancestors);
+  EXPECT_TRUE(ancestors.empty());
+  graph_1_->GetAncestors(id_2_, ancestors);
+  EXPECT_EQ(id_1_, ancestors.size());
+  EXPECT_EQ(id_3_, ancestors[0]);
+  graph_1_->GetAncestors(id_3_, ancestors);
+  EXPECT_TRUE(ancestors.empty());
 }
 
-void TestRemoveCycles() {
+TEST_F(LandmarkGraphTest, RemoveCyclesWorks) {
   /*        6 < 5
           r | / A
             V   |
@@ -263,83 +242,42 @@ void TestRemoveCycles() {
           o
   */
 
-  LandmarkGraph graph;
+  int id_0 = graph_2_->ToId(*l_0_);
+  int id_1 = graph_2_->ToId(*l_1_);
+  int id_2 = graph_2_->ToId(*l_2_);
+  int id_3 = graph_2_->ToId(*l_3_);
+  int id_4 = graph_2_->ToId(*l_4_);
+  int id_5 = graph_2_->ToId(*l_5_);
+  int id_6 = graph_2_->ToId(*l_6_);
 
-  VarValue v;
-  EncodeVarValue(0, 2, &v);
-  Landmark landmark(v);
-  graph.Add(landmark);
-  EncodeVarValue(1, 4, &v);
-  Landmark landmark1(v);
-  EncodeVarValue(2, 3, &v);
-  landmark1.AddVarValue(v);
-  graph.Add(landmark1);
-  EncodeVarValue(0, 1, &v);
-  Landmark landmark2(v);
-  EncodeVarValue(2, 5, &v);
-  landmark2.AddVarValue(v);
-  graph.Add(landmark2);
-  EncodeVarValue(3, 1, &v);
-  Landmark landmark3(v);
-  landmark3.AddVarValue(v);
-  graph.Add(landmark3);
-  EncodeVarValue(1, 2, &v);
-  Landmark landmark4(v);
-  landmark4.AddVarValue(v);
-  graph.Add(landmark4);
-  EncodeVarValue(4, 1, &v);
-  Landmark landmark5(v);
-  landmark5.AddVarValue(v);
-  graph.Add(landmark5);
-  EncodeVarValue(3, 0, &v);
-  Landmark landmark6(v);
-  landmark6.AddVarValue(v);
-  graph.Add(landmark6);
-
-  size_t id_0 = graph.ToId(landmark);
-  size_t id_1 = graph.ToId(landmark1);
-  size_t id_2 = graph.ToId(landmark2);
-  size_t id_3 = graph.ToId(landmark3);
-  size_t id_4 = graph.ToId(landmark4);
-  size_t id_5 = graph.ToId(landmark5);
-  size_t id_6 = graph.ToId(landmark6);
-
-  graph.AddOrdering(id_0, id_1, LandmarkGraph::GREEDY);
-  graph.AddOrdering(id_1, id_2, LandmarkGraph::NATURAL);
-  graph.AddOrdering(id_2, id_3, LandmarkGraph::REASONABLE);
-  graph.AddOrdering(id_3, id_4, LandmarkGraph::OBEDIENT);
-  graph.AddOrdering(id_4, id_1, LandmarkGraph::GREEDY);
-  graph.AddOrdering(id_2, id_5, LandmarkGraph::GREEDY);
-  graph.AddOrdering(id_5, id_6, LandmarkGraph::NATURAL);
-  graph.AddOrdering(id_5, id_2, LandmarkGraph::OBEDIENT);
-  graph.AddOrdering(id_6, id_2, LandmarkGraph::REASONABLE);
-
-  assert(graph.IsAdjacent(id_0, id_1));
-  assert(graph.IsAdjacent(id_1, id_2));
-  assert(graph.IsAdjacent(id_2, id_3));
-  assert(graph.IsAdjacent(id_3, id_4));
-  assert(graph.IsAdjacent(id_4, id_1));
-  assert(graph.IsAdjacent(id_2, id_5));
-  assert(graph.IsAdjacent(id_5, id_2));
-  assert(graph.IsAdjacent(id_5, id_6));
-  assert(graph.IsAdjacent(id_6, id_2));
-  assert(3 == graph.RemoveCycles(id_0));
-  assert(graph.IsAdjacent(id_0, id_1));
-  assert(graph.IsAdjacent(id_1, id_2));
-  assert(graph.IsAdjacent(id_2, id_3));
-  assert(!graph.IsAdjacent(id_3, id_4));
-  assert(graph.IsAdjacent(id_4, id_1));
-  assert(graph.IsAdjacent(id_2, id_5));
-  assert(!graph.IsAdjacent(id_5, id_2));
-  assert(graph.IsAdjacent(id_5, id_6));
-  assert(!graph.IsAdjacent(id_6, id_2));
-
-  std::cout << "passed RemoveCycle" << std::endl;
+  graph_2_->AddOrdering(id_0, id_1, LandmarkGraph::GREEDY);
+  graph_2_->AddOrdering(id_1, id_2, LandmarkGraph::NATURAL);
+  graph_2_->AddOrdering(id_2, id_3, LandmarkGraph::REASONABLE);
+  graph_2_->AddOrdering(id_3, id_4, LandmarkGraph::OBEDIENT);
+  graph_2_->AddOrdering(id_4, id_1, LandmarkGraph::GREEDY);
+  graph_2_->AddOrdering(id_2, id_5, LandmarkGraph::GREEDY);
+  graph_2_->AddOrdering(id_5, id_6, LandmarkGraph::NATURAL);
+  graph_2_->AddOrdering(id_5, id_2, LandmarkGraph::OBEDIENT);
+  graph_2_->AddOrdering(id_6, id_2, LandmarkGraph::REASONABLE);
+  EXPECT_TRUE(graph_2_->IsAdjacent(id_0, id_1));
+  EXPECT_TRUE(graph_2_->IsAdjacent(id_1, id_2));
+  EXPECT_TRUE(graph_2_->IsAdjacent(id_2, id_3));
+  EXPECT_TRUE(graph_2_->IsAdjacent(id_3, id_4));
+  EXPECT_TRUE(graph_2_->IsAdjacent(id_4, id_1));
+  EXPECT_TRUE(graph_2_->IsAdjacent(id_2, id_5));
+  EXPECT_TRUE(graph_2_->IsAdjacent(id_5, id_2));
+  EXPECT_TRUE(graph_2_->IsAdjacent(id_5, id_6));
+  EXPECT_TRUE(graph_2_->IsAdjacent(id_6, id_2));
+  EXPECT_TRUE(3 == graph_2_->RemoveCycles(id_0));
+  EXPECT_TRUE(graph_2_->IsAdjacent(id_0, id_1));
+  EXPECT_TRUE(graph_2_->IsAdjacent(id_1, id_2));
+  EXPECT_TRUE(graph_2_->IsAdjacent(id_2, id_3));
+  EXPECT_FALSE(graph_2_->IsAdjacent(id_3, id_4));
+  EXPECT_TRUE(graph_2_->IsAdjacent(id_4, id_1));
+  EXPECT_TRUE(graph_2_->IsAdjacent(id_2, id_5));
+  EXPECT_FALSE(graph_2_->IsAdjacent(id_5, id_2));
+  EXPECT_TRUE(graph_2_->IsAdjacent(id_5, id_6));
+  EXPECT_FALSE(graph_2_->IsAdjacent(id_6, id_2));
 }
 
-int main() {
-  TestLandmarks();
-  TestOrderings();
-  TestGetAncestors();
-  TestRemoveCycles();
-}
+} // namespace pplanner

@@ -363,6 +363,15 @@ $(BIN_DIR)/landmark/test_landmark: \
 		$(TEST_DIR)/landmark/test_landmark.cc \
 		$(BIN_DIR)/landmark/landmark.o
 
+$(BIN_DIR)/landmark/test_landmark_graph: \
+	$(TEST_DIR)/landmark/test_landmark_graph.cc \
+	$(BIN_DIR)/landmark/landmark_graph.o \
+	$(BIN_DIR)/landmark/landmark.o
+	$(CXX) $(INCS) $(TEST_FLAG) -o $(BIN_DIR)/landmark/test_landmark_graph \
+		$(TEST_DIR)/landmark/test_landmark_graph.cc \
+		$(BIN_DIR)/landmark/landmark_graph.o \
+		$(BIN_DIR)/landmark/landmark.o
+
 $(BIN_DIR)/test_dtg: \
 	$(TEST_DIR)/test_dtg.cc \
 	$(BIN_DIR)/dtg.o \
