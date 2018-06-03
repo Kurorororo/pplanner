@@ -2,7 +2,6 @@
 
 #include <iostream>
 #include <string>
-#include <vector>
 
 #include "utils/file_utils.h"
 

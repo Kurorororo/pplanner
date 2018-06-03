@@ -55,6 +55,17 @@ sas_parser: \
 		$(BIN_DIR)/utils/file_utils.o \
 		$(BIN_DIR)/libsas_plus.a
 
+sas_dtg: \
+	$(TEST_DIR)/sas_dtg.cc \
+	$(BIN_DIR)/dtg.o \
+	$(BIN_DIR)/utils/file_utils.o \
+	$(BIN_DIR)/libsas_plus.a
+	$(CXX) $(INCS) $(TEST_FLAG) -o $(BIN_DIR)/sas_dtg \
+		$(TEST_DIR)/sas_dtg.cc \
+		$(BIN_DIR)/dtg.o \
+		$(BIN_DIR)/utils/file_utils.o \
+		$(BIN_DIR)/libsas_plus.a
+
 $(BIN_DIR)/%.o: $(SRC_DIR)/%.cc
 	@if [ ! -e `dirname $@` ]; then mkdir -p `dirname $@`; fi
 	$(CXX) $(INCS) $(RELEASE_FLAG) -o $@ -c $<
@@ -351,6 +362,15 @@ $(BIN_DIR)/landmark/test_landmark: \
 	$(CXX) $(INCS) $(TEST_FLAG) -o $(BIN_DIR)/landmark/test_landmark \
 		$(TEST_DIR)/landmark/test_landmark.cc \
 		$(BIN_DIR)/landmark/landmark.o
+
+$(BIN_DIR)/test_dtg: \
+	$(TEST_DIR)/test_dtg.cc \
+	$(BIN_DIR)/dtg.o \
+	$(BIN_DIR)/libsas_plus.a
+	$(CXX) $(INCS) $(TEST_FLAG) -o $(BIN_DIR)/test_dtg \
+		$(TEST_DIR)/test_dtg.cc \
+		$(BIN_DIR)/dtg.o \
+		$(BIN_DIR)/libsas_plus.a
 
 clean:
 	rm -rf $(BIN_DIR)/*
