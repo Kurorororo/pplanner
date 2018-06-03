@@ -5,47 +5,53 @@
 
 #include <boost/functional/hash.hpp>
 
-namespace rwls {
+#include "hash/pair_hash.h"
 
-bool Landmark::IsImplicated(const State &state) const {
-  for (auto v : var_values_) {
-    int var, value;
-    DecodeVarValue(v, &var, &value);
-    if (state[var] == value) return true;
-  }
-  return false;
-}
+namespace pplanner {
 
-bool Landmark::IsImplicated(const std::vector<VarValue> &assignment) const {
-  for (auto v : assignment) {
-    auto result = std::find(var_values_.begin(), var_values_.end(), v);
+using std::pair;
+using std::vector;
+
+bool Landmark::IsImplicated(const vector<int> &state) const {
+  for (int i=0, n=state.size(); i<n; ++i) {
+    auto p = std::make_pair(i, state[i]);
+    auto result = std::find(var_values_.begin(), var_values_.end(), p);
+
     if (result != var_values_.end()) return true;
   }
+
   return false;
 }
 
-bool Landmark::IsImplicated(int var, int value) const {
-  for (auto v : var_values_) {
-    int v_var, v_value;
-    DecodeVarValue(v, &v_var, &v_value);
-    if (v_var == var && v_value == value) return true;
-  }
+bool Landmark::IsImplicated(const pair<int, int> &p) const {
+  for (auto v : var_values_)
+    if (v == p) return true;
+
   return false;
 }
 
-void Landmark::Print() const {
-  for (auto v : var_values_) {
-    int var, value;
-    DecodeVarValue(v, &var, &value);
-    std::cout << "var" << var << "->" << value << " ";
-  }
+bool Landmark::Overlap(const Landmark &l) const {
+  if (*this == l) return false;
+
+  for (auto v : var_values_)
+    for (auto w : l.var_values_)
+      if (v == w) return true;
+
+  return false;
+}
+
+void Landmark::Dump() const {
+  for (auto v : var_values_)
+    std::cout << "var" << v.first << "->" << v.second << " ";
 }
 
 size_t Landmark::Hash() const {
   size_t seed = 0;
+
   for (auto v : var_values_)
-    boost::hash_combine(seed, v);
+    boost::hash_combine(seed, PairHash<int, int>{}(v));
+
   return seed;
 }
 
-}
+} // namespace pplanner

@@ -17,7 +17,7 @@ int Facts::AddVariable(const vector<std::string> &predicates) {
 }
 
 void Facts::Dump() const {
-  int n= static_cast<int>(n_variables());
+  int n = static_cast<int>(n_variables());
   std::cout << n << " variables" << std::endl;
 
   for (int i=0; i<n; ++i)

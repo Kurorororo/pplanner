@@ -2,101 +2,79 @@
 #define LANDMARK_H_
 
 #include <algorithm>
+#include <utility>
 #include <vector>
 
-#include "domain/state.h"
-#include "domain/var_value.h"
+#include "hash/pair_hash.h"
 
-namespace rwls {
+namespace pplanner {
 
 class Landmark {
  public:
   Landmark() {}
 
-  Landmark(const Landmark &landmark) {
-    var_values_ = landmark.var_values_;
-  }
+  explicit Landmark(const std::vector<std::pair<int, int> > &var_values)
+    : var_values_(var_values) {}
 
-  explicit Landmark(VarValue var_value) {
-    var_values_.push_back(var_value);
-  }
-
-  explicit Landmark(Landmark &landmark) {
-    var_values_ = landmark.var_values_;
+  explicit Landmark(const std::pair<int, int> &p) {
+    var_values_.push_back(p);
   }
 
   Landmark(int var, int value) {
-    VarValue var_value;
-    EncodeVarValue(var, value, &var_value);
-    var_values_.push_back(var_value);
+    var_values_.push_back(std::make_pair(var, value));
   }
 
   ~Landmark() {}
 
-  inline Landmark &operator=(const Landmark &landmark) {
-    var_values_ = landmark.GetVarValues();
-    return *this;
+  bool operator==(const Landmark &l) const {
+    return var_values_ == l.var_values_;
   }
 
-  inline bool operator==(const Landmark &landmark) const {
-    return var_values_ == landmark.var_values_;
-  };
-
-  inline bool operator!=(const Landmark &landmark) const {
-    return var_values_ != landmark.var_values_;
-  };
-
-  inline bool IsEmpty() const {
-    return var_values_.empty();
+  bool operator!=(const Landmark &l) const {
+    return var_values_ != l.var_values_;
   }
 
-  inline bool IsFact() const {
-    return var_values_.size() == 1;
-  }
+  size_t size() const { return var_values_.size(); }
 
-  inline size_t GetSize() const {
-    return var_values_.size();
-  }
+  bool IsEmpty() const { return size() == 0; }
 
-  inline void Clear() {
-    var_values_.clear();
-  }
+  bool IsFact() const { return size() == 1; }
 
-  inline VarValue GetVarValue() const {
-    return var_values_.at(0);
-  }
+  void Clear() { var_values_.clear(); }
 
-  inline void AddVarValue(VarValue v) {
-    auto result = std::find(var_values_.begin(), var_values_.end(), v);
+  void Add(const std::pair<int, int> &p) {
+    auto result = std::find(var_values_.begin(), var_values_.end(), p);
     if (result != var_values_.end()) return;
-    var_values_.push_back(v);
+    var_values_.push_back(p);
     std::sort(var_values_.begin(), var_values_.end());
   }
 
-  inline const std::vector<VarValue>& GetVarValues() const {
-    return var_values_;
-  }
+  int GetVar(int i) const { return var_values_[i].first; }
+
+  int GetValue(int i) const { return var_values_[i].second; }
+
+  std::pair<int, int> GetVarValue(int i) const { return var_values_[i]; }
 
   size_t Hash() const;
 
-  bool IsImplicated(const State &state) const;
+  bool IsImplicated(const std::vector<int> &state) const;
 
-  bool IsImplicated(const std::vector<VarValue> &assignment) const;
+  bool IsImplicated(const std::pair<int, int> &p) const;
 
-  bool IsImplicated(int var, int value) const;
+  bool Overlap(const Landmark &l) const;
 
-  void Print() const;
+  void Dump() const;
 
  private:
-  std::vector<VarValue> var_values_;
+  std::vector<std::pair<int, int> > var_values_;
 };
 
 struct LandmarkHash {
-  inline size_t operator()(const Landmark &landmark) const {
+  size_t operator()(const Landmark &landmark) const {
     return landmark.Hash();
   }
 };
 
-}
+} // namespace pplanner
 
 #endif // LANDMARK_H_

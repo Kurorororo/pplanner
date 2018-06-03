@@ -73,6 +73,14 @@ TEST_F(SASPlusTest, FactWorks) {
   EXPECT_EQ(4, sas_1_.Fact(2, 0));
   EXPECT_EQ(5, sas_1_.Fact(2, 1));
   EXPECT_EQ(6, sas_1_.Fact(2, 2));
+
+  EXPECT_EQ(0, sas_1_.Fact(std::make_pair(0, 0)));
+  EXPECT_EQ(1, sas_1_.Fact(std::make_pair(0, 1)));
+  EXPECT_EQ(2, sas_1_.Fact(std::make_pair(1, 0)));
+  EXPECT_EQ(3, sas_1_.Fact(std::make_pair(1, 1)));
+  EXPECT_EQ(4, sas_1_.Fact(std::make_pair(2, 0)));
+  EXPECT_EQ(5, sas_1_.Fact(std::make_pair(2, 1)));
+  EXPECT_EQ(6, sas_1_.Fact(std::make_pair(2, 2)));
 }
 
 TEST_F(SASPlusTest, VarBeginWorks) {

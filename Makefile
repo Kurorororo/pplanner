@@ -194,19 +194,21 @@ $(BIN_DIR)/hash/test_zobrist_hash: \
 		$(BIN_DIR)/hash/zobrist_hash.o \
 		$(BIN_DIR)/libsas_plus.a
 
+$(BIN_DIR)/hash/test_pair_hash: \
+	$(TEST_DIR)/hash/test_pair_hash.cc
+	$(CXX) $(INCS) $(TEST_FLAG) -o $(BIN_DIR)/hash/test_pair_hash \
+		$(TEST_DIR)/hash/test_pair_hash.cc
+
 $(BIN_DIR)/hash/test_array_hash: \
-	$(TEST_DIR)/hash/test_array_hash.cc \
-	$(BIN_DIR)/libsas_plus.a
+	$(TEST_DIR)/hash/test_array_hash.cc
 	$(CXX) $(INCS) $(TEST_FLAG) -o $(BIN_DIR)/hash/test_array_hash \
-		$(TEST_DIR)/hash/test_array_hash.cc \
-		$(BIN_DIR)/libsas_plus.a
+		$(TEST_DIR)/hash/test_array_hash.cc
 
 $(BIN_DIR)/search_graph/test_state_packer: \
 	$(TEST_DIR)/search_graph/test_state_packer.cc \
 	$(BIN_DIR)/search_graph/state_packer.o \
 	$(BIN_DIR)/libsas_plus.a
-	$(CXX) $(INCS) $(TEST_FLAG) -o $(BIN_DIR)/search_graph/test_state_packer \
-		$(TEST_DIR)/search_graph/test_state_packer.cc \
+	$(CXX) $(INCS) $(TEST_FLAG) -o $(BIN_DIR)/search_graph/test_state_packer \ $(TEST_DIR)/search_graph/test_state_packer.cc \
 		$(BIN_DIR)/search_graph/state_packer.o \
 		$(BIN_DIR)/libsas_plus.a
 
@@ -342,6 +344,13 @@ $(BIN_DIR)/open_lists/test_preferred_open_list: \
 		$(BIN_DIR)/open_list.o \
 		$(BIN_DIR)/libsas_plus.a \
 		$(BIN_DIR)/libsearch_graph.a
+
+$(BIN_DIR)/landmark/test_landmark: \
+	$(TEST_DIR)/landmark/test_landmark.cc \
+	$(BIN_DIR)/landmark/landmark.o
+	$(CXX) $(INCS) $(TEST_FLAG) -o $(BIN_DIR)/landmark/test_landmark \
+		$(TEST_DIR)/landmark/test_landmark.cc \
+		$(BIN_DIR)/landmark/landmark.o
 
 clean:
 	rm -rf $(BIN_DIR)/*

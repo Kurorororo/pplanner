@@ -40,6 +40,14 @@ class RPG {
   void ConstructRRPG(const std::vector<int> &state,
                      const std::unordered_set<int> &black_list);
 
+  bool IsInFact(int fact) const {
+    return fact_layer_membership_[fact] != -1;
+  }
+
+  bool IsInAction(int action) const {
+    return precondition_counter_[action] == problem_->PreconditionSize(action);
+  }
+
  private:
   void ConstructGraph(const std::vector<int> &state);
 
