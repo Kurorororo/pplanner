@@ -6,7 +6,7 @@ INCS = -I$(SRC_DIR) -I/usr/local/include/
 LIBS = -L/usr/local/lib/ -lboost_program_options
 CXX = g++
 MPIXX = mpic++
-RELEASE_FLAG = -Wall -std=c++11 -Og -DNDEBUG -pg
+RELEASE_FLAG = -Wall -std=c++11 -O3 -DNDEBUG
 TEST_FLAG = -Wall -std=c++11 -Igoogletest/googletest/include \
 						-Lgoogletest/googletest -lgtest -lgtest_main -lpthread
 
