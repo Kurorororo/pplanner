@@ -2,8 +2,8 @@ SRC_DIR=./src
 BIN_DIR=./bin
 TEST_DIR=./tests
 
-INCS = -I$(SRC_DIR) -I/home/kuro/local/include/
-LIBS = -L/home/kuro/local/lib/ -lboost_program_options
+INCS = -I$(SRC_DIR) -I/usr/local/include/
+LIBS = -L/usr/local/lib/ -lboost_program_options
 CXX = g++
 MPIXX = mpic++
 RELEASE_FLAG = -Wall -std=c++11 -Og -DNDEBUG -pg
