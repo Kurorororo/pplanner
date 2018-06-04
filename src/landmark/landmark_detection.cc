@@ -54,12 +54,12 @@ void SetPossibleAchievers(const Landmark &psi,
 
 void RRPG(const vector<int> &possible_achievers,
           const vector<int> &initial,
-          unordered_set<int> &black_list,
+          vector<bool> &black_list,
           RPG *rrpg) {
-  black_list.clear();
+  std::fill(black_list.begin(), black_list.end(), false);
 
   for (auto o : possible_achievers)
-    black_list.insert(o);
+    black_list[o] = true;
 
   rrpg->ConstructRRPG(initial, black_list);
 }
@@ -75,19 +75,21 @@ void SetFirstAchievers(const Landmark &psi, const RPG &rrpg,
 vector<pair<int, int> > ExtendedPreconditions(const Landmark &psi,
                                               shared_ptr<const SASPlus> problem,
                                               int action) {
+  static vector<bool> has_precondition(problem->n_variables(), false);
+
+  std::fill(has_precondition.begin(), has_precondition.end(), false);
   vector<pair<int, int> > precondition;
   problem->CopyPrecondition(action, precondition);
-  vector<bool> has_precondition(problem->n_variables(), false);
 
   for (auto p : precondition)
     has_precondition[p.first] = true;
 
-  vector<pair<int, int> > effect;
-  problem->CopyEffect(action, effect);
+  auto iter = problem->EffectVarsBegin(action);
+  auto end = problem->EffectVarsEnd(action);
   auto initial = problem->initial();
 
-  for (auto e : effect) {
-    int var = e.first;
+  for (; iter != end; ++iter) {
+    int var = *iter;
 
     if (!has_precondition[var] && problem->VarRange(var) == 2)
       for (int i=0, n=psi.size(); i<n; ++i)
@@ -295,7 +297,7 @@ void IdentifyLandmarks(shared_ptr<const SASPlus> problem,
   unordered_map<int, pair_set> potential_orderings;
 
   RPG rrpg(r_problem);
-  unordered_set<int> black_list;
+  vector<bool> black_list(problem->n_actions(), false);
 
   auto dtgs = InitializeDTGs(problem);
 

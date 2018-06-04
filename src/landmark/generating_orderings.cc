@@ -1,5 +1,6 @@
 #include "landmark/generating_orderings.h"
 
+#include <algorithm>
 #include <iostream>
 #include <utility>
 #include <vector>
@@ -27,32 +28,38 @@ inline bool IsInConsistent(shared_ptr<const SASPlus> problem,
   return IsInConsistent(problem, l.GetVarValue(0), r.GetVarValue(0));
 }
 
+
 bool Interfere(shared_ptr<const SASPlus> problem,
                shared_ptr<const LandmarkGraph> graph, const Landmark &l,
                const Landmark &l_p) {
+  static vector<int> counter(problem->n_facts(), 0);
+
   if (IsInConsistent(problem, l, l_p)) return true;
 
-  std::unordered_map<pair<int, int>, int, PairHash<int, int>> counter;
-  bool initial = true;
   const auto &achievers = graph->GetPossibleAchievers(graph->ToId(l));
+  std::fill(counter.begin(), counter.end(), 0);
 
   for (auto o : achievers) {
-    vector<pair<int, int> > effect;
-    problem->CopyEffect(o, effect);
+    auto var_iter = problem->EffectVarsBegin(o);
+    auto value_iter = problem->EffectValuesBegin(o);
 
-    for (auto x : effect) {
-      if (initial)
-        counter[x] = 1;
-      else if (counter.find(x) != counter.end())
-        ++counter[x];
+    for (auto end=problem->EffectVarsEnd(o); var_iter != end; ++var_iter) {
+      ++counter[problem->Fact(*var_iter, *value_iter)];
+      ++value_iter;
     }
   }
 
   int n_effects = achievers.size();
+  int l_p_var = l_p.GetVar(0);
+  int l_p_fact = problem->Fact(l_p.GetVarValue(0));
+  int l_p_var_begin = problem->VarBegin(l_p_var);
+  int l_p_var_end = l_p_var_begin + problem->VarRange(l_p_var);
 
-  for (const auto &v : counter) {
-    if (v.second < n_effects) continue;
-    if (IsInConsistent(problem, v.first, l_p.GetVarValue(0))) return true;
+  for (int i=0, n=counter.size(); i<n; ++i) {
+    if (counter[i] < n_effects) continue;
+
+    if ((l_p_var_begin <= i && i < l_p_var_end && i != l_p_fact)
+        || problem->IsMutex(i, l_p_fact)) return true;
   }
 
   // Fast Downward issue 202

@@ -57,7 +57,7 @@ vector<DTG> InitializeDTGs(shared_ptr<const SASPlus> problem) {
   int variables_size = problem->n_variables();
   vector<vector<vector<int> > > lists_lists(variables_size);
 
-  for (size_t i=0; i<variables_size; ++i)
+  for (int i=0; i<variables_size; ++i)
     lists_lists[i].resize(problem->VarRange(i));
 
   vector<int> precondition_table(variables_size);

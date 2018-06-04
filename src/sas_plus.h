@@ -83,9 +83,41 @@ class SASPlus {
 
   const std::string& ActionName(int i) const { return action_names_[i]; }
 
+  std::vector<int>::const_iterator PreconditionVarsBegin(int i) const {
+    return preconditions_->VarsBegin(i);
+  }
+
+  std::vector<int>::const_iterator PreconditionVarsEnd(int i) const {
+    return preconditions_->VarsEnd(i);
+  }
+
+  std::vector<int>::const_iterator PreconditionValuesBegin(int i) const {
+    return preconditions_->ValuesBegin(i);
+  }
+
+  std::vector<int>::const_iterator PreconditionValuesEnd(int i) const {
+    return preconditions_->ValuesEnd(i);
+  }
+
   void CopyPrecondition(int i, std::vector<std::pair<int, int> > &precondition)
     const {
     preconditions_->Copy(i, precondition);
+  }
+
+  std::vector<int>::const_iterator EffectVarsBegin(int i) const {
+    return effects_->VarsBegin(i);
+  }
+
+  std::vector<int>::const_iterator EffectVarsEnd(int i) const {
+    return effects_->VarsEnd(i);
+  }
+
+  std::vector<int>::const_iterator EffectValuesBegin(int i) const {
+    return effects_->ValuesBegin(i);
+  }
+
+  std::vector<int>::const_iterator EffectValuesEnd(int i) const {
+    return effects_->ValuesEnd(i);
   }
 
   void CopyEffect(int i, std::vector<std::pair<int, int> > &effect) const {

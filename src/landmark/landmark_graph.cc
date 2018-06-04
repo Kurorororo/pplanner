@@ -71,7 +71,7 @@ void LandmarkGraph::Delete(int id) {
   for (auto init_id : term_id_to_init_ids_[id])
     adjacent_matrix_[init_id][id] = false;
 
-  auto condition = [id](size_t x) { return x == id; };
+  auto condition = [id](int x) { return x == id; };
 
   for (auto term_id : init_id_to_term_ids_[id]) {
     auto &ids = term_id_to_init_ids_[term_id];

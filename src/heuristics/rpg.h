@@ -39,13 +39,12 @@ class RPG {
                bool unit_cost=false, bool common_precond=false);
 
   void ConstructRRPG(const std::vector<int> &state,
-                     const std::unordered_set<int> &black_list);
+                     const std::vector<bool> &black_list);
 
   bool IsInFact(int fact) const { return fact_layer_membership_[fact] != -1; }
 
   bool IsInAction(int action) const { return is_in_[action]; }
-
- private:
+private:
   void ConstructGraph(const std::vector<int> &state);
 
   void Reset();
@@ -54,7 +53,7 @@ class RPG {
 
   void ActionLayer();
 
-  void RistrictedFactLayer(const std::unordered_set<int> &black_list);
+  void RistrictedFactLayer(const std::vector<bool> &black_list);
 
   void InitializeGSet();
 

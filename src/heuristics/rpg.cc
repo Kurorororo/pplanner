@@ -114,7 +114,7 @@ void RPG::ActionLayer() {
 }
 
 void RPG::ConstructRRPG(const std::vector<int> &state,
-                        const unordered_set<int> &black_list) {
+                        const vector<bool> &black_list) {
   Reset();
 
   for (auto f : state) {
@@ -129,7 +129,7 @@ void RPG::ConstructRRPG(const std::vector<int> &state,
   }
 }
 
-void RPG::RistrictedFactLayer(const unordered_set<int> &black_list) {
+void RPG::RistrictedFactLayer(const vector<bool> &black_list) {
   while (!scheduled_facts_.empty()) {
     int f = scheduled_facts_.back();
     scheduled_facts_.pop_back();
@@ -140,8 +140,7 @@ void RPG::RistrictedFactLayer(const unordered_set<int> &black_list) {
         int a = problem_->ActionId(o);
         is_in_[a] = true;
 
-        if (black_list.find(a) == black_list.end())
-          scheduled_actions_.push_back(o);
+        if (!black_list[a]) scheduled_actions_.push_back(o);
       }
     }
   }
