@@ -17,6 +17,7 @@ planner: \
 	$(BIN_DIR)/utils/file_utils.o \
 	$(BIN_DIR)/libsas_plus.a \
 	$(BIN_DIR)/libsearch_graph.a \
+	$(BIN_DIR)/libff.a \
 	$(BIN_DIR)/libevaluators.a \
 	$(BIN_DIR)/libopen_lists.a \
 	$(BIN_DIR)/libsearch.a
@@ -27,6 +28,7 @@ planner: \
 		$(BIN_DIR)/utils/file_utils.o \
 		$(BIN_DIR)/libsearch.a \
 		$(BIN_DIR)/libopen_lists.a \
+		$(BIN_DIR)/libff.a \
 		$(BIN_DIR)/libevaluators.a \
 		$(BIN_DIR)/libsearch_graph.a \
 		$(BIN_DIR)/libsas_plus.a \
@@ -66,6 +68,19 @@ sas_dtg: \
 		$(BIN_DIR)/utils/file_utils.o \
 		$(BIN_DIR)/libsas_plus.a
 
+sas_landmark_detection: \
+	$(TEST_DIR)/landmark/sas_landmark_detection.cc \
+	$(BIN_DIR)/utils/file_utils.o \
+	$(BIN_DIR)/liblandmark.a \
+	$(BIN_DIR)/libff.a \
+	$(BIN_DIR)/libsas_plus.a
+	$(CXX) $(INCS) $(RELEASE_FLAG) -o $(BIN_DIR)/sas_landmark_detection \
+		$(TEST_DIR)/landmark/sas_landmark_detection.cc \
+		$(BIN_DIR)/utils/file_utils.o \
+		$(BIN_DIR)/liblandmark.a \
+		$(BIN_DIR)/libff.a \
+		$(BIN_DIR)/libsas_plus.a
+
 $(BIN_DIR)/%.o: $(SRC_DIR)/%.cc
 	@if [ ! -e `dirname $@` ]; then mkdir -p `dirname $@`; fi
 	$(CXX) $(INCS) $(RELEASE_FLAG) -o $@ -c $<
@@ -101,18 +116,12 @@ $(BIN_DIR)/libevaluators.a: \
 	$(BIN_DIR)/evaluator_factory.o \
 	$(BIN_DIR)/heuristics/blind.o \
 	$(BIN_DIR)/heuristics/new_operator.o \
-	$(BIN_DIR)/heuristics/rpg.o \
-	$(BIN_DIR)/heuristics/rpg_table.o \
-	$(BIN_DIR)/heuristics/relaxed_sas_plus.o \
 	$(BIN_DIR)/heuristics/width.o
 	ar rcs $(BIN_DIR)/libevaluators.a \
 		$(BIN_DIR)/evaluator.o \
 		$(BIN_DIR)/evaluator_factory.o \
 		$(BIN_DIR)/heuristics/blind.o \
 		$(BIN_DIR)/heuristics/new_operator.o \
-		$(BIN_DIR)/heuristics/rpg.o \
-		$(BIN_DIR)/heuristics/rpg_table.o \
-		$(BIN_DIR)/heuristics/relaxed_sas_plus.o \
 		$(BIN_DIR)/heuristics/width.o
 
 $(BIN_DIR)/libopen_lists.a: \
@@ -142,6 +151,28 @@ $(BIN_DIR)/libsearch.a: \
 		$(BIN_DIR)/search/gbfs.o \
 		$(BIN_DIR)/search/lazy_gbfs.o \
 		$(BIN_DIR)/search/mrw13.o
+
+$(BIN_DIR)/libff.a: \
+	$(BIN_DIR)/heuristics/rpg.o \
+	$(BIN_DIR)/heuristics/rpg_table.o \
+	$(BIN_DIR)/heuristics/relaxed_sas_plus.o
+	ar rcs $(BIN_DIR)/libff.a \
+		$(BIN_DIR)/heuristics/rpg.o \
+		$(BIN_DIR)/heuristics/rpg_table.o \
+		$(BIN_DIR)/heuristics/relaxed_sas_plus.o
+
+$(BIN_DIR)/liblandmark.a: \
+	$(BIN_DIR)/dtg.o \
+	$(BIN_DIR)/landmark/landmark.o \
+	$(BIN_DIR)/landmark/landmark_detection.o \
+	$(BIN_DIR)/landmark/landmark_graph.o \
+	$(BIN_DIR)/landmark/generating_orderings.o
+	ar rcs $(BIN_DIR)/liblandmark.a \
+		$(BIN_DIR)/dtg.o \
+		$(BIN_DIR)/landmark/landmark.o \
+		$(BIN_DIR)/landmark/landmark_detection.o \
+		$(BIN_DIR)/landmark/landmark_graph.o \
+		$(BIN_DIR)/landmark/generating_orderings.o
 
 $(BIN_DIR)/sas_plus/test_partial_state: \
 	$(TEST_DIR)/sas_plus/test_partial_state.cc \

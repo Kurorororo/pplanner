@@ -22,6 +22,7 @@ class RPG {
       precondition_counter_(problem->n_actions(), -1),
       closed_(problem->n_facts(), false),
       selected_(problem->n_facts(), false),
+      is_in_(problem->n_actions(), false),
       problem_(problem) {
         marked_[0] = std::vector<bool>(problem->n_facts(), false);
         marked_[1] = std::vector<bool>(problem->n_facts(), false);
@@ -40,13 +41,9 @@ class RPG {
   void ConstructRRPG(const std::vector<int> &state,
                      const std::unordered_set<int> &black_list);
 
-  bool IsInFact(int fact) const {
-    return fact_layer_membership_[fact] != -1;
-  }
+  bool IsInFact(int fact) const { return fact_layer_membership_[fact] != -1; }
 
-  bool IsInAction(int action) const {
-    return precondition_counter_[action] == problem_->PreconditionSize(action);
-  }
+  bool IsInAction(int action) const { return is_in_[action]; }
 
  private:
   void ConstructGraph(const std::vector<int> &state);
@@ -82,6 +79,7 @@ class RPG {
   std::vector< std::vector<int> > g_set_;
   std::array<std::vector<bool>, 2> marked_;
   std::vector<bool> selected_;
+  std::vector<bool> is_in_;
   std::shared_ptr<const RelaxedSASPlus> problem_;
 };
 

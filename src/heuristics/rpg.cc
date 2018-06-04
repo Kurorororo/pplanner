@@ -75,6 +75,7 @@ void RPG::Reset() {
     g.clear();
 
   std::fill(selected_.begin(), selected_.end(), false);
+  std::fill(is_in_.begin(), is_in_.end(), false);
 }
 
 bool RPG::FactLayer() {
@@ -87,8 +88,10 @@ bool RPG::FactLayer() {
       return true;
 
     for (auto o : problem_->PreconditionMap(f)) {
-      if (++precondition_counter_[o] == problem_->PreconditionSize(o))
+      if (++precondition_counter_[o] == problem_->PreconditionSize(o)) {
         scheduled_actions_.push_back(o);
+        is_in_[problem_->ActionId(o)] = true;
+      }
     }
   }
 
@@ -133,9 +136,13 @@ void RPG::RistrictedFactLayer(const unordered_set<int> &black_list) {
     fact_layer_membership_[f] = n_layers_;
 
     for (auto o : problem_->PreconditionMap(f)) {
-      if (++precondition_counter_[o] == problem_->PreconditionSize(o)
-          && black_list.find(problem_->ActionId(o)) == black_list.end())
-        scheduled_actions_.push_back(o);
+      if (++precondition_counter_[o] == problem_->PreconditionSize(o)) {
+        int a = problem_->ActionId(o);
+        is_in_[a] = true;
+
+        if (black_list.find(a) == black_list.end())
+          scheduled_actions_.push_back(o);
+      }
     }
   }
 }

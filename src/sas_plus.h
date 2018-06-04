@@ -50,7 +50,9 @@ class SASPlus {
 
   int Fact(int var, int value) const { return facts_->Fact(var, value); }
 
-  int Fact(const std::pair<int, int> &v) { return Fact(v.first, v.second); }
+  int Fact(const std::pair<int, int> &v) const {
+    return Fact(v.first, v.second);
+  }
 
   int VarBegin(int var) const { return facts_->VarBegin(var); }
 

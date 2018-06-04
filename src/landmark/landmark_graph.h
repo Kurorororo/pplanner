@@ -98,16 +98,17 @@ class LandmarkGraph {
     return first_achievers_[id].size();
   }
 
-  void GetAncestors(int start, std::vector<int> &ancestors);
+  void GetAncestors(int start, std::vector<int> &ancestors) const;
 
   int RemoveCycles(int start_id);
 
  private:
   void PrepareOrderings(int id);
 
-  void RemoveEdge(int start);
+  void RemoveEdge(int start, std::vector<int> &path);
 
-  bool FindCycle(int start);
+  bool FindCycle(int start, std::vector<int> &path,
+                 std::unordered_set<int> &cloesd);
 
   size_t orderings_size_;
 
@@ -121,10 +122,6 @@ class LandmarkGraph {
 
   std::vector< std::vector<int> > possible_achievers_;
   std::vector< std::vector<int> > first_achievers_;
-
-  std::stack<int> open_;
-  std::unordered_set<int> closed_;
-  std::vector<int> path_;
 };
 
 bool TypeCheck(const std::vector<LandmarkGraph::OrderingType> &allowd_types,

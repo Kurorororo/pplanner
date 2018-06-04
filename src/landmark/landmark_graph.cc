@@ -101,32 +101,35 @@ void LandmarkGraph::Delete(const Landmark &landmark) {
   Delete(id);
 }
 
-void LandmarkGraph::GetAncestors(int start, vector<int> &ancestors) {
+void LandmarkGraph::GetAncestors(int start, vector<int> &ancestors) const {
+  static stack<int> open;
+  static unordered_set<int> closed;
+
   ancestors.clear();
-  closed_.clear();
-  open_ = stack<int>();
+  closed.clear();
+  open = stack<int>();
 
-  open_.push(start);
-  closed_.insert(start);
+  open.push(start);
+  closed.insert(start);
 
-  while (!open_.empty()) {
-    int current = open_.top();
-    open_.pop();
+  while (!open.empty()) {
+    int current = open.top();
+    open.pop();
 
     for (auto parent : GetInitIdsByTermId(current)) {
-      if (closed_.find(parent) != closed_.end()) continue;
-      closed_.insert(parent);
+      if (closed.find(parent) != closed.end()) continue;
+      closed.insert(parent);
       ancestors.push_back(parent);
-      open_.push(parent);
+      open.push(parent);
     }
   }
 }
 
-void LandmarkGraph::RemoveEdge(int start) {
-  int parent = path_.back();
-  auto start_it = find(path_.begin(), path_.end(), start);
+void LandmarkGraph::RemoveEdge(int start, vector<int> &path) {
+  int parent = path.back();
+  auto start_it = find(path.begin(), path.end(), start);
 
-  for (auto it = start_it; it != path_.end(); ++it) {
+  for (auto it = start_it; it != path.end(); ++it) {
     int child = *it;
 
     if (GetOrderingType(parent, child) == OBEDIENT) {
@@ -138,9 +141,9 @@ void LandmarkGraph::RemoveEdge(int start) {
     parent = child;
   }
 
-  parent = path_.back();
+  parent = path.back();
 
-  for (auto it = start_it; it != path_.end(); ++it) {
+  for (auto it = start_it; it != path.end(); ++it) {
     int child = *it;
 
     if (GetOrderingType(parent, child) == REASONABLE) {
@@ -153,33 +156,37 @@ void LandmarkGraph::RemoveEdge(int start) {
   }
 }
 
-bool LandmarkGraph::FindCycle(int current) {
-  if (closed_.find(current) != closed_.end()) {
-    RemoveEdge(current);
+bool LandmarkGraph::FindCycle(int current, vector<int> &path,
+                              unordered_set<int> &closed) {
+  if (closed.find(current) != closed.end()) {
+    RemoveEdge(current, path);
 
     return true;
   }
 
-  path_.push_back(current);
-  closed_.insert(current);
+  path.push_back(current);
+  closed.insert(current);
 
   for (auto child : GetTermIdsByInitId(current))
-    if (FindCycle(child)) return true;
+    if (FindCycle(child, path, closed)) return true;
 
-  path_.pop_back();
-  closed_.erase(current);
+  path.pop_back();
+  closed.erase(current);
 
   return false;
 }
 
 int LandmarkGraph::RemoveCycles(int start) {
+  static unordered_set<int> closed;
+  static vector<int> path;
+
   int cycles = -1;
 
   do {
-    path_.clear();
-    closed_.clear();
+    path.clear();
+    closed.clear();
     ++cycles;
-  } while (FindCycle(start));
+  } while (FindCycle(start, path, closed));
 
   return cycles;
 }
