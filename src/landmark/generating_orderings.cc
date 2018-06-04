@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <iostream>
 #include <utility>
+#include <unordered_map>
 #include <vector>
 
 namespace pplanner {
@@ -10,6 +11,7 @@ namespace pplanner {
 using std::make_pair;
 using std::pair;
 using std::shared_ptr;
+using std::unordered_map;
 using std::vector;
 
 inline bool IsInConsistent(shared_ptr<const SASPlus> problem,
@@ -32,34 +34,33 @@ inline bool IsInConsistent(shared_ptr<const SASPlus> problem,
 bool Interfere(shared_ptr<const SASPlus> problem,
                shared_ptr<const LandmarkGraph> graph, const Landmark &l,
                const Landmark &l_p) {
-  static vector<int> counter(problem->n_facts(), 0);
+  static unordered_map<pair<int, int>, int, PairHash<int, int> > counter;
+  static vector<pair<int, int> > effect;
 
   if (IsInConsistent(problem, l, l_p)) return true;
 
   const auto &achievers = graph->GetPossibleAchievers(graph->ToId(l));
-  std::fill(counter.begin(), counter.end(), 0);
+  counter.clear();
 
   for (auto o : achievers) {
-    auto var_iter = problem->EffectVarsBegin(o);
-    auto value_iter = problem->EffectValuesBegin(o);
+    problem->CopyEffect(o, effect);
 
-    for (auto end=problem->EffectVarsEnd(o); var_iter != end; ++var_iter) {
-      ++counter[problem->Fact(*var_iter, *value_iter)];
-      ++value_iter;
+    for (auto e : effect) {
+      auto iter = counter.find(e);
+
+      if (iter == counter.end())
+        counter[e] = 1;
+      else
+        ++(iter->second);
     }
   }
 
   int n_effects = achievers.size();
-  int l_p_var = l_p.GetVar(0);
-  int l_p_fact = problem->Fact(l_p.GetVarValue(0));
-  int l_p_var_begin = problem->VarBegin(l_p_var);
-  int l_p_var_end = l_p_var_begin + problem->VarRange(l_p_var);
 
-  for (int i=0, n=counter.size(); i<n; ++i) {
-    if (counter[i] < n_effects) continue;
-
-    if ((l_p_var_begin <= i && i < l_p_var_end && i != l_p_fact)
-        || problem->IsMutex(i, l_p_fact)) return true;
+  for (auto p : counter) {
+    if (p.second == n_effects
+        && IsInConsistent(problem, p.first, l_p.GetVarValue(0)))
+      return true;
   }
 
   // Fast Downward issue 202
@@ -125,8 +126,7 @@ void ReasonableOrderings(shared_ptr<const SASPlus> problem,
     for (int l_id=0; l_id<landmarks_size; ++l_id) {
       if (l_id == l_p_id) continue;
       const Landmark &l = graph->GetLandmark(l_id);
-      l.IsFact();
-      Interfere(problem, graph, l, l_p);
+
       if (l.IsFact() && Interfere(problem, graph, l, l_p))
         orderings.push_back(make_pair(l_id, l_p_id));
     }
