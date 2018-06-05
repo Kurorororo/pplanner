@@ -13,12 +13,8 @@ using std::pair;
 using std::vector;
 
 bool Landmark::IsImplicated(const vector<int> &state) const {
-  for (int i=0, n=state.size(); i<n; ++i) {
-    auto p = std::make_pair(i, state[i]);
-    auto result = std::find(var_values_.begin(), var_values_.end(), p);
-
-    if (result != var_values_.end()) return true;
-  }
+  for (auto p : var_values_)
+    if (state[p.first] == p.second) return true;
 
   return false;
 }
