@@ -63,7 +63,7 @@ class GBFS : public Search {
   std::shared_ptr<const SASPlus> problem_;
   std::shared_ptr<Evaluator> preferring_;
   std::unique_ptr<SuccessorGenerator> generator_;
-  std::unique_ptr<SearchGraph> graph_;
+  std::shared_ptr<SearchGraph> graph_;
   std::unique_ptr<OpenList> open_list_;
 };
 

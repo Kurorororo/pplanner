@@ -64,13 +64,12 @@ class SearchGraph {
   }
 
   virtual int GenerateNodeIfNotClosed(const std::vector<int> &state,
-                                      int parent, int action, bool is_preferred);
+                                      int parent, int action,
+                                      bool is_preferred);
 
-  virtual int GetStateAndClosed(int i, std::vector<int> &state) const {
+  int GetStateAndClosed(int i, std::vector<int> &state) const {
     return states_->GetStateAndClosed(i, state);
   }
-
-  virtual void DumpPlanMetrics(const std::vector<int> &plan) const {}
 
  private:
   std::vector<int> actions_;

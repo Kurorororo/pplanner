@@ -17,6 +17,7 @@ planner: \
 	$(BIN_DIR)/utils/file_utils.o \
 	$(BIN_DIR)/libsas_plus.a \
 	$(BIN_DIR)/libsearch_graph.a \
+	$(BIN_DIR)/liblandmark.a \
 	$(BIN_DIR)/libff.a \
 	$(BIN_DIR)/libevaluators.a \
 	$(BIN_DIR)/libopen_lists.a \
@@ -28,6 +29,7 @@ planner: \
 		$(BIN_DIR)/utils/file_utils.o \
 		$(BIN_DIR)/libsearch.a \
 		$(BIN_DIR)/libopen_lists.a \
+		$(BIN_DIR)/liblandmark.a \
 		$(BIN_DIR)/libff.a \
 		$(BIN_DIR)/libevaluators.a \
 		$(BIN_DIR)/libsearch_graph.a \
@@ -163,12 +165,14 @@ $(BIN_DIR)/libff.a: \
 
 $(BIN_DIR)/liblandmark.a: \
 	$(BIN_DIR)/dtg.o \
+	$(BIN_DIR)/heuristics/landmark_count.o \
 	$(BIN_DIR)/landmark/landmark.o \
 	$(BIN_DIR)/landmark/landmark_detection.o \
 	$(BIN_DIR)/landmark/landmark_graph.o \
 	$(BIN_DIR)/landmark/generating_orderings.o
 	ar rcs $(BIN_DIR)/liblandmark.a \
 		$(BIN_DIR)/dtg.o \
+		$(BIN_DIR)/heuristics/landmark_count.o \
 		$(BIN_DIR)/landmark/landmark.o \
 		$(BIN_DIR)/landmark/landmark_detection.o \
 		$(BIN_DIR)/landmark/landmark_graph.o \

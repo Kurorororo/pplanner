@@ -18,6 +18,12 @@ class LandmarkGraph {
 
   ~LandmarkGraph() {}
 
+  size_t n_landmarks() const { return landmark_to_id_.size(); }
+
+  size_t landmark_id_max() const { return id_to_landmark_.size(); }
+
+  size_t n_orderings() const { return orderings_size_; }
+
   const Landmark& GetLandmark(int id) const { return id_to_landmark_[id]; }
 
   Landmark CopyLandmark(int id) const { return id_to_landmark_[id]; }
@@ -25,10 +31,6 @@ class LandmarkGraph {
   const std::vector<Landmark>& GetLandmarks() const { return id_to_landmark_; }
 
   std::vector<Landmark> CopyLandmarks() const { return id_to_landmark_; }
-
-  size_t GetLandmarksSize() const { return landmark_to_id_.size(); }
-
-  size_t GetOrderingsSize() const { return orderings_size_; }
 
   int ToId(const Landmark &landmark) const {
     return landmark_to_id_.at(landmark);

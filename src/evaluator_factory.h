@@ -8,11 +8,13 @@
 
 #include "evaluator.h"
 #include "sas_plus.h"
+#include "search_graph.h"
 
 namespace pplanner {
 
 std::shared_ptr<Evaluator> EvaluatorFactory(
     std::shared_ptr<const SASPlus> problem,
+    std::shared_ptr<SearchGraph> graph,
     const boost::property_tree::ptree &pt);
 
 

@@ -4,13 +4,16 @@
 #include "heuristics/blind.h"
 #include "heuristics/ff.h"
 #include "heuristics/ff_add.h"
+#include "heuristics/landmark_count.h"
 #include "heuristics/new_operator.h"
 #include "heuristics/width.h"
+#include "search_graph/search_graph_with_landmarks.h"
 
 namespace pplanner {
 
 std::shared_ptr<Evaluator> EvaluatorFactory(
     std::shared_ptr<const SASPlus> problem,
+    std::shared_ptr<SearchGraph> graph,
     const boost::property_tree::ptree &pt) {
 
   auto name = pt.get_optional<std::string>("name");
@@ -83,6 +86,19 @@ std::shared_ptr<Evaluator> EvaluatorFactory(
 
   if (name.get() == "new_op") {
     return std::make_shared<NewOperator>(problem);
+  }
+
+  if (name.get() == "lmc") {
+    bool simplify = false;
+
+    auto option = pt.get_optional<int>("option.simplify");
+    if (option) simplify = option.get() == 1;
+
+    if (auto g = std::dynamic_pointer_cast<SearchGraphWithLandmarks>(graph)) {
+      return std::make_shared<LandmarkCount>(problem, g);
+    } else {
+      throw std::runtime_error("Use SearchGraphWithLandmarks for lmcount.");
+    }
   }
 
   throw std::runtime_error("No such heuristic.");

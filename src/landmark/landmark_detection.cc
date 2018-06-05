@@ -199,7 +199,7 @@ void AddFactLandmark(const Landmark &phi, shared_ptr<LandmarkGraph> graph) {
 
   auto f = phi.GetVarValue(0);
 
-  for (size_t i=0, n=graph->GetLandmarksSize(); i<n; ++i) {
+  for (size_t i=0, n=graph->n_landmarks(); i<n; ++i) {
     const Landmark &chi = graph->GetLandmark(i);
     if (chi.IsEmpty() || phi == chi || !chi.IsImplicated(f)) continue;
     --n_disj;
@@ -351,7 +351,7 @@ void IdentifyLandmarks(shared_ptr<const SASPlus> problem,
 
   AddFurtherOrderings(potential_orderings, graph);
 
-  std::cout << "Discovered " << graph->GetLandmarksSize()
+  std::cout << "Discovered " << graph->n_landmarks()
             << " landmarks, of which " << n_disj << " are disjunctive"
             << std::endl;
   std::cout << n_initial << " initial landmarks, " << problem->n_goal_facts()

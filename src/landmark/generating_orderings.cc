@@ -85,7 +85,7 @@ void AddByPath(shared_ptr<const SASPlus> problem,
                shared_ptr<const LandmarkGraph> graph,
                vector<pair<int, int> > &orderings) {
   vector<int> ancestors;
-  int landmarks_size = graph->GetLandmarksSize();
+  int landmarks_size = graph->n_landmarks();
   auto initial = problem->initial();
 
   for (int l_p_id=problem->n_goal_facts(); l_p_id<landmarks_size; ++l_p_id) {
@@ -115,7 +115,7 @@ void ReasonableOrderings(shared_ptr<const SASPlus> problem,
                          shared_ptr<const RelaxedSASPlus> r_problem,
                          shared_ptr<LandmarkGraph> graph) {
   int goal_size = problem->n_goal_facts();
-  int landmarks_size = graph->GetLandmarksSize();
+  int landmarks_size = graph->n_landmarks();
   vector<pair<int, int> > orderings;
   auto initial = problem->initial();
   // L'
@@ -166,14 +166,14 @@ void AddOrderings(shared_ptr<const SASPlus> problem,
 void HandleCycles(shared_ptr<LandmarkGraph> graph) {
   int n_edge = 0;
 
-  for (int i=0, n=graph->GetLandmarks().size(); i<n; ++i) {
+  for (int i=0, n=graph->landmark_id_max(); i<n; ++i) {
     if (graph->GetLandmark(i).IsEmpty()) continue;
     n_edge += graph->RemoveCycles(i);
   }
 
   std::cout << "Removed " << n_edge << " reasonable or obedient orders"
             << std::endl;
-  std::cout << graph->GetOrderingsSize() << " edges" << std::endl;
+  std::cout << graph->n_orderings() << " edges" << std::endl;
 }
 
 } // namespace pplanner

@@ -9,8 +9,11 @@
 
 #include "evaluator_factory.h"
 #include "open_list_factory.h"
+#include "search_graph/search_graph_with_landmarks.h"
 
 namespace pplanner {
+
+using std::make_shared;
 using std::unordered_set;
 using std::vector;
 
@@ -20,13 +23,15 @@ void LazyGBFS::Init(const boost::property_tree::ptree &pt) {
   if (auto closed_exponent_opt = pt.get_optional<int>("closed_exponent"))
     closed_exponent = closed_exponent_opt.get();
 
-  graph_ = std::unique_ptr<SearchGraph>(
-      new SearchGraph(*problem_, closed_exponent));
+  if (auto use_landmark = pt.get_optional<int>("landmark"))
+    graph_ = make_shared<SearchGraphWithLandmarks>(*problem_, closed_exponent);
+  else
+    graph_ = make_shared<SearchGraph>(*problem_, closed_exponent);
 
   BOOST_FOREACH (const boost::property_tree::ptree::value_type& child,
                  pt.get_child("evaluators")) {
     auto e = child.second;
-    evaluators_.push_back(EvaluatorFactory(problem_, e));
+    evaluators_.push_back(EvaluatorFactory(problem_, graph_, e));
   }
 
   if (auto preferring = pt.get_child_optional("preferring")) {
@@ -36,7 +41,7 @@ void LazyGBFS::Init(const boost::property_tree::ptree &pt) {
       if (name.get() == "same")
         same_ = true;
       else
-        preferring_ = EvaluatorFactory(problem_, preferring.get());
+        preferring_ = EvaluatorFactory(problem_, graph_, preferring.get());
     }
   }
 
