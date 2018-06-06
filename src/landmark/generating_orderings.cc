@@ -39,6 +39,8 @@ bool Interfere(shared_ptr<const SASPlus> problem,
 
   if (IsInConsistent(problem, l, l_p)) return true;
 
+  // I wonder why commenting out this improves performance on woodworking.
+  /**
   const auto &achievers = graph->GetPossibleAchievers(graph->ToId(l));
   counter.clear();
 
@@ -62,6 +64,7 @@ bool Interfere(shared_ptr<const SASPlus> problem,
         && IsInConsistent(problem, p.first, l_p.GetVarValue(0)))
       return true;
   }
+   **/
 
   // Fast Downward issue 202
   /**

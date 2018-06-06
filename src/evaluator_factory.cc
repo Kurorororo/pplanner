@@ -95,7 +95,7 @@ std::shared_ptr<Evaluator> EvaluatorFactory(
     if (option) simplify = option.get() == 1;
 
     if (auto g = std::dynamic_pointer_cast<SearchGraphWithLandmarks>(graph)) {
-      return std::make_shared<LandmarkCount>(problem, g);
+      return std::make_shared<LandmarkCount>(problem, g, simplify);
     } else {
       throw std::runtime_error("Use SearchGraphWithLandmarks for lmcount.");
     }

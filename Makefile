@@ -15,13 +15,13 @@ planner: \
 	$(BIN_DIR)/successor_generator.o \
 	$(BIN_DIR)/postprocess/action_elimination.o \
 	$(BIN_DIR)/utils/file_utils.o \
-	$(BIN_DIR)/libsas_plus.a \
-	$(BIN_DIR)/libsearch_graph.a \
+	$(BIN_DIR)/libsearch.a \
+	$(BIN_DIR)/libopen_lists.a \
+	$(BIN_DIR)/libevaluators.a \
 	$(BIN_DIR)/liblandmark.a \
 	$(BIN_DIR)/libff.a \
-	$(BIN_DIR)/libevaluators.a \
-	$(BIN_DIR)/libopen_lists.a \
-	$(BIN_DIR)/libsearch.a
+	$(BIN_DIR)/libsearch_graph.a \
+	$(BIN_DIR)/libsas_plus.a
 	$(CXX) $(INCS) $(RELEASE_FLAG) -o $(BIN_DIR)/planner \
 		$(BIN_DIR)/planner.o \
 		$(BIN_DIR)/successor_generator.o \
@@ -29,9 +29,9 @@ planner: \
 		$(BIN_DIR)/utils/file_utils.o \
 		$(BIN_DIR)/libsearch.a \
 		$(BIN_DIR)/libopen_lists.a \
+		$(BIN_DIR)/libevaluators.a \
 		$(BIN_DIR)/liblandmark.a \
 		$(BIN_DIR)/libff.a \
-		$(BIN_DIR)/libevaluators.a \
 		$(BIN_DIR)/libsearch_graph.a \
 		$(BIN_DIR)/libsas_plus.a \
 		$(LIBS)
