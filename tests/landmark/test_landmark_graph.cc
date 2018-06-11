@@ -1,18 +1,26 @@
 #include "landmark/landmark_graph.h"
 
 #include <memory>
+#include <queue>
 #include <utility>
 #include <vector>
 
 #include "gtest/gtest.h"
 
+#include "sas_plus.h"
 #include "landmark/landmark.h"
 
 namespace pplanner {
 
+std::queue<std::string> ExampleSASPlusLines();
+
 class LandmarkGraphTest : public ::testing::Test {
  protected:
   virtual void SetUp() {
+    auto sas = std::make_shared<SASPlus>();
+    auto lines = ExampleSASPlusLines();
+    sas->InitFromLines(lines);
+
     l_0_ = std::make_shared<Landmark>(0, 2);
     std::vector<std::pair<int, int> > v_1{
       std::make_pair(1, 4), std::make_pair(2, 3)};
@@ -25,9 +33,9 @@ class LandmarkGraphTest : public ::testing::Test {
     l_5_ = std::make_shared<Landmark>(4, 1);
     l_6_ = std::make_shared<Landmark>(3, 0);
 
-    graph_0_ = std::make_shared<LandmarkGraph>();
+    graph_0_ = std::make_shared<LandmarkGraph>(sas);
 
-    graph_1_ = std::make_shared<LandmarkGraph>();
+    graph_1_ = std::make_shared<LandmarkGraph>(sas);
     graph_1_->Add(*l_0_);
     graph_1_->Add(*l_1_);
     graph_1_->Add(*l_2_);
@@ -38,7 +46,7 @@ class LandmarkGraphTest : public ::testing::Test {
     id_2_ = graph_1_->ToId(*l_2_);
     id_3_ = graph_1_->ToId(*l_3_);
 
-    graph_2_ = std::make_shared<LandmarkGraph>();
+    graph_2_ = std::make_shared<LandmarkGraph>(sas);
     graph_2_->Add(*l_0_);
     graph_2_->Add(*l_1_);
     graph_2_->Add(*l_2_);
@@ -65,10 +73,10 @@ class LandmarkGraphTest : public ::testing::Test {
 };
 
 TEST_F(LandmarkGraphTest, Landmarks) {
-  EXPECT_EQ(0, graph_0_->GetLandmarksSize());
+  EXPECT_EQ(0, graph_0_->n_landmarks());
 
   graph_0_->Add(*l_0_);
-  EXPECT_EQ(1, graph_0_->GetLandmarksSize());
+  EXPECT_EQ(1, graph_0_->n_landmarks());
   EXPECT_TRUE(graph_0_->IsIn(*l_0_));
   EXPECT_EQ(0, graph_0_->ToId(*l_0_));
   EXPECT_EQ(*l_0_, graph_0_->GetLandmark(0));
@@ -77,7 +85,7 @@ TEST_F(LandmarkGraphTest, Landmarks) {
   Landmark l(*l_1_);
   EXPECT_FALSE(graph_0_->IsIn(*l_1_));
   graph_0_->Add(std::move(l));
-  EXPECT_EQ(2, graph_0_->GetLandmarksSize());
+  EXPECT_EQ(2, graph_0_->n_landmarks());
   EXPECT_TRUE(graph_0_->IsIn(*l_1_));
   EXPECT_EQ(1, graph_0_->ToId(*l_1_));
   EXPECT_EQ(*l_1_, graph_0_->GetLandmark(1));
@@ -110,11 +118,11 @@ TEST_F(LandmarkGraphTest, Orderings) {
   EXPECT_TRUE(graph_1_->GetInitIdsByTermId(id_2_).empty());
   EXPECT_TRUE(graph_1_->GetInitIdsByTermId(id_3_).empty());
 
-  EXPECT_EQ(0, graph_1_->GetOrderingsSize());
+  EXPECT_EQ(0, graph_1_->n_orderings());
 
   EXPECT_FALSE(graph_1_->IsAdjacent(id_0_, id_1_));
   graph_1_->AddOrdering(id_0_, id_1_, LandmarkGraph::NATURAL);
-  EXPECT_EQ(1, graph_1_->GetOrderingsSize());
+  EXPECT_EQ(1, graph_1_->n_orderings());
   EXPECT_TRUE(graph_1_->IsAdjacent(id_0_, id_1_));
   EXPECT_FALSE(graph_1_->IsAdjacent(id_1_, id_0_));
   EXPECT_EQ(LandmarkGraph::NATURAL , graph_1_->GetOrderingType(id_0_, id_1_));
@@ -126,7 +134,7 @@ TEST_F(LandmarkGraphTest, Orderings) {
 
   EXPECT_FALSE(graph_1_->IsAdjacent(id_1_, id_2_));
   graph_1_->AddOrdering(id_1_, id_2_, LandmarkGraph::GREEDY);
-  EXPECT_EQ(2, graph_1_->GetOrderingsSize());
+  EXPECT_EQ(2, graph_1_->n_orderings());
   EXPECT_TRUE(graph_1_->IsAdjacent(id_1_, id_2_));
   EXPECT_FALSE(graph_1_->IsAdjacent(id_2_, id_1_));
   EXPECT_EQ(LandmarkGraph::GREEDY, graph_1_->GetOrderingType(id_1_, id_2_));
@@ -138,7 +146,7 @@ TEST_F(LandmarkGraphTest, Orderings) {
 
   EXPECT_FALSE(graph_1_->IsAdjacent(id_1_, id_3_));
   graph_1_->AddOrdering(id_1_, id_3_, LandmarkGraph::REASONABLE);
-  EXPECT_EQ(3, graph_1_->GetOrderingsSize());
+  EXPECT_EQ(3, graph_1_->n_orderings());
   EXPECT_TRUE(graph_1_->IsAdjacent(id_1_, id_3_));
   EXPECT_EQ(LandmarkGraph::REASONABLE, graph_1_->GetOrderingType(id_1_, id_3_));
 
@@ -149,7 +157,7 @@ TEST_F(LandmarkGraphTest, Orderings) {
 
   EXPECT_FALSE(graph_1_->IsAdjacent(id_3_, id_2_));
   graph_1_->AddOrdering(id_3_, id_2_, LandmarkGraph::OBEDIENT);
-  EXPECT_EQ(4, graph_1_->GetOrderingsSize());
+  EXPECT_EQ(4, graph_1_->n_orderings());
   EXPECT_TRUE(graph_1_->IsAdjacent(id_3_, id_2_));
   EXPECT_EQ(LandmarkGraph::OBEDIENT, graph_1_->GetOrderingType(id_3_, id_2_));
 
@@ -159,14 +167,14 @@ TEST_F(LandmarkGraphTest, Orderings) {
   EXPECT_EQ(id_3_, graph_1_->GetInitIdsByTermId(id_2_)[1]);
 
   graph_1_->DeleteOrdering(id_1_, id_3_);
-  EXPECT_EQ(3, graph_1_->GetOrderingsSize());
+  EXPECT_EQ(3, graph_1_->n_orderings());
   EXPECT_FALSE(graph_1_->IsAdjacent(id_1_, id_3_));
   EXPECT_EQ(1, graph_1_->GetTermIdsByInitId(id_1_).size());
   EXPECT_EQ(id_2_, graph_1_->GetTermIdsByInitId(id_1_)[0]);
   EXPECT_TRUE(graph_1_->GetInitIdsByTermId(id_3_).empty());
 
   graph_1_->Delete(id_1_);
-  EXPECT_EQ(1, graph_1_->GetOrderingsSize());
+  EXPECT_EQ(1, graph_1_->n_orderings());
   EXPECT_TRUE(graph_1_->GetTermIdsByInitId(id_0_).empty());
   EXPECT_EQ(1, graph_1_->GetInitIdsByTermId(id_2_).size());
 }
@@ -278,6 +286,142 @@ TEST_F(LandmarkGraphTest, RemoveCyclesWorks) {
   EXPECT_FALSE(graph_2_->IsAdjacent(id_5, id_2));
   EXPECT_TRUE(graph_2_->IsAdjacent(id_5, id_6));
   EXPECT_FALSE(graph_2_->IsAdjacent(id_6, id_2));
+}
+
+std::queue<std::string> ExampleSASPlusLines() {
+  std::queue<std::string> q;
+
+  q.push("begin_version");
+  q.push("3");
+  q.push("end_version");
+  q.push("begin_metric");
+  q.push("1");
+  q.push("end_metric");
+  q.push("5");
+  q.push("begin_variable");
+  q.push("var0");
+  q.push("-1");
+  q.push("3");
+  q.push("Atom at-robby(rooma)");
+  q.push("Atom at-robby(roomb)");
+  q.push("dummy");
+  q.push("end_variable");
+  q.push("begin_variable");
+  q.push("var1");
+  q.push("-1");
+  q.push("5");
+  q.push("Atom carry(ball1, left)");
+  q.push("Atom free(left)");
+  q.push("dummy");
+  q.push("dummy");
+  q.push("dummy");
+  q.push("end_variable");
+  q.push("begin_variable");
+  q.push("var2");
+  q.push("-1");
+  q.push("6");
+  q.push("Atom at(ball1, rooma)");
+  q.push("Atom at(ball1, roomb)");
+  q.push("<none of those>");
+  q.push("dummy");
+  q.push("dummy");
+  q.push("dummy");
+  q.push("end_variable");
+  q.push("begin_variable");
+  q.push("var3");
+  q.push("-1");
+  q.push("2");
+  q.push("dummy");
+  q.push("dummy");
+  q.push("end_variable");
+  q.push("begin_variable");
+  q.push("var4");
+  q.push("-1");
+  q.push("2");
+  q.push("dummy");
+  q.push("dummy");
+  q.push("end_variable");
+  q.push("1");
+  q.push("begin_mutex_group");
+  q.push("3");
+  q.push("2 0");
+  q.push("2 1");
+  q.push("1 0");
+  q.push("end_mutex_group");
+  q.push("begin_state");
+  q.push("0");
+  q.push("1");
+  q.push("0");
+  q.push("0");
+  q.push("0");
+  q.push("end_state");
+  q.push("begin_goal");
+  q.push("1");
+  q.push("2 1");
+  q.push("end_goal");
+  q.push("7");
+  q.push("begin_operator");
+  q.push("drop ball1 rooma left");
+  q.push("1");
+  q.push("0 0");
+  q.push("2");
+  q.push("0 2 -1 0");
+  q.push("0 1 0 1");
+  q.push("1");
+  q.push("end_operator");
+  q.push("begin_operator");
+  q.push("drop ball1 roomb left");
+  q.push("1");
+  q.push("0 1");
+  q.push("2");
+  q.push("0 2 -1 1");
+  q.push("0 1 0 1");
+  q.push("1");
+  q.push("end_operator");
+  q.push("begin_operator");
+  q.push("move rooma roomb");
+  q.push("0");
+  q.push("1");
+  q.push("0 0 0 1");
+  q.push("1");
+  q.push("end_operator");
+  q.push("begin_operator");
+  q.push("move roomb rooma");
+  q.push("0");
+  q.push("1");
+  q.push("0 0 1 0");
+  q.push("1");
+  q.push("end_operator");
+  q.push("begin_operator");
+  q.push("pick ball1 rooma left");
+  q.push("1");
+  q.push("0 0");
+  q.push("2");
+  q.push("0 2 0 2");
+  q.push("0 1 1 0");
+  q.push("1");
+  q.push("end_operator");
+  q.push("begin_operator");
+  q.push("pick ball1 roomb left");
+  q.push("1");
+  q.push("0 1");
+  q.push("2");
+  q.push("0 2 1 2");
+  q.push("0 1 1 0");
+  q.push("1");
+  q.push("end_operator");
+  q.push("begin_operator");
+  q.push("dumy-pick ball1 roomb left");
+  q.push("2");
+  q.push("0 1");
+  q.push("2 1");
+  q.push("1");
+  q.push("0 1 1 0");
+  q.push("2");
+  q.push("end_operator");
+  q.push("0");
+
+  return q;
 }
 
 } // namespace pplanner

@@ -1,11 +1,12 @@
 #ifndef LANDMAK_GRAPH_H_
 #define LANDMAK_GRAPH_H_
 
-#include <stack>
+#include <memory>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
+#include "sas_plus.h"
 #include "landmark/landmark.h"
 
 namespace pplanner {
@@ -14,7 +15,12 @@ class LandmarkGraph {
  public:
   enum OrderingType { GREEDY, NATURAL, REASONABLE, OBEDIENT, };
 
-  LandmarkGraph() : orderings_size_(0) {}
+  LandmarkGraph() : orderings_size_(0), problem_(nullptr) {}
+
+  LandmarkGraph(std::shared_ptr<const SASPlus> problem)
+    : orderings_size_(0),
+      fact_to_landmark_(problem->n_facts(), -1),
+      problem_(problem) {}
 
   ~LandmarkGraph() {}
 
@@ -76,6 +82,8 @@ class LandmarkGraph {
 
   void Delete(const Landmark &landmark);
 
+  int FactToLandmark(int f) const { return fact_to_landmark_[f]; }
+
   void PushPossibleAchiever(int id, int action) {
     possible_achievers_[id].push_back(action);
   }
@@ -114,6 +122,7 @@ class LandmarkGraph {
 
   size_t orderings_size_;
 
+  std::vector<int> fact_to_landmark_;
   std::unordered_map<Landmark, int, LandmarkHash> landmark_to_id_;
   std::vector<Landmark> id_to_landmark_;
 
@@ -124,6 +133,8 @@ class LandmarkGraph {
 
   std::vector< std::vector<int> > possible_achievers_;
   std::vector< std::vector<int> > first_achievers_;
+
+  std::shared_ptr<const SASPlus> problem_;
 };
 
 bool TypeCheck(const std::vector<LandmarkGraph::OrderingType> &allowd_types,

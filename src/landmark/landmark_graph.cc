@@ -1,6 +1,7 @@
 #include "landmark/landmark_graph.h"
 
 #include <algorithm>
+#include <stack>
 
 namespace pplanner {
 
@@ -49,6 +50,11 @@ int LandmarkGraph::Add(const Landmark &landmark) {
   id_to_landmark_.push_back(landmark);
   PrepareOrderings(id);
 
+  for (int i=0, n=landmark.size(); i<n; ++i) {
+    int f = problem_->Fact(landmark.GetVarValue(i));
+    fact_to_landmark_[f] = id;
+  }
+
   return id;
 }
 
@@ -57,6 +63,11 @@ int LandmarkGraph::Add(Landmark &&landmark) {
   landmark_to_id_[landmark] = id;
   id_to_landmark_.push_back(std::move(landmark));
   PrepareOrderings(id);
+
+  for (int i=0, n=landmark.size(); i<n; ++i) {
+    int f = problem_->Fact(landmark.GetVarValue(i));
+    fact_to_landmark_[f] = id;
+  }
 
   return id;
 }

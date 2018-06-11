@@ -22,7 +22,7 @@ int main(int argc, char *argv[]) {
   auto sas = std::make_shared<pplanner::SASPlus>();
   sas->InitFromLines(lines);
   auto r_sas = std::make_shared<RelaxedSASPlus>(*sas, false);
-  auto graph = std::make_shared<LandmarkGraph>();
+  auto graph = std::make_shared<LandmarkGraph>(problem);
 
   IdentifyLandmarks(sas, r_sas, graph);
   AddOrderings(sas, r_sas, graph);

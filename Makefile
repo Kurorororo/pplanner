@@ -405,11 +405,13 @@ $(BIN_DIR)/landmark/test_landmark: \
 $(BIN_DIR)/landmark/test_landmark_graph: \
 	$(TEST_DIR)/landmark/test_landmark_graph.cc \
 	$(BIN_DIR)/landmark/landmark_graph.o \
-	$(BIN_DIR)/landmark/landmark.o
+	$(BIN_DIR)/landmark/landmark.o \
+	$(BIN_DIR)/libsas_plus.a
 	$(CXX) $(INCS) $(TEST_FLAG) -o $(BIN_DIR)/landmark/test_landmark_graph \
 		$(TEST_DIR)/landmark/test_landmark_graph.cc \
 		$(BIN_DIR)/landmark/landmark_graph.o \
-		$(BIN_DIR)/landmark/landmark.o
+		$(BIN_DIR)/landmark/landmark.o \
+		$(BIN_DIR)/libsas_plus.a
 
 $(BIN_DIR)/test_dtg: \
 	$(TEST_DIR)/test_dtg.cc \
