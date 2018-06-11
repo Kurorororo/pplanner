@@ -37,6 +37,7 @@ class Mrw13 : public Search {
       n_preferreds_(0),
       max_expansion_(max_expansion),
       tg_(1000),
+      n_restarts_(0),
       eps_(0.1),
       e1_(exp(0.1)),
       ew_(exp(0.1)),
@@ -97,6 +98,7 @@ class Mrw13 : public Search {
   int n_preferreds_;
   int max_expansion_;
   int tg_;
+  int n_restarts_;
   double eps_;
   double qw_max_;
   double e1_;
@@ -108,7 +110,7 @@ class Mrw13 : public Search {
   std::vector<int> cost_rls_;
   std::vector<double> q1_;
   std::vector<double> qw_;
-  std::default_random_engine engine_;
+  std::mt19937 engine_;
   std::uniform_real_distribution<> dist_;
   std::shared_ptr<const SASPlus> problem_;
   std::unique_ptr<SuccessorGenerator> generator_;

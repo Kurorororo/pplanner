@@ -71,6 +71,8 @@ class RWLandmarkCount : public RandomWalkEvaluator {
   }
 
   int Evaluate(const std::vector<int> &state) override {
+    std::fill(accepted_[accepted_index_].begin(),
+              accepted_[accepted_index_].end(), false);
     uint8_t *accepted = accepted_[accepted_index_].data();
     uint8_t *parent_accepted = nullptr;
 

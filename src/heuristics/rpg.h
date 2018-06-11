@@ -44,6 +44,7 @@ class RPG {
   bool IsInFact(int fact) const { return fact_layer_membership_[fact] != -1; }
 
   bool IsInAction(int action) const { return is_in_[action]; }
+
 private:
   void ConstructGraph(const std::vector<int> &state);
 
