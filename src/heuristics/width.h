@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "evaluator.h"
+#include "random_walk_evaluator.h"
 #include "sas_plus.h"
 
 namespace pplanner {
@@ -37,6 +38,39 @@ class Width : public Evaluator {
   std::vector<bool> is_new_1_;
   std::vector<std::vector<bool> > is_new_2_;
   std::shared_ptr<const SASPlus> problem_;
+};
+
+class RWWidth : public RandomWalkEvaluator {
+ public:
+  RWWidth() : width_(nullptr) {
+    width_ = std::unique_ptr<Width>(new Width());
+  }
+
+  RWWidth(std::shared_ptr<const SASPlus> problem, bool is_ge_1)
+    : width_(nullptr) {
+    width_ = std::unique_ptr<Width>(new Width(problem, is_ge_1));
+  }
+
+  ~RWWidth() {}
+
+  int Evaluate(const std::vector<int> &state) override {
+    return width_->Evaluate(state, -1);
+  }
+
+  int Evaluate(const std::vector<int> &state,
+               const std::vector<int> &applicable,
+               std::unordered_set<int> &preferred) override {
+    return width_->Evaluate(state, -1, applicable, preferred);
+  }
+
+  void UpdateBest() override {}
+
+  void RollBackBest() override {}
+
+  void RollBackInitial() override {}
+
+ private:
+  std::unique_ptr<Width> width_;
 };
 
 } // namespace pplanner

@@ -116,12 +116,16 @@ $(BIN_DIR)/libsearch_graph.a: \
 $(BIN_DIR)/libevaluators.a: \
 	$(BIN_DIR)/evaluator.o \
 	$(BIN_DIR)/evaluator_factory.o \
+	$(BIN_DIR)/random_walk_evaluator.o \
+	$(BIN_DIR)/random_walk_evaluator_factory.o \
 	$(BIN_DIR)/heuristics/blind.o \
 	$(BIN_DIR)/heuristics/new_operator.o \
 	$(BIN_DIR)/heuristics/width.o
 	ar rcs $(BIN_DIR)/libevaluators.a \
 		$(BIN_DIR)/evaluator.o \
 		$(BIN_DIR)/evaluator_factory.o \
+		$(BIN_DIR)/random_walk_evaluator.o \
+		$(BIN_DIR)/random_walk_evaluator_factory.o \
 		$(BIN_DIR)/heuristics/blind.o \
 		$(BIN_DIR)/heuristics/new_operator.o \
 		$(BIN_DIR)/heuristics/width.o
@@ -165,15 +169,15 @@ $(BIN_DIR)/libff.a: \
 
 $(BIN_DIR)/liblandmark.a: \
 	$(BIN_DIR)/dtg.o \
-	$(BIN_DIR)/heuristics/landmark_count.o \
 	$(BIN_DIR)/landmark/landmark.o \
+	$(BIN_DIR)/landmark/landmark_count_base.o \
 	$(BIN_DIR)/landmark/landmark_detection.o \
 	$(BIN_DIR)/landmark/landmark_graph.o \
 	$(BIN_DIR)/landmark/generating_orderings.o
 	ar rcs $(BIN_DIR)/liblandmark.a \
 		$(BIN_DIR)/dtg.o \
-		$(BIN_DIR)/heuristics/landmark_count.o \
 		$(BIN_DIR)/landmark/landmark.o \
+		$(BIN_DIR)/landmark/landmark_count_base.o \
 		$(BIN_DIR)/landmark/landmark_detection.o \
 		$(BIN_DIR)/landmark/landmark_graph.o \
 		$(BIN_DIR)/landmark/generating_orderings.o

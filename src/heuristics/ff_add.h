@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "evaluator.h"
+#include "random_walk_evaluator.h"
 #include "sas_plus.h"
 #include "heuristics/relaxed_sas_plus.h"
 #include "heuristics/rpg_table.h"
@@ -49,6 +50,41 @@ class FFAdd : public Evaluator {
   std::shared_ptr<const SASPlus> problem_;
   std::shared_ptr<RelaxedSASPlus> r_problem_;
   std::unique_ptr<RPGTable> rpg_;
+};
+
+class RWFFAdd : public RandomWalkEvaluator {
+ public:
+  RWFFAdd() : ff_(nullptr) {
+    ff_ = std::unique_ptr<FFAdd>(new FFAdd());
+  }
+
+  RWFFAdd(std::shared_ptr<const SASPlus> problem, bool simplify=false,
+          bool unit_cost=false, bool more_helpful=false)
+    : ff_(nullptr) {
+    ff_ = std::unique_ptr<FFAdd>(
+        new FFAdd(problem, simplify, unit_cost, more_helpful));
+  }
+
+  ~RWFFAdd() {}
+
+  int Evaluate(const std::vector<int> &state) override {
+    return ff_->Evaluate(state, -1);
+  }
+
+  int Evaluate(const std::vector<int> &state,
+               const std::vector<int> &applicable,
+               std::unordered_set<int> &preferred) override {
+    return ff_->Evaluate(state, -1, applicable, preferred);
+  }
+
+  void UpdateBest() override {}
+
+  void RollBackBest() override {}
+
+  void RollBackInitial() override {}
+
+ private:
+  std::unique_ptr<FFAdd> ff_;
 };
 
 } // namespace pplanner
