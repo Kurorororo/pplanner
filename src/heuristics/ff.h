@@ -59,7 +59,7 @@ class RWFF : public RandomWalkEvaluator {
   }
 
   RWFF(std::shared_ptr<const SASPlus> problem, bool simplify=false,
-     bool unit_cost=false, bool common_precond=false)
+       bool unit_cost=false, bool common_precond=false)
     : ff_(nullptr) {
     ff_ = std::unique_ptr<FF>(
         new FF(problem, simplify, unit_cost, common_precond));
@@ -79,9 +79,9 @@ class RWFF : public RandomWalkEvaluator {
 
   void UpdateBest() override {}
 
-  void RollBackBest() override {}
+  void LocalRestart() override {}
 
-  void RollBackInitial() override {}
+  void GlobalRestart() override {}
 
  private:
   std::unique_ptr<FF> ff_;

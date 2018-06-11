@@ -11,7 +11,7 @@
 
 #include <boost/property_tree/ptree.hpp>
 
-#include "evaluator.h"
+#include "random_walk_evaluator.h"
 #include "sas_plus.h"
 #include "search.h"
 #include "successor_generator.h"
@@ -112,8 +112,8 @@ class Mrw13 : public Search {
   std::uniform_real_distribution<> dist_;
   std::shared_ptr<const SASPlus> problem_;
   std::unique_ptr<SuccessorGenerator> generator_;
-  std::shared_ptr<Evaluator> evaluator_;
-  std::shared_ptr<Evaluator> preferring_;
+  std::shared_ptr<RandomWalkEvaluator> evaluator_;
+  std::shared_ptr<RandomWalkEvaluator> preferring_;
   std::vector<bool> is_preferred_operator_;
   std::vector<bool> is_preferred_successor_;
   std::vector<bool> tmp_is_preferred_successor_;

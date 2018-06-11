@@ -65,27 +65,48 @@ class RWLandmarkCount : public RandomWalkEvaluator {
 
     auto graph = lmcount_->landmark_graph();
     size_t id_max = graph->landmark_id_max();
-    initial_accepted_.resize(id_max, false);
     best_accepted_.resize(id_max, false);
     accepted_[0].resize(id_max, false);
     accepted_[1].resize(id_max, false);
   }
 
   int Evaluate(const std::vector<int> &state) override {
-    return lmcount_->Evaluate(state, accepted_[0].data(), accepted_[1].data());
+    uint8_t *accepted = accepted_[accepted_index_].data();
+    uint8_t *parent_accepted = nullptr;
+
+    if (!initial_accepted_.empty()) {
+      parent_accepted = accepted_[1 - accepted_index_].data();
+      accepted_index_ = 1 - accepted_index_;
+
+      return lmcount_->Evaluate(state, parent_accepted, accepted);
+    }
+
+    int h = lmcount_->Evaluate(state, parent_accepted, accepted);
+    initial_accepted_ = accepted_[accepted_index_];
+    accepted_index_ = 1 - accepted_index_;
+
+    return h;
   }
 
   int Evaluate(const std::vector<int> &state,
                const std::vector<int> &applicable,
                std::unordered_set<int> &preferred) override {
-    return lmcount_->Evaluate(state, accepted_[0].data(), accepted_[1].data());
+    return Evaluate(state);
   }
 
-  void UpdateBest() override {}
+  void UpdateBest() override {
+    best_accepted_ = accepted_[1 - accepted_index_];
+  }
 
-  void RollBackBest() override {}
+  void LocalRestart() override {
+    accepted_index_ = 1;
+    accepted_[0] = best_accepted_;
+  }
 
-  void RollBackInitial() override {}
+  void GlobalRestart() override {
+    initial_accepted_.clear();
+    accepted_index_ = 0;
+  }
 
  private:
   int accepted_index_;

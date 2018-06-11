@@ -79,9 +79,9 @@ class RWFFAdd : public RandomWalkEvaluator {
 
   void UpdateBest() override {}
 
-  void RollBackBest() override {}
+  void LocalRestart() override {}
 
-  void RollBackInitial() override {}
+  void GlobalRestart() override {}
 
  private:
   std::unique_ptr<FFAdd> ff_;

@@ -4,7 +4,7 @@
 #include <iostream>
 #include <utility>
 
-#include "evaluator_factory.h"
+#include "random_walk_evaluator_factory.h"
 
 namespace pplanner {
 
@@ -54,14 +54,14 @@ void Mrw13::Init(const boost::property_tree::ptree &pt) {
 
   auto heuristic = pt.get_child_optional("heuristic");
   if (!heuristic) throw std::runtime_error("No heuristic is specified.");
-  evaluator_ = EvaluatorFactory(problem_, nullptr, heuristic.get());
+  evaluator_ = RandomWalkEvaluatorFactory(problem_, heuristic.get());
 
   auto preferring = pt.get_child_optional("preferring");
 
   if (!preferring)
     same_ = true;
   else
-    preferring_ = EvaluatorFactory(problem_, nullptr, preferring.get());
+    preferring_ = RandomWalkEvaluatorFactory(problem_, preferring.get());
 
   if (auto uniform = pt.get_optional<int>("uniform"))
     uniform_ = uniform.get() == 1;
@@ -88,6 +88,7 @@ vector<int> Mrw13::Plan() {
 
   unordered_set<int> best_preferred;
   int best_h = Evaluate(best_state, best_applicable, best_preferred);
+  evaluator_->UpdateBest();
   ++evaluated_;
 
   if (best_h == -1) return vector<int>{-1};
@@ -167,7 +168,7 @@ vector<int> Mrw13::Plan() {
     int cost = evaluated_ - before_evaluated;
 
     if (h < best_h && h != -1) {
-      Feedback(arg_rl, best_h- h, cost, value_rls_, cost_rls_);
+      Feedback(arg_rl, best_h - h, cost, value_rls_, cost_rls_);
 
       best_h = h;
       best_state = state;
@@ -187,7 +188,9 @@ vector<int> Mrw13::Plan() {
                              tmp_n_successors_.end());
       }
 
-      //std::cout << "New best heuristic value : " << h //          << std::endl; //std::cout << "#walks " << walks << std::endl; //std::cout << "[" << evaluated_
+      //std::cout << "New best heuristic value : " << h << std::endl;
+      //std::cout << "#walks " << walks << std::endl;
+      //std::cout << "[" << evaluated_
       //          << " evaluated, " << expanded_ << " expanded]" << std::endl;
     } else {
       Feedback(arg_rl, 0, cost, value_rls_, cost_rls_);
@@ -205,6 +208,7 @@ vector<int> Mrw13::Plan() {
       best_applicable = initial_applicable;
       best_preferred = initial_preferred;
 
+      evaluator_->GlobalRestart();
       best_h = Evaluate(best_state, best_applicable, best_preferred);
       ++evaluated_;
       plan_.clear();
@@ -240,21 +244,21 @@ int Mrw13::Evaluate(const vector<int> &state, const vector<int> &applicable,
                     unordered_set<int> &preferred) {
   n_branching_ += applicable.size();
 
-  if (uniform_) return evaluator_->Evaluate(state, -1);
+  if (uniform_) return evaluator_->Evaluate(state);
 
   if (same_) {
-    int h = evaluator_->Evaluate(state, -1, applicable, preferred);
+    int h = evaluator_->Evaluate(state, applicable, preferred);
     n_preferreds_ += preferred.size();
     UpdateQ(applicable, preferred);
 
     return h;
   }
 
-  preferring_->Evaluate(state, -1, applicable, preferred);
+  preferring_->Evaluate(state, applicable, preferred);
   n_preferreds_ += preferred.size();
   UpdateQ(applicable, preferred);
 
-  return evaluator_->Evaluate(state, -1);
+  return evaluator_->Evaluate(state);
 }
 
 int Mrw13::Walk(int best_h, int length, vector<int> &state,
@@ -288,30 +292,33 @@ int Mrw13::Walk(int best_h, int length, vector<int> &state,
         tmp_n_successors_.resize(path_length);
       }
 
+      evaluator_->LocalRestart();
+
       return best_h;
     }
 
-    if (problem_->IsGoal(current_state)) {
-      path_length = i + 1;
-      state = current_state;
-      applicable = current_applicable;
-      preferred = current_preferred;
+    bool is_goal = problem_->IsGoal(current_state);
 
-      return 0;
-    }
-
-    if (h < best_h) {
+    if (is_goal || h < best_h) {
       path_length = i + 1;
       best_h = h;
       state = current_state;
       applicable = current_applicable;
       preferred = current_preferred;
+      evaluator_->UpdateBest();
+
+      if (is_goal) return 0;
     }
 
-    if (max_expansion_ > 0 && expanded_ >= max_expansion_) return best_h;
+    if (max_expansion_ > 0 && expanded_ >= max_expansion_) {
+      evaluator_->LocalRestart();
+
+      return best_h;
+    }
   }
 
   sequence.resize(path_length);
+  evaluator_->LocalRestart();
 
   if (measure_) {
     tmp_is_preferred_successor_.resize(path_length);
@@ -322,8 +329,9 @@ int Mrw13::Walk(int best_h, int length, vector<int> &state,
   return best_h;
 }
 
-int Mrw13::Walk(int best_h, double rl, vector<int> &state, vector<int> &sequence,
-                vector<int> &applicable, unordered_set<int> &preferred) {
+int Mrw13::Walk(int best_h, double rl, vector<int> &state,
+                vector<int> &sequence, vector<int> &applicable,
+                unordered_set<int> &preferred) {
   while (true) {
     int a = MHA(applicable, preferred);
     ++expanded_;
@@ -339,17 +347,27 @@ int Mrw13::Walk(int best_h, double rl, vector<int> &state, vector<int> &sequence
 
     if (h == -1 || applicable.empty()) {
       ++dead_ends_;
+      evaluator_->LocalRestart();
 
       return h;
     }
 
-    if (problem_->IsGoal(state)) return 0;
+    bool is_goal = problem_->IsGoal(state);
 
-    if (h < best_h) return h;
+    if (is_goal || h < best_h) {
+      evaluator_->UpdateBest();
 
-    if (dist_(engine_) < rl) return -1;
+      if (is_goal) return 0;
 
-    if (max_expansion_ > 0 && expanded_ >= max_expansion_) return -1;
+      return h;
+    }
+
+    if (dist_(engine_) < rl
+        || (max_expansion_ > 0 && expanded_ >= max_expansion_)) {
+      evaluator_->LocalRestart();
+
+      return -1;
+    }
   }
 }
 
