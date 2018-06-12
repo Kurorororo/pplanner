@@ -51,11 +51,11 @@ class Landmark {
     std::sort(var_values_.begin(), var_values_.end());
   }
 
-  int GetVar(int i) const { return var_values_[i].first; }
+  int Var(int i) const { return var_values_[i].first; }
 
-  int GetValue(int i) const { return var_values_[i].second; }
+  int Value(int i) const { return var_values_[i].second; }
 
-  std::pair<int, int> GetVarValue(int i) const { return var_values_[i]; }
+  std::pair<int, int> VarValue(int i) const { return var_values_[i]; }
 
   size_t Hash() const;
 

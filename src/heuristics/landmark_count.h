@@ -44,7 +44,16 @@ class LandmarkCount : public Evaluator {
   int Evaluate(const std::vector<int> &state, int node,
                const std::vector<int> &applicable,
                std::unordered_set<int> &preferred) override {
-    return Evaluate(state, node);
+    uint8_t *accepted = search_graph_->Landmark(node);
+    uint8_t *parent_accepted = nullptr;
+
+    if (node > 0) {
+      int parent = search_graph_->Parent(node);
+      parent_accepted = search_graph_->Landmark(parent);
+    }
+
+    return lmcount_->Evaluate(
+        state, applicable, parent_accepted, accepted, preferred);
   }
 
  private:
@@ -71,21 +80,14 @@ class RWLandmarkCount : public RandomWalkEvaluator {
   }
 
   int Evaluate(const std::vector<int> &state) override {
-    std::fill(accepted_[accepted_index_].begin(),
-              accepted_[accepted_index_].end(), false);
-    uint8_t *accepted = accepted_[accepted_index_].data();
     uint8_t *parent_accepted = nullptr;
-
-    if (!initial_accepted_.empty()) {
-      parent_accepted = accepted_[1 - accepted_index_].data();
-      accepted_index_ = 1 - accepted_index_;
-
-      return lmcount_->Evaluate(state, parent_accepted, accepted);
-    }
+    uint8_t *accepted = nullptr;
+    PrepareEvaluation(&parent_accepted, &accepted);
 
     int h = lmcount_->Evaluate(state, parent_accepted, accepted);
-    initial_accepted_ = accepted_[accepted_index_];
-    accepted_index_ = 1 - accepted_index_;
+
+    if (parent_accepted == nullptr)
+      initial_accepted_ = accepted_[accepted_index_];
 
     return h;
   }
@@ -93,7 +95,17 @@ class RWLandmarkCount : public RandomWalkEvaluator {
   int Evaluate(const std::vector<int> &state,
                const std::vector<int> &applicable,
                std::unordered_set<int> &preferred) override {
-    return Evaluate(state);
+    uint8_t *parent_accepted = nullptr;
+    uint8_t *accepted = nullptr;
+    PrepareEvaluation(&parent_accepted, &accepted);
+
+    int h = lmcount_->Evaluate(
+        state, applicable, parent_accepted, accepted, preferred);
+
+    if (parent_accepted == nullptr)
+      initial_accepted_ = accepted_[accepted_index_];
+
+    return h;
   }
 
   void UpdateBest() override {
@@ -111,6 +123,17 @@ class RWLandmarkCount : public RandomWalkEvaluator {
   }
 
  private:
+  void PrepareEvaluation(uint8_t **parent_accepted, uint8_t **accepted) {
+    std::fill(accepted_[accepted_index_].begin(),
+              accepted_[accepted_index_].end(), false);
+    *accepted = accepted_[accepted_index_].data();
+
+    if (!initial_accepted_.empty())
+      *parent_accepted = accepted_[1 - accepted_index_].data();
+
+    accepted_index_ = 1 - accepted_index_;
+  }
+
   int accepted_index_;
   std::vector<uint8_t> initial_accepted_;
   std::vector<uint8_t> best_accepted_;

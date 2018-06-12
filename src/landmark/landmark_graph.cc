@@ -13,7 +13,7 @@ using std::unordered_set;
 using std::vector;
 
 void LandmarkGraph::DeleteOrdering(int init_id, int term_id) {
-  --orderings_size_;
+  --n_orderings_;
 
   adjacent_matrix_[init_id][term_id] = false;
 
@@ -44,37 +44,56 @@ void LandmarkGraph::PrepareOrderings(int id) {
   possible_achievers_.resize(id + 1);
 }
 
+bool LandmarkGraph::RemoveDisjunctive(const Landmark &landmark) {
+  // If fact landmark, remove a disjunctive landmark dominated by the fact.
+  if (!landmark.IsFact()) return false;
+
+  int chi_id = FactToId(landmark.VarValue(0));
+
+  if (chi_id == -1) return false;
+
+  const Landmark &chi = GetLandmark(chi_id);
+
+  if (landmark == chi) return false;
+
+  Delete(chi_id);
+
+  return true;
+}
+
 int LandmarkGraph::Add(const Landmark &landmark) {
+  bool removed = RemoveDisjunctive(landmark);
+
+  /** If no disjunctive landmark is removed, there may be overlapping landmarks.
+   *  If any, the landmark is not added to the graph.
+   *  A fact must not appear in more than one landmarks.
+   **/
+  if (!removed) {
+    for (int i=0, n=landmark.size(); i<n; ++i) {
+      int chi_id = FactToId(landmark.VarValue(i));
+
+      if (chi_id != -1) return -1;
+    }
+  }
+
   int id = id_to_landmark_.size();
-  landmark_to_id_[landmark] = id;
   id_to_landmark_.push_back(landmark);
   PrepareOrderings(id);
 
   for (int i=0, n=landmark.size(); i<n; ++i) {
-    int f = problem_->Fact(landmark.GetVarValue(i));
-    fact_to_landmark_[f] = id;
+    int f = problem_->Fact(landmark.VarValue(i));
+    fact_to_id_[f] = id;
   }
 
-  return id;
-}
-
-int LandmarkGraph::Add(Landmark &&landmark) {
-  int id = id_to_landmark_.size();
-  landmark_to_id_[landmark] = id;
-  id_to_landmark_.push_back(std::move(landmark));
-  PrepareOrderings(id);
-
-  for (int i=0, n=landmark.size(); i<n; ++i) {
-    int f = problem_->Fact(landmark.GetVarValue(i));
-    fact_to_landmark_[f] = id;
-  }
+  ++n_landmarks_;
+  if (landmark.size() > 1) ++n_disjunctive_;
 
   return id;
 }
 
 void LandmarkGraph::Delete(int id) {
-  orderings_size_ -= init_id_to_term_ids_[id].size();
-  orderings_size_ -= term_id_to_init_ids_[id].size();
+  n_orderings_ -= init_id_to_term_ids_[id].size();
+  n_orderings_ -= term_id_to_init_ids_[id].size();
 
   for (auto term_id : init_id_to_term_ids_[id])
     adjacent_matrix_[id][term_id] = false;
@@ -96,19 +115,31 @@ void LandmarkGraph::Delete(int id) {
     ids.erase(result, ids.end());
   }
 
+  auto landmark = id_to_landmark_[id];
+
+  for (int i=0, n=landmark.size(); i<n; ++i) {
+    int f = problem_->Fact(landmark.VarValue(i));
+    fact_to_id_[f] = -1;
+  }
+
+  if (landmark.size() > 1) --n_disjunctive_;
+
   init_id_to_term_ids_[id].clear();
   term_id_to_init_ids_[id].clear();
 
   possible_achievers_[id].clear();
   first_achievers_[id].clear();
 
-  landmark_to_id_.erase(id_to_landmark_[id]);
   id_to_landmark_[id].Clear();
+
+  --n_landmarks_;
 }
 
 void LandmarkGraph::Delete(const Landmark &landmark) {
-  if (!IsIn(landmark)) return;
-  int id = landmark_to_id_[landmark];
+  int id = ToId(landmark);
+
+  if (id == -1) return;
+
   Delete(id);
 }
 

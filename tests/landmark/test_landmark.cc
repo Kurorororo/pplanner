@@ -68,28 +68,28 @@ TEST_F(LandmarkTest, ClearWorks) {
   EXPECT_TRUE(l_3_->IsEmpty());
 }
 
-TEST_F(LandmarkTest, GetVarValueWorks) {
+TEST_F(LandmarkTest, VarValueWorks) {
   auto p = std::make_pair(0, 2);
-  EXPECT_EQ(p, l_1_->GetVarValue(0));
-  EXPECT_NE(p, l_2_->GetVarValue(0));
+  EXPECT_EQ(p, l_1_->VarValue(0));
+  EXPECT_NE(p, l_2_->VarValue(0));
   p = std::make_pair(2, 1);
-  EXPECT_EQ(p, l_3_->GetVarValue(1));
+  EXPECT_EQ(p, l_3_->VarValue(1));
   p = std::make_pair(2, 0);
-  EXPECT_NE(p, l_3_->GetVarValue(1));
+  EXPECT_NE(p, l_3_->VarValue(1));
 }
 
-TEST_F(LandmarkTest, GetVarWorks) {
-  EXPECT_EQ(0, l_1_->GetVar(0));
-  EXPECT_NE(1, l_1_->GetVar(0));
-  EXPECT_EQ(2, l_3_->GetVar(1));
-  EXPECT_NE(4, l_3_->GetVar(1));
+TEST_F(LandmarkTest, VarWorks) {
+  EXPECT_EQ(0, l_1_->Var(0));
+  EXPECT_NE(1, l_1_->Var(0));
+  EXPECT_EQ(2, l_3_->Var(1));
+  EXPECT_NE(4, l_3_->Var(1));
 }
 
-TEST_F(LandmarkTest, GetValueWorks) {
-  EXPECT_EQ(2, l_1_->GetValue(0));
-  EXPECT_NE(1, l_1_->GetValue(0));
-  EXPECT_EQ(1, l_3_->GetValue(1));
-  EXPECT_NE(2, l_3_->GetValue(1));
+TEST_F(LandmarkTest, ValueWorks) {
+  EXPECT_EQ(2, l_1_->Value(0));
+  EXPECT_NE(1, l_1_->Value(0));
+  EXPECT_EQ(1, l_3_->Value(1));
+  EXPECT_NE(2, l_3_->Value(1));
 }
 
 TEST_F(LandmarkTest, AddWorks) {

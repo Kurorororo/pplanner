@@ -27,7 +27,7 @@ inline bool IsInConsistent(shared_ptr<const SASPlus> problem,
 
 inline bool IsInConsistent(shared_ptr<const SASPlus> problem,
                            const Landmark &l, const Landmark &r) {
-  return IsInConsistent(problem, l.GetVarValue(0), r.GetVarValue(0));
+  return IsInConsistent(problem, l.VarValue(0), r.VarValue(0));
 }
 
 
@@ -61,7 +61,7 @@ bool Interfere(shared_ptr<const SASPlus> problem,
 
   for (auto p : counter) {
     if (p.second == n_effects
-        && IsInConsistent(problem, p.first, l_p.GetVarValue(0)))
+        && IsInConsistent(problem, p.first, l_p.VarValue(0)))
       return true;
   }
    **/

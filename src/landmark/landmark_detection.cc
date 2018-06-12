@@ -26,9 +26,6 @@ using std::vector;
 using pair_map = unordered_map<pair<int, int>, int, PairHash<int, int> >;
 using pair_set = unordered_set<pair<int, int>, PairHash<int, int> >;
 
-int n_disj = 0;
-int n_initial = 0;
-
 void SetPossibleAchievers(const Landmark &psi,
                           shared_ptr<const SASPlus> problem,
                           shared_ptr<const RelaxedSASPlus> r_problem,
@@ -38,8 +35,10 @@ void SetPossibleAchievers(const Landmark &psi,
   std::fill(closed.begin(), closed.end(), false);
   int psi_id = graph->ToId(psi);
 
+  if (psi_id == -1) return;
+
   for (int i=0, n=psi.size(); i<n; ++i) {
-    int f = problem->Fact(psi.GetVarValue(i));
+    int f = problem->Fact(psi.VarValue(i));
 
     for (auto o : r_problem->EffectMap(f)) {
       int a = r_problem->ActionId(o);
@@ -68,6 +67,8 @@ void SetFirstAchievers(const Landmark &psi, const RPG &rrpg,
                        shared_ptr<LandmarkGraph> graph) {
   int psi_id = graph->ToId(psi);
 
+  if (psi_id == -1) return;
+
   for (auto o : graph->GetPossibleAchievers(psi_id))
     if (rrpg.IsInAction(o)) graph->PushFirstAchiever(psi_id, o);
 }
@@ -93,7 +94,7 @@ vector<pair<int, int> > ExtendedPreconditions(const Landmark &psi,
 
     if (!has_precondition[var] && problem->VarRange(var) == 2)
       for (int i=0, n=psi.size(); i<n; ++i)
-        if (psi.GetVar(i) == var && psi.GetValue(i) != initial[var])
+        if (psi.Var(i) == var && psi.Value(i) != initial[var])
           precondition.push_back(make_pair(var, initial[var]));
   }
 
@@ -107,6 +108,9 @@ const pair_map& PreShared(const Landmark &psi,
 
   pre_shared.clear();
   int psi_id = graph->ToId(psi);
+
+  if (psi_id == -1) return pre_shared;
+
   auto &achievers = graph->GetFirstAchievers(psi_id);
   if (achievers.empty()) return pre_shared;
 
@@ -142,7 +146,11 @@ const unordered_map<string, Landmark>& PreDisj(
   pre_disj.clear();
 
   int psi_id = graph->ToId(psi);
+
+  if (psi_id == -1) return pre_disj;
+
   auto &achievers = graph->GetFirstAchievers(psi_id);
+
   if (achievers.empty()) return pre_disj;
   int i = 0;
 
@@ -194,36 +202,17 @@ void PreLookAhead(shared_ptr<const SASPlus> &problem, const RPG &rrpg,
   }
 }
 
-void AddFactLandmark(const Landmark &phi, shared_ptr<LandmarkGraph> graph) {
-  if (!phi.IsFact() || graph->IsIn(phi)) return;
-
-  auto f = phi.GetVarValue(0);
-
-  for (size_t i=0, n=graph->n_landmarks(); i<n; ++i) {
-    const Landmark &chi = graph->GetLandmark(i);
-    if (chi.IsEmpty() || phi == chi || !chi.IsImplicated(f)) continue;
-    --n_disj;
-    graph->Delete(i);
-  }
-}
-
 void AddLandmarkAndOrdering(Landmark &phi, int term_id,
                             LandmarkGraph::OrderingType type, queue<int> &q,
                             shared_ptr<LandmarkGraph> graph) {
-  AddFactLandmark(phi, graph);
+  int phi_id = graph->Add(phi);
 
-  for (auto &chi : graph->GetLandmarks())
-    if (phi.Overlap(chi)) return;
-
-  int phi_id;
-
-  if (graph->IsIn(phi)) {
+  if (phi_id == -1)
     phi_id = graph->ToId(phi);
-  } else {
-    if (phi.size() > 1) ++n_disj;
-    phi_id = graph->Add(phi);
+  else
     q.push(phi_id);
-  }
+
+  if (phi_id == -1) return;
 
   graph->AddOrdering(phi_id, term_id, type);
 }
@@ -231,7 +220,7 @@ void AddLandmarkAndOrdering(Landmark &phi, int term_id,
 bool HaveSameOperator(const Landmark &psi, shared_ptr<const SASPlus> problem,
                       shared_ptr<const RelaxedSASPlus> r_problem, int f) {
   for (int i=0, n=psi.size(); i<n; ++i) {
-    int f_v = problem->Fact(psi.GetVarValue(i));
+    int f_v = problem->Fact(psi.VarValue(i));
 
     for (auto o_v : r_problem->EffectMap(f_v))
       for (auto o_f : r_problem->EffectMap(f))
@@ -249,6 +238,8 @@ void ExtendPotential(
     shared_ptr<const LandmarkGraph> graph,
     unordered_map<int, pair_set> &potential_orderings) {
   int psi_id = graph->ToId(psi);
+
+  if (psi_id == -1) return;
 
   for (int i=0, n=problem->n_variables(); i<n; ++i) {
     for (int j=0, m=problem->VarRange(i); j<m; ++j) {
@@ -271,7 +262,7 @@ void AddFurtherOrderings(
       Landmark psi(term_var_value);
       if (!graph->IsIn(psi)) continue;
       int term_id = graph->ToId(psi);
-      if (init_id == term_id) continue;
+      if (init_id == term_id || term_id == -1) continue;
       graph->AddOrdering(init_id, term_id, LandmarkGraph::NATURAL);
     }
   }
@@ -303,6 +294,7 @@ void IdentifyLandmarks(shared_ptr<const SASPlus> problem,
 
   unordered_map<string, int> candidate_counts;
   vector<int> pre_lookahead;
+  int n_initial = 0;
 
   while (!q.empty()) {
     int psi_id = q.front();
@@ -335,8 +327,8 @@ void IdentifyLandmarks(shared_ptr<const SASPlus> problem,
     }
 
     if (psi.IsFact()) {
-      int var = psi.GetVar(0);
-      int goal = psi.GetValue(0);
+      int var = psi.Var(0);
+      int goal = psi.Value(0);
       DTG &dtg = dtgs[var];
       PreLookAhead(problem, rrpg, var, initial[var], goal, &dtg, pre_lookahead);
 
@@ -352,8 +344,8 @@ void IdentifyLandmarks(shared_ptr<const SASPlus> problem,
   AddFurtherOrderings(potential_orderings, graph);
 
   std::cout << "Discovered " << graph->n_landmarks()
-            << " landmarks, of which " << n_disj << " are disjunctive"
-            << std::endl;
+            << " landmarks, of which " << graph->n_disjunctive()
+            << " are disjunctive" << std::endl;
   std::cout << n_initial << " initial landmarks, " << problem->n_goal_facts()
             << " goal landmarks"  << std::endl;
 }

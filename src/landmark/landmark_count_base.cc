@@ -1,35 +1,37 @@
 #include "landmark/landmark_count_base.h"
 
+#include <iostream>
+
 #include "utils/bit_vector.h"
 
 namespace pplanner {
 
+using std::unordered_set;
 using std::vector;
+
+bool LandmarkCountBase::IsLeaf(int lm_id, const uint8_t *accepted) const {
+  for (auto parent_id : graph_->GetInitIdsByTermId(lm_id))
+    if (!Get(accepted, parent_id)) return false;
+
+  return true;
+}
 
 int LandmarkCountBase::ReachedSize(const vector<int> &state,
                                    const uint8_t *parent_accepted,
                                    uint8_t *accepted) {
   int size = 0;
 
-  for (int psi_id=0, n=landmark_graph_->landmark_id_max(); psi_id<n; ++psi_id) {
+  for (int psi_id=0, n=graph_->landmark_id_max(); psi_id<n; ++psi_id) {
     if (Get(parent_accepted, psi_id)) {
       Up(accepted, psi_id);
       ++size;
       continue;
     }
 
-    const Landmark &psi = landmark_graph_->GetLandmark(psi_id);
+    const Landmark &psi = graph_->GetLandmark(psi_id);
     if (psi.IsEmpty() || !psi.IsImplicated(state)) continue;
 
-    bool all = true;
-
-    for (auto phi_id : landmark_graph_->GetInitIdsByTermId(psi_id)) {
-      if (!Get(parent_accepted, phi_id)) {
-        all = false;
-        break;
-      }
-    }
-    if (all) {
+    if (IsLeaf(psi_id, parent_accepted)) {
       Up(accepted, psi_id);
       ++size;
     }
@@ -40,24 +42,23 @@ int LandmarkCountBase::ReachedSize(const vector<int> &state,
 
 int LandmarkCountBase::NeededSize(const vector<int> &state,
                                   const uint8_t *accepted) {
-  int goal_size = problem_->n_goal_facts();
   int size = 0;
 
-  for (int phi_id=0, n=landmark_graph_->landmark_id_max(); phi_id<n; ++phi_id) {
+  for (int phi_id=0, n=graph_->landmark_id_max(); phi_id<n; ++phi_id) {
     if (!Get(accepted, phi_id)) continue;
     status_[phi_id] = REACHED;
 
-    const Landmark &phi = landmark_graph_->GetLandmark(phi_id);
+    const Landmark &phi = graph_->GetLandmark(phi_id);
     if (phi.IsImplicated(state)) continue;
 
-    if (phi_id < goal_size) {
+    if (graph_->IsGoal(phi_id)) {
       status_[phi_id] = NEEDED;
       ++size;
       continue;
     }
 
-    for (auto psi_id : landmark_graph_->GetTermIdsByInitId(phi_id)) {
-      auto ordering_type = landmark_graph_->GetOrderingType(phi_id, psi_id);
+    for (auto psi_id : graph_->GetTermIdsByInitId(phi_id)) {
+      auto ordering_type = graph_->GetOrderingType(phi_id, psi_id);
 
       if (ordering_type == LandmarkGraph::GREEDY && !Get(accepted, psi_id)) {
         status_[phi_id] = NEEDED;
@@ -76,37 +77,83 @@ int LandmarkCountBase::Evaluate(const vector<int> &state,
   if (problem_->IsGoal(state)) return 0;
 
   std::fill(status_.begin(), status_.end(), NOT_REACHED);
-  int reached_size = 0;
+  reached_size_ = 0;
 
   if (parent_accepted == nullptr) {
-    for (int i=0, n=landmark_graph_->landmark_id_max(); i<n; ++i) {
-      const Landmark &psi = landmark_graph_->GetLandmark(i);
+    for (int i=0, n=graph_->landmark_id_max(); i<n; ++i) {
+      const Landmark &psi = graph_->GetLandmark(i);
 
-      if (!psi.IsEmpty()
-          && psi.IsImplicated(state)
-          && landmark_graph_->GetInitIdsByTermId(i).empty()) {
+      if (!psi.IsEmpty() && psi.IsImplicated(state)
+          && graph_->GetInitIdsByTermId(i).empty()) {
         status_[i] = REACHED;
         Up(accepted, i);
-        ++reached_size;
+        ++reached_size_;
       }
     }
   } else {
-    reached_size = ReachedSize(state, parent_accepted, accepted);
+    reached_size_ = ReachedSize(state, parent_accepted, accepted);
   }
 
   int needed_size = NeededSize(state, accepted);
 
-  for (int i=0, n=landmark_graph_->landmark_id_max(); i<n; ++i) {
-    const Landmark &psi = landmark_graph_->GetLandmark(i);
+  for (int i=0, n=graph_->landmark_id_max(); i<n; ++i) {
+    const Landmark &psi = graph_->GetLandmark(i);
 
     if (!psi.IsEmpty() && ((status_[i] == NOT_REACHED
-          && landmark_graph_->GetFirstAchieversSize(i) == 0)
-        || (status_[i] == NEEDED
-          && landmark_graph_->GetPossibleAchieversSize(i) == 0)))
+          && graph_->GetFirstAchieversSize(i) == 0)
+        || (status_[i] == NEEDED && graph_->GetPossibleAchieversSize(i) == 0)))
       return -1;
   }
 
-  return landmark_graph_->n_landmarks() - reached_size + needed_size;
+  return graph_->n_landmarks() - reached_size_ + needed_size;
+}
+
+bool LandmarkCountBase::IsInteresting(int lm_id, const vector<int> &state,
+                                      const uint8_t *accepted) const {
+  const Landmark &lm = graph_->GetLandmark(lm_id);
+
+  if (reached_size_ == static_cast<int>(graph_->n_landmarks()))
+    return graph_->IsGoal(lm_id) && !lm.IsImplicated(state);
+
+  return !Get(accepted, lm_id) && IsLeaf(lm_id, accepted);
+}
+
+void LandmarkCountBase::NextStepOperators(const vector<int> &state,
+                                          const vector<int> &applicable,
+                                          const uint8_t *accepted,
+                                          unordered_set<int> &preferred) {
+  static vector<int> fact_lm_operators;
+  static vector<int> disj_lm_operators;
+
+  fact_lm_operators.clear();
+  disj_lm_operators.clear();
+
+  for (auto a : applicable) {
+    auto var_iter = problem_->EffectVarsBegin(a);
+    auto var_end = problem_->EffectVarsEnd(a);
+    auto values_iter = problem_->EffectValuesBegin(a);
+
+    for (; var_iter != var_end; ++var_iter) {
+      int f = problem_->Fact(*var_iter, *values_iter);
+      ++values_iter;
+      int lm_id = graph_->FactToId(f);
+
+      if (lm_id != -1 && IsInteresting(lm_id, state, accepted)) {
+        if (graph_->GetLandmark(lm_id).IsFact())
+          fact_lm_operators.push_back(a);
+        else
+          disj_lm_operators.push_back(a);
+      }
+    }
+  }
+
+  if (fact_lm_operators.empty()) {
+    for (auto o : disj_lm_operators)
+      preferred.insert(o);
+  } else {
+    for (auto o : fact_lm_operators)
+      preferred.insert(o);
+  }
 }
 
 } // namespace pplanner

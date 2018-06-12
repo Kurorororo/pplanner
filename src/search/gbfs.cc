@@ -38,7 +38,13 @@ void GBFS::Init(const boost::property_tree::ptree &pt) {
 
   if (auto preferring = pt.get_child_optional("preferring")) {
     use_preferred_ = true;
-    preferring_ = EvaluatorFactory(problem_, graph_, preferring.get());
+
+    if (auto name = preferring.get().get_optional<std::string>("name")) {
+      if (name.get() == "same")
+        preferring_ = evaluators[0];
+      else
+        preferring_ = EvaluatorFactory(problem_, graph_, preferring.get());
+    }
   }
 
   auto open_list_option = pt.get_child("open_list");

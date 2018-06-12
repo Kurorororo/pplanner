@@ -84,7 +84,7 @@ TEST_F(LandmarkGraphTest, Landmarks) {
 
   Landmark l(*l_1_);
   EXPECT_FALSE(graph_0_->IsIn(*l_1_));
-  graph_0_->Add(std::move(l));
+  graph_0_->Add(l);
   EXPECT_EQ(2, graph_0_->n_landmarks());
   EXPECT_TRUE(graph_0_->IsIn(*l_1_));
   EXPECT_EQ(1, graph_0_->ToId(*l_1_));

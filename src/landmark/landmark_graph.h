@@ -15,20 +15,25 @@ class LandmarkGraph {
  public:
   enum OrderingType { GREEDY, NATURAL, REASONABLE, OBEDIENT, };
 
-  LandmarkGraph() : orderings_size_(0), problem_(nullptr) {}
+  LandmarkGraph() : n_landmarks_(0), n_disjunctive_(0), n_orderings_(0),
+                    problem_(nullptr) {}
 
   LandmarkGraph(std::shared_ptr<const SASPlus> problem)
-    : orderings_size_(0),
-      fact_to_landmark_(problem->n_facts(), -1),
+    : n_landmarks_(0),
+      n_disjunctive_(0),
+      n_orderings_(0),
+      fact_to_id_(problem->n_facts(), -1),
       problem_(problem) {}
 
   ~LandmarkGraph() {}
 
-  size_t n_landmarks() const { return landmark_to_id_.size(); }
-
   size_t landmark_id_max() const { return id_to_landmark_.size(); }
 
-  size_t n_orderings() const { return orderings_size_; }
+  size_t n_landmarks() const { return n_landmarks_; }
+
+  size_t n_disjunctive() const { return n_disjunctive_; }
+
+  size_t n_orderings() const { return n_orderings_; }
 
   const Landmark& GetLandmark(int id) const { return id_to_landmark_[id]; }
 
@@ -38,12 +43,21 @@ class LandmarkGraph {
 
   std::vector<Landmark> CopyLandmarks() const { return id_to_landmark_; }
 
+  int FactToId(int f) const { return fact_to_id_[f]; }
+
   int ToId(const Landmark &landmark) const {
-    return landmark_to_id_.at(landmark);
+    int f = problem_->Fact(landmark.VarValue(0));
+    int id = FactToId(f);
+
+    if (id == -1 || landmark != GetLandmark(id)) return -1;
+
+    return id;
   }
 
   bool IsIn(const Landmark &landmark) const {
-    return landmark_to_id_.find(landmark) != landmark_to_id_.end();
+    int id = ToId(landmark);
+
+    return id != -1 && landmark == GetLandmark(id);
   }
 
   bool IsAdjacent(int init_id, int term_id) const {
@@ -65,7 +79,7 @@ class LandmarkGraph {
   void AddOrdering(int init_id, int term_id, OrderingType type) {
     if (IsAdjacent(init_id, term_id)
         && type >= GetOrderingType(init_id, term_id)) return;
-    ++orderings_size_;
+    ++n_orderings_;
     adjacent_matrix_[init_id][term_id] = true;
     ordering_types_[init_id][term_id] = type;
     init_id_to_term_ids_[init_id].push_back(term_id);
@@ -76,13 +90,17 @@ class LandmarkGraph {
 
   int Add(const Landmark &landmark);
 
-  int Add(Landmark &&landmark);
-
   void Delete(int id);
 
   void Delete(const Landmark &landmark);
 
-  int FactToLandmark(int f) const { return fact_to_landmark_[f]; }
+  int FactToId(const std::pair<int, int> &p) const {
+    return FactToId(problem_->Fact(p));
+  }
+
+  bool IsGoal(int id) const {
+    return id < static_cast<int>(problem_->n_goal_facts());
+  }
 
   void PushPossibleAchiever(int id, int action) {
     possible_achievers_[id].push_back(action);
@@ -115,15 +133,19 @@ class LandmarkGraph {
  private:
   void PrepareOrderings(int id);
 
+  bool RemoveDisjunctive(const Landmark &landmark);
+
   void RemoveEdge(int start, std::vector<int> &path);
 
   bool FindCycle(int start, std::vector<int> &path,
                  std::unordered_set<int> &cloesd);
 
-  size_t orderings_size_;
+  size_t n_landmarks_;
+  size_t n_disjunctive_;
+  size_t n_orderings_;
 
-  std::vector<int> fact_to_landmark_;
-  std::unordered_map<Landmark, int, LandmarkHash> landmark_to_id_;
+  // A fact must not appear in more than one landmarks.
+  std::vector<int> fact_to_id_;
   std::vector<Landmark> id_to_landmark_;
 
   std::vector< std::vector<bool> > adjacent_matrix_;

@@ -58,7 +58,6 @@ int LazyGBFS::Search() {
   auto state = problem_->initial();
   int node = graph_->GenerateNode(state, -1, -1, true);
   ++generated_;
-  ++expanded_;
 
   vector<int> child(state);
   vector<int> applicable;
@@ -66,12 +65,11 @@ int LazyGBFS::Search() {
 
   int best_h = -1;
 
-  do {
-    if (graph_->GetStateAndClosed(node, state) != -1){
-      node = open_list_->Pop();
-      continue;
-    }
+  while (best_h == -1 || !open_list_->IsEmpty()) {
+    if (best_h != -1)  node = open_list_->Pop();
+    ++expanded_;
 
+    if (graph_->GetStateAndClosed(node, state) != -1) continue;
     graph_->Close(node);
 
     int h = Evaluate(state, node, applicable, preferred);
@@ -108,7 +106,8 @@ int LazyGBFS::Search() {
       child = state;
       problem_->ApplyEffect(o, child);
 
-      bool is_preferred = use_preferred_ && preferred.find(o) != preferred.end();
+      bool is_preferred = use_preferred_
+        && preferred.find(o) != preferred.end();
       int child_node = graph_->GenerateNode(child, node, o, is_preferred);
       ++generated_;
 
@@ -121,10 +120,7 @@ int LazyGBFS::Search() {
 
       ++n_branching_;
     }
-
-    node = open_list_->Pop();
-    ++expanded_;
-  } while (!open_list_->IsEmpty());
+  }
 
   return -1;
 }

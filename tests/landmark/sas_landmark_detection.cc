@@ -22,7 +22,7 @@ int main(int argc, char *argv[]) {
   auto sas = std::make_shared<pplanner::SASPlus>();
   sas->InitFromLines(lines);
   auto r_sas = std::make_shared<RelaxedSASPlus>(*sas, false);
-  auto graph = std::make_shared<LandmarkGraph>(problem);
+  auto graph = std::make_shared<LandmarkGraph>(sas);
 
   IdentifyLandmarks(sas, r_sas, graph);
   AddOrderings(sas, r_sas, graph);
@@ -36,7 +36,7 @@ int main(int argc, char *argv[]) {
   landmarks.erase(end, landmarks.end());
   auto lambda = [](const Landmark &l1, const Landmark &l2) {
     if (l1.size() == l2.size())
-      return l1.GetVarValue(0) > l2.GetVarValue(0);
+      return l1.VarValue(0) > l2.VarValue(0);
     return l1.size() > l2.size();
   };
   std::sort(landmarks.begin(), landmarks.end(), lambda);

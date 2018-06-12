@@ -19,18 +19,18 @@ class LandmarkCountBase {
   LandmarkCountBase() : problem_(nullptr),
                         r_problem_(nullptr),
                         rpg_(nullptr),
-                        landmark_graph_(nullptr) {}
+                        graph_(nullptr) {}
 
   LandmarkCountBase(std::shared_ptr<const SASPlus> problem, bool simplify)
     : problem_(problem),
       r_problem_(std::make_shared<RelaxedSASPlus>(*problem, simplify)),
       rpg_(nullptr),
-      landmark_graph_(std::make_shared<LandmarkGraph>()) {
+      graph_(std::make_shared<LandmarkGraph>(problem)) {
     rpg_ = std::unique_ptr<RPG>(new RPG(r_problem_));
-    IdentifyLandmarks(problem, r_problem_, landmark_graph_);
-    AddOrderings(problem, r_problem_, landmark_graph_);
-    HandleCycles(landmark_graph_);
-    status_.resize(landmark_graph_->landmark_id_max(), NOT_REACHED);
+    IdentifyLandmarks(problem, r_problem_, graph_);
+    AddOrderings(problem, r_problem_, graph_);
+    HandleCycles(graph_);
+    status_.resize(graph_->landmark_id_max(), NOT_REACHED);
   }
 
   int Evaluate(const std::vector<int> &state, const uint8_t *parent_accepted,
@@ -41,26 +41,43 @@ class LandmarkCountBase {
                const uint8_t *parent_accepted,
                uint8_t *accepted,
                std::unordered_set<int> &preferred) {
-    return Evaluate(state, parent_accepted, accepted);
+    int h = Evaluate(state, parent_accepted, accepted);
+
+    if (h == 0 || h == -1) return h;
+
+    NextStepOperators(state, applicable, accepted, preferred);
+
+    return h;
   }
 
   std::shared_ptr<LandmarkGraph> landmark_graph() const {
-    return landmark_graph_;
+    return graph_;
   }
 
  private:
+  bool IsLeaf(int lm_id, const uint8_t *accepted) const;
+
   int ReachedSize(const std::vector<int> &state, const uint8_t *parent_accepted,
                   uint8_t *accepted);
 
   int NeededSize(const std::vector<int> &state, const uint8_t *accepted);
 
+  bool IsInteresting(int lm_id, const std::vector<int> &state,
+                     const uint8_t *accepted) const;
+
+  void NextStepOperators(const std::vector<int> &state,
+                         const std::vector<int> &applicable,
+                         const uint8_t *accepted,
+                         std::unordered_set<int> &preferred);
+
   enum LandmarkState { REACHED, NEEDED, NOT_REACHED, };
 
+  int reached_size_;
   std::vector<LandmarkState> status_;
   std::shared_ptr<const SASPlus> problem_;
   std::shared_ptr<RelaxedSASPlus> r_problem_;
   std::shared_ptr<RPG> rpg_;
-  std::shared_ptr<LandmarkGraph> landmark_graph_;
+  std::shared_ptr<LandmarkGraph> graph_;
 };
 
 } // namespace pplanner
