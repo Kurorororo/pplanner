@@ -11,6 +11,7 @@
 #include "landmark/landmark_detection.h"
 #include "landmark/landmark_graph.h"
 #include "heuristics/rpg.h"
+#include "heuristics/rpg_factory.h"
 
 namespace pplanner {
 
@@ -21,13 +22,14 @@ class LandmarkCountBase {
                         rpg_(nullptr),
                         graph_(nullptr) {}
 
-  LandmarkCountBase(std::shared_ptr<const SASPlus> problem, bool simplify)
+  LandmarkCountBase(std::shared_ptr<const SASPlus> problem, bool simplify,
+                    bool use_rpg_table, bool more_helpful)
     : problem_(problem),
       r_problem_(std::make_shared<RelaxedSASPlus>(*problem, simplify)),
       rpg_(nullptr),
       graph_(std::make_shared<LandmarkGraph>(problem)) {
-    rpg_ = std::unique_ptr<RPG>(new RPG(r_problem_));
-    IdentifyLandmarks(problem, r_problem_, graph_);
+    rpg_ = RPGFactory(problem, r_problem_, use_rpg_table, more_helpful);
+    IdentifyLandmarks(problem, r_problem_, graph_, use_rpg_table);
     AddOrderings(problem, r_problem_, graph_);
     HandleCycles(graph_);
     status_.resize(graph_->landmark_id_max(), NOT_REACHED);
@@ -40,15 +42,7 @@ class LandmarkCountBase {
                const std::vector<int> &applicable,
                const uint8_t *parent_accepted,
                uint8_t *accepted,
-               std::unordered_set<int> &preferred) {
-    int h = Evaluate(state, parent_accepted, accepted);
-
-    if (h == 0 || h == -1) return h;
-
-    NextStepOperators(state, applicable, accepted, preferred);
-
-    return h;
-  }
+               std::unordered_set<int> &preferred);
 
   std::shared_ptr<LandmarkGraph> landmark_graph() const {
     return graph_;

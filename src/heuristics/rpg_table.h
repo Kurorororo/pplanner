@@ -6,44 +6,65 @@
 #include <vector>
 
 #include "heuristics/relaxed_sas_plus.h"
+#include "heuristics/rpg.h"
 
 namespace pplanner {
 
-class RPGTable {
+class RPGTable : public RPG {
  public:
-  RPGTable() : r_problem_(nullptr) {}
+  RPGTable() : more_helpful_(false), problem_(nullptr), r_problem_(nullptr) {}
 
   RPGTable(std::shared_ptr<const SASPlus> problem,
-           std::shared_ptr<const RelaxedSASPlus> r_problem)
-    : goal_counter_(r_problem->n_goal_facts()),
+           std::shared_ptr<const RelaxedSASPlus> r_problem,
+           bool more_helpful=false)
+    : more_helpful_(more_helpful),
+      goal_counter_(r_problem->n_goal_facts()),
       op_cost_(r_problem->n_actions(), -1),
       precondition_counter_(r_problem->n_actions(), -1),
       prop_cost_(r_problem->n_facts(), -1),
       best_support_(r_problem->n_facts(), -1),
       marked_(r_problem->n_actions(), false),
       plan_set_(problem->n_actions(), false),
+      is_disjunctive_goal_(problem->n_facts(), false),
       supporters_(problem->n_facts()),
       problem_(problem),
       r_problem_(r_problem) {}
 
-  int PlanCost(const std::vector<int> &state, std::unordered_set<int> &helpful,
-               bool unit_cost=false, bool more_helpful=false);
+  ~RPGTable() {}
 
-  int PlanCost(const std::vector<int> &state, bool unit_cost=false) {
-    return PlanCost(state, helpful_, unit_cost, false);
+  int PlanCost(const std::vector<int> &state, bool unit_cost) override {
+    return PlanCost(state, helpful_, unit_cost);
   }
 
-  int AdditiveCost(const std::vector<int> &state, bool unit_cost=false,
-                   bool more_helpful=false);
+  int PlanCost(const std::vector<int> &state, std::unordered_set<int> &helpful,
+               bool unit_cost) override;
+
+  void ConstructRRPG(const std::vector<int> &state,
+                     const std::vector<bool> &black_list) override;
+
+  bool IsInFact(int fact) const override { return prop_cost_[fact] != -1; }
+
+  bool IsInAction(int action) const override {
+    return precondition_counter_[action] == 0;
+  }
+
+  void DisjunctiveHelpful(const std::vector<int> &state,
+                          const std::vector<int> &disjunctive_goals,
+                          std::unordered_set<int> &helpful,
+                          bool unit_cost) override;
+
+  int AdditiveCost(const std::vector<int> &state, bool unit_cost=false);
 
  private:
-  void SetPlan(int g, std::unordered_set<int> &helpful, bool more_helpful);
+  void SetPlan(int g, std::unordered_set<int> &helpful);
 
-  void GeneralizedDijkstra(const std::vector<int> &state, bool more_helpful);
+  void GeneralizedDijkstra(const std::vector<int> &state);
 
-  void SetUp(const std::vector<int> &state, bool unit_cost, bool more_helpful);
+  void SetUp(const std::vector<int> &state, bool unit_cost);
 
-  void MayPush(int f, int a, bool more_helpful);
+  void MayPush(int f, int a);
+
+  int DisjunctiveGeneralizedDijkstra(const std::vector<int> &state);
 
   struct FirstGreater {
     bool operator()(const std::pair<int, int> &a, const std::pair<int, int> &b) {
@@ -55,6 +76,7 @@ class RPGTable {
                                       std::vector<std::pair<int, int> >,
                                       FirstGreater>;
 
+  bool more_helpful_;
   int goal_counter_;
   std::vector<int> op_cost_;
   std::vector<int> precondition_counter_;
@@ -62,6 +84,7 @@ class RPGTable {
   std::vector<int> best_support_;
   std::vector<bool> marked_;
   std::vector<bool> plan_set_;
+  std::vector<bool> is_disjunctive_goal_;
   std::vector<std::vector<int> > supporters_;
   std::unordered_set<int> helpful_;
   PQueue q_;

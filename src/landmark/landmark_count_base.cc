@@ -108,6 +108,39 @@ int LandmarkCountBase::Evaluate(const vector<int> &state,
   return graph_->n_landmarks() - reached_size_ + needed_size;
 }
 
+int LandmarkCountBase::Evaluate(const vector<int> &state,
+                                const vector<int> &applicable,
+                                const uint8_t *parent_accepted,
+                                uint8_t *accepted,
+                                unordered_set<int> &preferred) {
+  static std::vector<int> facts;
+  static std::vector<int> disjunctive_goals;
+
+  int h = Evaluate(state, parent_accepted, accepted);
+
+  if (h == 0 || h == -1) return h;
+
+  NextStepOperators(state, applicable, accepted, preferred);
+
+  if (preferred.empty()) {
+    disjunctive_goals.clear();
+
+    for (int i=0, n=graph_->landmark_id_max(); i<n; ++i)
+      if (IsLeaf(i, accepted)) disjunctive_goals.push_back(i);
+
+    StateToFactVector(*problem_, state, facts);
+
+    if (disjunctive_goals.empty())
+      rpg_->PlanCost(facts, preferred, true);
+    else
+      rpg_->DisjunctiveHelpful(facts, disjunctive_goals, preferred, true);
+
+    if (preferred.empty()) return -1;
+  }
+
+  return h;
+}
+
 bool LandmarkCountBase::IsInteresting(int lm_id, const vector<int> &state,
                                       const uint8_t *accepted) const {
   const Landmark &lm = graph_->GetLandmark(lm_id);

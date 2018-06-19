@@ -10,6 +10,7 @@
 
 #include "dtg.h"
 #include "heuristics/rpg.h"
+#include "heuristics/rpg_factory.h"
 #include "landmark/landmark.h"
 
 namespace pplanner {
@@ -54,7 +55,7 @@ void SetPossibleAchievers(const Landmark &psi,
 void RRPG(const vector<int> &possible_achievers,
           const vector<int> &initial,
           vector<bool> &black_list,
-          RPG *rrpg) {
+          shared_ptr<RPG> rrpg) {
   std::fill(black_list.begin(), black_list.end(), false);
 
   for (auto o : possible_achievers)
@@ -63,14 +64,14 @@ void RRPG(const vector<int> &possible_achievers,
   rrpg->ConstructRRPG(initial, black_list);
 }
 
-void SetFirstAchievers(const Landmark &psi, const RPG &rrpg,
+void SetFirstAchievers(const Landmark &psi, shared_ptr<const RPG> rrpg,
                        shared_ptr<LandmarkGraph> graph) {
   int psi_id = graph->ToId(psi);
 
   if (psi_id == -1) return;
 
   for (auto o : graph->GetPossibleAchievers(psi_id))
-    if (rrpg.IsInAction(o)) graph->PushFirstAchiever(psi_id, o);
+    if (rrpg->IsInAction(o)) graph->PushFirstAchiever(psi_id, o);
 }
 
 vector<pair<int, int> > ExtendedPreconditions(const Landmark &psi,
@@ -179,18 +180,20 @@ const unordered_map<string, Landmark>& PreDisj(
   return pre_disj;
 }
 
-void RemoveNodesByRRPG(shared_ptr<const SASPlus> &problem, const RPG &rrpg,
+void RemoveNodesByRRPG(shared_ptr<const SASPlus> &problem,
+                       shared_ptr<const RPG> rrpg,
                        int var, int goal_value, DTG *dtg) {
   dtg->RecoverSoftDelete();
 
   for (int i=0, m=problem->VarRange(var); i<m; ++i) {
     if (i == goal_value) continue;
     int f = problem->Fact(var, i);
-    if (!rrpg.IsInFact(f)) dtg->SoftRemoveNode(i);
+    if (!rrpg->IsInFact(f)) dtg->SoftRemoveNode(i);
   }
 }
 
-void PreLookAhead(shared_ptr<const SASPlus> &problem, const RPG &rrpg,
+void PreLookAhead(shared_ptr<const SASPlus> &problem,
+                  shared_ptr<const RPG> rrpg,
                   int var, int start, int goal, DTG *dtg,
                   vector<int> &pre_lookahead) {
   pre_lookahead.clear();
@@ -234,7 +237,7 @@ void ExtendPotential(
     const Landmark &psi,
     shared_ptr<const SASPlus> problem,
     shared_ptr<const RelaxedSASPlus> r_problem,
-    const RPG &rrpg,
+    shared_ptr<const RPG> rrpg,
     shared_ptr<const LandmarkGraph> graph,
     unordered_map<int, pair_set> &potential_orderings) {
   int psi_id = graph->ToId(psi);
@@ -244,7 +247,7 @@ void ExtendPotential(
   for (int i=0, n=problem->n_variables(); i<n; ++i) {
     for (int j=0, m=problem->VarRange(i); j<m; ++j) {
       int f = problem->Fact(i, j);
-      if (rrpg.IsInFact(f)) continue;
+      if (rrpg->IsInFact(f)) continue;
       if (HaveSameOperator(psi, problem, r_problem, f)) continue;
       potential_orderings[psi_id].insert(std::make_pair(i, j));
     }
@@ -270,7 +273,8 @@ void AddFurtherOrderings(
 
 void IdentifyLandmarks(shared_ptr<const SASPlus> problem,
                        shared_ptr<const RelaxedSASPlus> r_problem,
-                       shared_ptr<LandmarkGraph> graph) {
+                       shared_ptr<LandmarkGraph> graph,
+                       bool use_rpg_table) {
   auto initial = problem->initial();
   vector<int> initial_facts;
   StateToFactVector(*problem, initial, initial_facts);
@@ -287,7 +291,7 @@ void IdentifyLandmarks(shared_ptr<const SASPlus> problem,
 
   unordered_map<int, pair_set> potential_orderings;
 
-  RPG rrpg(r_problem);
+  shared_ptr<RPG> rrpg = RPGFactory(problem, r_problem, use_rpg_table);
   vector<bool> black_list(problem->n_actions(), false);
 
   auto dtgs = InitializeDTGs(problem);
@@ -309,7 +313,7 @@ void IdentifyLandmarks(shared_ptr<const SASPlus> problem,
     }
 
     auto &p_achievers = graph->GetPossibleAchievers(psi_id);
-    RRPG(p_achievers, initial_facts, black_list, &rrpg);
+    RRPG(p_achievers, initial_facts, black_list, rrpg);
     SetFirstAchievers(psi, rrpg, graph);
     auto &pre_shared = PreShared(psi, problem, graph);
 

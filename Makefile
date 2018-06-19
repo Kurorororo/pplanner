@@ -160,10 +160,12 @@ $(BIN_DIR)/libsearch.a: \
 
 $(BIN_DIR)/libff.a: \
 	$(BIN_DIR)/heuristics/rpg.o \
+	$(BIN_DIR)/heuristics/hn_rpg.o \
 	$(BIN_DIR)/heuristics/rpg_table.o \
 	$(BIN_DIR)/heuristics/relaxed_sas_plus.o
 	ar rcs $(BIN_DIR)/libff.a \
 		$(BIN_DIR)/heuristics/rpg.o \
+		$(BIN_DIR)/heuristics/hn_rpg.o \
 		$(BIN_DIR)/heuristics/rpg_table.o \
 		$(BIN_DIR)/heuristics/relaxed_sas_plus.o
 

@@ -66,13 +66,8 @@ std::shared_ptr<RandomWalkEvaluator> RandomWalkEvaluatorFactory(
     option = pt.get_optional<int>("option.unit_cost");
     if (option && !unit_cost) unit_cost = option.get() == 1;
 
-    bool common_precond = false;
-
-    option = pt.get_optional<int>("option.common_precond");
-    if (option) common_precond = option.get() == 1;
-
     return std::make_shared<RWFF>(
-        problem, simplify, unit_cost, common_precond);
+        problem, simplify, unit_cost);
   }
 
   if (name.get() == "width") {
@@ -90,11 +85,19 @@ std::shared_ptr<RandomWalkEvaluator> RandomWalkEvaluatorFactory(
 
   if (name.get() == "lmc") {
     bool simplify = false;
+    if (auto option = pt.get_optional<int>("option.simplify"))
+      simplify = option.get() == 1;
 
-    auto option = pt.get_optional<int>("option.simplify");
-    if (option) simplify = option.get() == 1;
+    bool use_rpg_table = false;
+    if (auto option = pt.get_optional<int>("option.rpg_table"))
+      use_rpg_table = option.get() == 1;
 
-    return std::make_shared<RWLandmarkCount>(problem, simplify);
+    bool more_helpful = false;
+    if (auto option = pt.get_optional<int>("option.more"))
+      more_helpful = option.get() == 1;
+
+    return std::make_shared<RWLandmarkCount>(
+        problem, simplify, use_rpg_table, more_helpful);
   }
 
   throw std::runtime_error("No such heuristic.");

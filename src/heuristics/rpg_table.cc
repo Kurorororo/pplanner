@@ -6,8 +6,8 @@ using std::unordered_set;
 using std::vector;
 
 int RPGTable::PlanCost(const vector<int> &state, unordered_set<int> &helpful,
-                       bool unit_cost, bool more_helpful) {
-  int additive_h = AdditiveCost(state, unit_cost, more_helpful);
+                       bool unit_cost) {
+  int additive_h = AdditiveCost(state, unit_cost);
   if (additive_h == -1) return -1;
 
   std::fill(plan_set_.begin(), plan_set_.end(), false);
@@ -15,7 +15,7 @@ int RPGTable::PlanCost(const vector<int> &state, unordered_set<int> &helpful,
   helpful.clear();
 
   for (auto g : r_problem_->goal())
-    SetPlan(g, helpful, more_helpful);
+    SetPlan(g, helpful);
 
   int h = 0;
 
@@ -31,10 +31,9 @@ int RPGTable::PlanCost(const vector<int> &state, unordered_set<int> &helpful,
   return h;
 }
 
-int RPGTable::AdditiveCost(const vector<int> &state, bool unit_cost,
-                           bool more_helpful) {
-  SetUp(state, unit_cost, more_helpful);
-  GeneralizedDijkstra(state, more_helpful);
+int RPGTable::AdditiveCost(const vector<int> &state, bool unit_cost) {
+  SetUp(state, unit_cost);
+  GeneralizedDijkstra(state);
 
   int h = 0;
 
@@ -47,7 +46,7 @@ int RPGTable::AdditiveCost(const vector<int> &state, bool unit_cost,
   return h;
 }
 
-void RPGTable::SetPlan(int g, unordered_set<int> &helpful, bool more_helpful) {
+void RPGTable::SetPlan(int g, unordered_set<int> &helpful) {
   if (marked_[g]) return;
 
   marked_[g] = true;
@@ -59,17 +58,16 @@ void RPGTable::SetPlan(int g, unordered_set<int> &helpful, bool more_helpful) {
   if (prop_cost_[g] == r_problem_->ActionCost(unary_a)) {
     helpful.insert(a);
 
-    if (more_helpful)
+    if (more_helpful_)
       for (auto supporter : supporters_[g])
         helpful.insert(r_problem_->ActionId(supporter));
   }
 
   for (auto p : r_problem_->Precondition(unary_a))
-    SetPlan(p, helpful, more_helpful);
+    SetPlan(p, helpful);
 }
 
-void RPGTable::GeneralizedDijkstra(const vector<int> &state,
-                                   bool more_helpful) {
+void RPGTable::GeneralizedDijkstra(const vector<int> &state) {
   while (!q_.empty()) {
     auto top = q_.top();
     q_.pop();
@@ -86,13 +84,12 @@ void RPGTable::GeneralizedDijkstra(const vector<int> &state,
       op_cost_[a] += c;
 
       if (--precondition_counter_[a] == 0)
-        MayPush(r_problem_->Effect(a), a, more_helpful);
+        MayPush(r_problem_->Effect(a), a);
     }
   }
 }
 
-void RPGTable::SetUp(const vector<int> &state, bool unit_cost,
-                     bool more_helpful) {
+void RPGTable::SetUp(const vector<int> &state, bool unit_cost) {
   goal_counter_ = r_problem_->n_goal_facts();
   std::fill(best_support_.begin(), best_support_.end(), -1);
   std::fill(prop_cost_.begin(), prop_cost_.end(), -1);
@@ -110,7 +107,7 @@ void RPGTable::SetUp(const vector<int> &state, bool unit_cost,
       op_cost_[i] = r_problem_->ActionCost(i);
 
     if (precondition_counter_[i] == 0)
-      MayPush(r_problem_->Effect(i), i, more_helpful);
+      MayPush(r_problem_->Effect(i), i);
   }
 
   for (auto f : state) {
@@ -119,19 +116,86 @@ void RPGTable::SetUp(const vector<int> &state, bool unit_cost,
   }
 }
 
-void RPGTable::MayPush(int f, int a, bool more_helpful) {
+void RPGTable::MayPush(int f, int a) {
   int op_c = op_cost_[a];
 
   if (op_c < prop_cost_[f] || prop_cost_[f] == -1) {
-    if (more_helpful) supporters_[f].clear();
+    if (more_helpful_) supporters_[f].clear();
 
     best_support_[f] = a;
     prop_cost_[f] = op_c;
     q_.push(std::make_pair(op_c, f));
   }
 
-  if (more_helpful && op_c == prop_cost_[f])
+  if (more_helpful_ && op_c == prop_cost_[f])
     supporters_[f].push_back(a);
+}
+
+void RPGTable::ConstructRRPG(const vector<int> &state,
+                             const vector<bool> &black_list) {
+  SetUp(state, false);
+
+  while (!q_.empty()) {
+    auto top = q_.top();
+    q_.pop();
+
+    int c = top.first;
+    int f = top.second;
+
+    assert(prop_cost_[f] != -1);
+
+    if (prop_cost_[f] < c) continue;
+
+    for (auto a : r_problem_->PreconditionMap(f)) {
+      op_cost_[a] += c;
+
+      int a_id = r_problem_->ActionId(a);
+
+      if (--precondition_counter_[a] == 0 && !black_list[a_id])
+        MayPush(r_problem_->Effect(a), a);
+    }
+  }
+}
+
+void RPGTable::DisjunctiveHelpful(const vector<int> &state,
+                                  const vector<int> &disjunctive_goals,
+                                  unordered_set<int> &helpful,
+                                  bool unit_cost) {
+  SetUp(state, unit_cost);
+  std::fill(is_disjunctive_goal_.begin(), is_disjunctive_goal_.end(), false);
+
+  for (auto g : disjunctive_goals)
+    is_disjunctive_goal_[g] = true;
+
+  int f = DisjunctiveGeneralizedDijkstra(state);
+
+  if (f == -1) return;
+
+  SetPlan(f, helpful);
+}
+
+int RPGTable::DisjunctiveGeneralizedDijkstra(const vector<int> &state) {
+  while (!q_.empty()) {
+    auto top = q_.top();
+    q_.pop();
+
+    int c = top.first;
+    int f = top.second;
+
+    assert(prop_cost_[f] != -1);
+
+    if (prop_cost_[f] < c) continue;
+    if (is_disjunctive_goal_[f]) return f;
+
+    for (auto a : r_problem_->PreconditionMap(f)) {
+      op_cost_[a] += c;
+
+      if (--precondition_counter_[a] == 0)
+        MayPush(r_problem_->Effect(a), a);
+    }
+  }
+
+  return -1;
 }
 
 

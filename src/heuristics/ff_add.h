@@ -14,17 +14,17 @@ namespace pplanner {
 
 class FFAdd : public Evaluator {
  public:
-  FFAdd() : unit_cost_(false), more_helpful_(false), problem_(nullptr),
+  FFAdd() : unit_cost_(false), problem_(nullptr),
             r_problem_(nullptr), rpg_(nullptr) {}
 
   FFAdd(std::shared_ptr<const SASPlus> problem, bool simplify=true,
         bool unit_cost=false, bool more_helpful=false)
     : unit_cost_(unit_cost),
-      more_helpful_(more_helpful),
       problem_(problem),
       r_problem_(std::make_shared<RelaxedSASPlus>(*problem, simplify)),
       rpg_(nullptr) {
-    rpg_ = std::unique_ptr<RPGTable>(new RPGTable(problem, r_problem_));
+    rpg_ = std::unique_ptr<RPGTable>(
+        new RPGTable(problem, r_problem_, more_helpful));
   }
 
   ~FFAdd() {}
@@ -40,12 +40,11 @@ class FFAdd : public Evaluator {
                std::unordered_set<int> &preferred) override {
     StateToFactVector(*problem_, state, facts_);
 
-    return rpg_->PlanCost(facts_, preferred, unit_cost_, more_helpful_);
+    return rpg_->PlanCost(facts_, preferred, unit_cost_);
   }
 
  private:
   bool unit_cost_;
-  bool more_helpful_;
   std::vector<int> facts_;
   std::shared_ptr<const SASPlus> problem_;
   std::shared_ptr<RelaxedSASPlus> r_problem_;
@@ -59,8 +58,7 @@ class RWFFAdd : public RandomWalkEvaluator {
   }
 
   RWFFAdd(std::shared_ptr<const SASPlus> problem, bool simplify=false,
-          bool unit_cost=false, bool more_helpful=false)
-    : ff_(nullptr) {
+          bool unit_cost=false, bool more_helpful=false) : ff_(nullptr) {
     ff_ = std::unique_ptr<FFAdd>(
         new FFAdd(problem, simplify, unit_cost, more_helpful));
   }

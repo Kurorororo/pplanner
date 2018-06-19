@@ -11,7 +11,8 @@ namespace pplanner {
 
 void IdentifyLandmarks(std::shared_ptr<const SASPlus> problem,
                        std::shared_ptr<const RelaxedSASPlus> r_problem,
-                       std::shared_ptr<LandmarkGraph> graph);
+                       std::shared_ptr<LandmarkGraph> graph,
+                       bool use_rpg_table=false);
 } // namespace pplanner
 
 #endif // LANDMARK_DETECTION_H_

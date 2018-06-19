@@ -8,23 +8,22 @@
 #include "random_walk_evaluator.h"
 #include "sas_plus.h"
 #include "heuristics/relaxed_sas_plus.h"
-#include "heuristics/rpg.h"
+#include "heuristics/hn_rpg.h"
 
 namespace pplanner {
 
 class FF : public Evaluator {
  public:
-  FF() : unit_cost_(false), common_precond_(false), problem_(nullptr),
+  FF() : unit_cost_(false), problem_(nullptr),
          r_problem_(nullptr), rpg_(nullptr) {}
 
   FF(std::shared_ptr<const SASPlus> problem, bool simplify=false,
-     bool unit_cost=false, bool common_precond=false)
+     bool unit_cost=false)
     : unit_cost_(unit_cost),
-      common_precond_(common_precond),
       problem_(problem),
       r_problem_(std::make_shared<RelaxedSASPlus>(*problem, simplify)),
       rpg_(nullptr) {
-    rpg_ = std::unique_ptr<RPG>(new RPG(r_problem_));
+    rpg_ = std::unique_ptr<HNRPG>(new HNRPG(r_problem_));
   }
 
   ~FF() {}
@@ -32,7 +31,7 @@ class FF : public Evaluator {
   int Evaluate(const std::vector<int> &state, int node) override {
     StateToFactVector(*problem_, state, facts_);
 
-    return rpg_->PlanCost(facts_, unit_cost_, common_precond_);
+    return rpg_->PlanCost(facts_, unit_cost_);
   }
 
   int Evaluate(const std::vector<int> &state, int node,
@@ -40,16 +39,15 @@ class FF : public Evaluator {
                std::unordered_set<int> &preferred) override {
     StateToFactVector(*problem_, state, facts_);
 
-    return rpg_->PlanCost(facts_, preferred, unit_cost_, common_precond_);
+    return rpg_->PlanCost(facts_, preferred, unit_cost_);
   }
 
  private:
   bool unit_cost_;
-  bool common_precond_;
   std::vector<int> facts_;
   std::shared_ptr<const SASPlus> problem_;
   std::shared_ptr<RelaxedSASPlus> r_problem_;
-  std::unique_ptr<RPG> rpg_;
+  std::unique_ptr<HNRPG> rpg_;
 };
 
 class RWFF : public RandomWalkEvaluator {
@@ -59,10 +57,8 @@ class RWFF : public RandomWalkEvaluator {
   }
 
   RWFF(std::shared_ptr<const SASPlus> problem, bool simplify=false,
-       bool unit_cost=false, bool common_precond=false)
-    : ff_(nullptr) {
-    ff_ = std::unique_ptr<FF>(
-        new FF(problem, simplify, unit_cost, common_precond));
+       bool unit_cost=false) : ff_(nullptr) {
+    ff_ = std::unique_ptr<FF>(new FF(problem, simplify, unit_cost));
   }
 
   ~RWFF() {}
