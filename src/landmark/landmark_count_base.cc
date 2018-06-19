@@ -126,8 +126,16 @@ int LandmarkCountBase::Evaluate(const vector<int> &state,
   if (preferred.empty()) {
     disjunctive_goals.clear();
 
-    for (int i=0, n=graph_->landmark_id_max(); i<n; ++i)
-      if (IsLeaf(i, accepted)) disjunctive_goals.push_back(i);
+    for (int i=0, n=graph_->landmark_id_max(); i<n; ++i) {
+      if (!Get(accepted, i) && IsLeaf(i, accepted)) {
+        auto l = graph_->GetLandmark(i);
+
+        for (int j=0, m=l.size(); j<m; ++j) {
+          int f = problem_->Fact(l.VarValue(j));
+          disjunctive_goals.push_back(f);
+        }
+      }
+    }
 
     StateToFactVector(*problem_, state, facts);
 

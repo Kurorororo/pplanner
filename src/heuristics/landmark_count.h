@@ -69,7 +69,7 @@ class RWLandmarkCount : public RandomWalkEvaluator {
   }
 
   RWLandmarkCount(std::shared_ptr<const SASPlus> problem, bool simplify=false,
-                 bool use_rpg_table=false, bool more_helpful=false)
+                  bool use_rpg_table=false, bool more_helpful=false)
     : accepted_index_(0), lmcount_(nullptr) {
     lmcount_ = std::unique_ptr<LandmarkCountBase>(
         new LandmarkCountBase(problem, simplify, use_rpg_table, more_helpful));
