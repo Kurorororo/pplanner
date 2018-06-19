@@ -71,7 +71,7 @@ void SetFirstAchievers(const Landmark &psi, shared_ptr<const RPG> rrpg,
   if (psi_id == -1) return;
 
   for (auto o : graph->GetPossibleAchievers(psi_id))
-    if (rrpg->IsInAction(o)) graph->PushFirstAchiever(psi_id, o);
+    if (rrpg->IsApplicable(o)) graph->PushFirstAchiever(psi_id, o);
 }
 
 vector<pair<int, int> > ExtendedPreconditions(const Landmark &psi,
@@ -188,7 +188,7 @@ void RemoveNodesByRRPG(shared_ptr<const SASPlus> &problem,
   for (int i=0, m=problem->VarRange(var); i<m; ++i) {
     if (i == goal_value) continue;
     int f = problem->Fact(var, i);
-    if (!rrpg->IsInFact(f)) dtg->SoftRemoveNode(i);
+    if (!rrpg->IsIn(f)) dtg->SoftRemoveNode(i);
   }
 }
 
@@ -247,7 +247,7 @@ void ExtendPotential(
   for (int i=0, n=problem->n_variables(); i<n; ++i) {
     for (int j=0, m=problem->VarRange(i); j<m; ++j) {
       int f = problem->Fact(i, j);
-      if (rrpg->IsInFact(f)) continue;
+      if (rrpg->IsIn(f)) continue;
       if (HaveSameOperator(psi, problem, r_problem, f)) continue;
       potential_orderings[psi_id].insert(std::make_pair(i, j));
     }

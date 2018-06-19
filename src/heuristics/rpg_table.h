@@ -25,6 +25,7 @@ class RPGTable : public RPG {
       best_support_(r_problem->n_facts(), -1),
       marked_(r_problem->n_actions(), false),
       plan_set_(problem->n_actions(), false),
+      is_applicable_(problem->n_actions(), false),
       is_disjunctive_goal_(problem->n_facts(), false),
       supporters_(problem->n_facts()),
       problem_(problem),
@@ -42,10 +43,10 @@ class RPGTable : public RPG {
   void ConstructRRPG(const std::vector<int> &state,
                      const std::vector<bool> &black_list) override;
 
-  bool IsInFact(int fact) const override { return prop_cost_[fact] != -1; }
+  bool IsIn(int fact) const override { return prop_cost_[fact] != -1; }
 
-  bool IsInAction(int action) const override {
-    return precondition_counter_[action] == 0;
+  bool IsApplicable(int action) const override {
+    return is_applicable_[action];
   }
 
   void DisjunctiveHelpful(const std::vector<int> &state,
@@ -84,6 +85,7 @@ class RPGTable : public RPG {
   std::vector<int> best_support_;
   std::vector<bool> marked_;
   std::vector<bool> plan_set_;
+  std::vector<bool> is_applicable_;
   std::vector<bool> is_disjunctive_goal_;
   std::vector<std::vector<int> > supporters_;
   std::unordered_set<int> helpful_;

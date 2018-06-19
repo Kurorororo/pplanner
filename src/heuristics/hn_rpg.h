@@ -23,7 +23,7 @@ class HNRPG : public RPG {
       precondition_counter_(problem->n_actions(), -1),
       closed_(problem->n_facts(), false),
       is_disjunctive_goal_(problem->n_facts(), false),
-      is_in_(problem->n_actions(), false),
+      is_applicable_(problem->n_actions(), false),
       problem_(problem) {
         marked_[0] = std::vector<bool>(problem->n_facts(), false);
         marked_[1] = std::vector<bool>(problem->n_facts(), false);
@@ -39,19 +39,22 @@ class HNRPG : public RPG {
   void ConstructRRPG(const std::vector<int> &state,
                      const std::vector<bool> &black_list) override;
 
-  bool IsInFact(int fact) const override {
+  bool IsIn(int fact) const override {
     return fact_layer_membership_[fact] != -1;
   }
 
-  bool IsInAction(int action) const override { return is_in_[action]; }
-
-  std::vector<int> Plan(const std::vector<int> &state,
-                        std::unordered_set<int> &helpful);
+  bool IsApplicable(int action) const override {
+    return is_applicable_[action];
+  }
 
   void DisjunctiveHelpful(const std::vector<int> &state,
                           const std::vector<int> &disjunctive_goal,
                           std::unordered_set<int> &helpful,
                           bool unit_cost) override;
+
+  std::vector<int> Plan(const std::vector<int> &state,
+                        std::unordered_set<int> &helpful);
+
  private:
   void ConstructGraph(const std::vector<int> &state);
 
@@ -75,20 +78,11 @@ class HNRPG : public RPG {
 
   void ExtractHelpful(std::unordered_set<int> &helpful);
 
-  void ConstructDisjunctiveRPG(const std::vector<int> &state,
-                               const std::vector<int> &disjunctive_goals,
-                               std::unordered_set<int> &helpful,
-                               bool unit_cost);
-
   int ConstructDisjunctiveRPG(const std::vector<int> &state,
                               const std::vector<int> &disjunctive_goal,
                               std::unordered_set<int> &helpful);
 
-  void DisjunctiveSetUp(const std::vector<int> &disjunctive_goals);
-
   int DisjunctiveFactLayer();
-
-  void InitializeDisjunctiveGSet(int f);
 
   int n_layers_;
   int goal_counter_;
@@ -101,7 +95,7 @@ class HNRPG : public RPG {
   std::vector<int> scheduled_actions_;
   std::vector< std::vector<int> > g_set_;
   std::array<std::vector<bool>, 2> marked_;
-  std::vector<bool> is_in_;
+  std::vector<bool> is_applicable_;
   std::shared_ptr<const RelaxedSASPlus> problem_;
 };
 

@@ -24,9 +24,9 @@ class RPG {
       std::unordered_set<int> &helpful,
       bool unit_cost) = 0;
 
-  virtual bool IsInFact(int fact) const = 0;
+  virtual bool IsIn(int fact) const = 0;
 
-  virtual bool IsInAction(int action) const = 0;
+  virtual bool IsApplicable(int action) const = 0;
 };
 
 } // namespace pplanner

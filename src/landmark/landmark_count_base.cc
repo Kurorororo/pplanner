@@ -120,6 +120,7 @@ int LandmarkCountBase::Evaluate(const vector<int> &state,
 
   if (h == 0 || h == -1) return h;
 
+  preferred.clear();
   NextStepOperators(state, applicable, accepted, preferred);
 
   if (preferred.empty()) {

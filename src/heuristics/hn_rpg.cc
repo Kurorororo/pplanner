@@ -63,14 +63,16 @@ void HNRPG::SetUp() {
   std::fill(action_layer_membership_.begin(),
             action_layer_membership_.end(), -1);
   std::fill(closed_.begin(), closed_.end(), false);
-  std::fill(precondition_counter_.begin(), precondition_counter_.end(), 0);
+  std::fill(is_applicable_.begin(), is_applicable_.end(), false);
+
+  for (int i=0, n=problem_->n_actions(); i<n; ++i)
+    precondition_counter_[i] = problem_->PreconditionSize(i);
+
   scheduled_facts_.clear();
   scheduled_actions_.clear();
 
   for (auto &g : g_set_)
     g.clear();
-
-  std::fill(is_in_.begin(), is_in_.end(), false);
 }
 
 bool HNRPG::FactLayer() {
@@ -83,9 +85,9 @@ bool HNRPG::FactLayer() {
       return true;
 
     for (auto o : problem_->PreconditionMap(f)) {
-      if (++precondition_counter_[o] == problem_->PreconditionSize(o)) {
+      if (--precondition_counter_[o] == 0) {
+        is_applicable_[problem_->ActionId(o)] = true;
         scheduled_actions_.push_back(o);
-        is_in_[problem_->ActionId(o)] = true;
       }
     }
   }
@@ -131,9 +133,9 @@ void HNRPG::RistrictedFactLayer(const vector<bool> &black_list) {
     fact_layer_membership_[f] = n_layers_;
 
     for (auto o : problem_->PreconditionMap(f)) {
-      if (++precondition_counter_[o] == problem_->PreconditionSize(o)) {
+      if (--precondition_counter_[o] == 0) {
         int a = problem_->ActionId(o);
-        is_in_[a] = true;
+        is_applicable_[a] = true;
         if (!black_list[a]) scheduled_actions_.push_back(o);
       }
     }
@@ -255,8 +257,8 @@ void HNRPG::DisjunctiveHelpful(const vector<int> &state,
 
   if (f == -1) return;
 
-  InitializeDisjunctiveGSet(f);
-
+  g_set_.resize(n_layers_);
+  g_set_[fact_layer_membership_[f]].push_back(f);
   ExtractCost(unit_cost);
   ExtractHelpful(helpful);
 }
@@ -264,7 +266,11 @@ void HNRPG::DisjunctiveHelpful(const vector<int> &state,
 int HNRPG::ConstructDisjunctiveRPG(const vector<int> &state,
                                    const vector<int> &disjunctive_goals,
                                    unordered_set<int> &helpful) {
-  DisjunctiveSetUp(disjunctive_goals);
+  SetUp();
+  std::fill(is_disjunctive_goal_.begin(), is_disjunctive_goal_.end(), false);
+
+  for (auto g : disjunctive_goals)
+    is_disjunctive_goal_[g] = true;
 
   for (auto f : state) {
     closed_[f] = true;
@@ -286,14 +292,6 @@ int HNRPG::ConstructDisjunctiveRPG(const vector<int> &state,
   return -1;
 }
 
-void HNRPG::DisjunctiveSetUp(const vector<int> &disjunctive_goals) {
-  SetUp();
-  std::fill(is_disjunctive_goal_.begin(), is_disjunctive_goal_.end(), false);
-
-  for (auto g : disjunctive_goals)
-    is_disjunctive_goal_[g] = true;
-}
-
 int HNRPG::DisjunctiveFactLayer() {
   while (!scheduled_facts_.empty()) {
     int f = scheduled_facts_.back();
@@ -303,20 +301,14 @@ int HNRPG::DisjunctiveFactLayer() {
     if (is_disjunctive_goal_[f]) return f;
 
     for (auto o : problem_->PreconditionMap(f)) {
-      if (++precondition_counter_[o] == problem_->PreconditionSize(o)) {
+      if (--precondition_counter_[o] == 0) {
+        is_applicable_[problem_->ActionId(o)] = true;
         scheduled_actions_.push_back(o);
-        is_in_[problem_->ActionId(o)] = true;
       }
     }
   }
 
   return -1;
-}
-
-void HNRPG::InitializeDisjunctiveGSet(int f) {
-  g_set_.resize(n_layers_);
-
-  g_set_[fact_layer_membership_[f]].push_back(f);
 }
 
 } // namespace pplanner
