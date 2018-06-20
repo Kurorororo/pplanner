@@ -22,11 +22,13 @@ class LandmarkCount : public Evaluator {
 
   LandmarkCount(std::shared_ptr<const SASPlus> problem,
                 std::shared_ptr<SearchGraphWithLandmarks> search_graph,
-                bool simplify=false, bool use_rpg_table=false,
-                bool more_helpful=false) : search_graph_(search_graph),
-                                           lmcount_(nullptr){
+                bool unit_cost=true, bool simplify=false,
+                bool use_rpg_table=false, bool more_helpful=false)
+    : search_graph_(search_graph),
+      lmcount_(nullptr) {
     lmcount_ = std::unique_ptr<LandmarkCountBase>(
-        new LandmarkCountBase(problem, simplify, use_rpg_table, more_helpful));
+        new LandmarkCountBase(problem, unit_cost, simplify, use_rpg_table,
+                              more_helpful));
     search_graph->InitLandmarks(lmcount_->landmark_graph());
   }
 
@@ -68,11 +70,13 @@ class RWLandmarkCount : public RandomWalkEvaluator {
     lmcount_ = std::unique_ptr<LandmarkCountBase>(new LandmarkCountBase());
   }
 
-  RWLandmarkCount(std::shared_ptr<const SASPlus> problem, bool simplify=false,
-                  bool use_rpg_table=false, bool more_helpful=false)
-    : accepted_index_(0), lmcount_(nullptr) {
+  RWLandmarkCount(std::shared_ptr<const SASPlus> problem, bool unit_cost=true,
+                  bool simplify=false, bool use_rpg_table=false,
+                  bool more_helpful=false) : accepted_index_(0),
+                                             lmcount_(nullptr) {
     lmcount_ = std::unique_ptr<LandmarkCountBase>(
-        new LandmarkCountBase(problem, simplify, use_rpg_table, more_helpful));
+        new LandmarkCountBase(problem, unit_cost, simplify, use_rpg_table,
+                              more_helpful));
 
     auto graph = lmcount_->landmark_graph();
     size_t id_max = graph->landmark_id_max();

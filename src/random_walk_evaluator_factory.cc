@@ -84,6 +84,10 @@ std::shared_ptr<RandomWalkEvaluator> RandomWalkEvaluatorFactory(
   }
 
   if (name.get() == "lmc") {
+    bool unit_cost = problem->metric() == 0;
+    if (auto option = pt.get_optional<int>("option.unit_cost"))
+      unit_cost = option.get() == 1;
+
     bool simplify = false;
     if (auto option = pt.get_optional<int>("option.simplify"))
       simplify = option.get() == 1;
@@ -97,7 +101,7 @@ std::shared_ptr<RandomWalkEvaluator> RandomWalkEvaluatorFactory(
       more_helpful = option.get() == 1;
 
     return std::make_shared<RWLandmarkCount>(
-        problem, simplify, use_rpg_table, more_helpful);
+        problem, unit_cost, simplify, use_rpg_table, more_helpful);
   }
 
   throw std::runtime_error("No such heuristic.");

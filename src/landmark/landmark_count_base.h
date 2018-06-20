@@ -17,14 +17,16 @@ namespace pplanner {
 
 class LandmarkCountBase {
  public:
-  LandmarkCountBase() : problem_(nullptr),
+  LandmarkCountBase() : unit_cost_(true),
+                        problem_(nullptr),
                         r_problem_(nullptr),
                         rpg_(nullptr),
                         graph_(nullptr) {}
 
-  LandmarkCountBase(std::shared_ptr<const SASPlus> problem, bool simplify,
-                    bool use_rpg_table, bool more_helpful)
-    : problem_(problem),
+  LandmarkCountBase(std::shared_ptr<const SASPlus> problem, bool unit_cost,
+                    bool simplify, bool use_rpg_table, bool more_helpful)
+    : unit_cost_(unit_cost),
+      problem_(problem),
       r_problem_(std::make_shared<RelaxedSASPlus>(*problem, simplify)),
       rpg_(nullptr),
       graph_(std::make_shared<LandmarkGraph>(problem)) {
@@ -67,6 +69,7 @@ class LandmarkCountBase {
   enum LandmarkState { REACHED, NEEDED, NOT_REACHED, };
 
   int reached_size_;
+  bool unit_cost_;
   std::vector<LandmarkState> status_;
   std::shared_ptr<const SASPlus> problem_;
   std::shared_ptr<RelaxedSASPlus> r_problem_;

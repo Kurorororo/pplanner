@@ -1,7 +1,5 @@
 #include "landmark/landmark_count_base.h"
 
-#include <iostream>
-
 #include "utils/bit_vector.h"
 
 namespace pplanner {
@@ -140,9 +138,9 @@ int LandmarkCountBase::Evaluate(const vector<int> &state,
     StateToFactVector(*problem_, state, facts);
 
     if (disjunctive_goals.empty())
-      rpg_->PlanCost(facts, preferred, true);
+      rpg_->PlanCost(facts, preferred, unit_cost_);
     else
-      rpg_->DisjunctiveHelpful(facts, disjunctive_goals, preferred, true);
+      rpg_->DisjunctiveHelpful(facts, disjunctive_goals, preferred, unit_cost_);
 
     if (preferred.empty()) return -1;
   }
