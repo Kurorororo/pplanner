@@ -192,6 +192,8 @@ void RPGTable::DisjunctiveHelpful(const vector<int> &state,
 
   if (f == -1) return;
 
+  std::fill(plan_set_.begin(), plan_set_.end(), false);
+  std::fill(marked_.begin(), marked_.end(), false);
   helpful.clear();
   SetPlan(f, helpful);
 }
