@@ -11,11 +11,12 @@ namespace pplanner {
 
 class SearchGraph {
  public:
-  SearchGraph()
-    : states_(nullptr) {}
+  SearchGraph() : capacity_(0), resize_factor_(1.2), states_(nullptr) {}
 
   SearchGraph(const SASPlus &problem, int closed_exponent)
-    : states_(std::make_shared<StateVector>(problem, closed_exponent)) {}
+    : capacity_(0),
+      resize_factor_(1.2),
+      states_(std::make_shared<StateVector>(problem, closed_exponent)) {}
 
   virtual ~SearchGraph() {}
 
@@ -31,6 +32,7 @@ class SearchGraph {
     actions_.reserve(size);
     parents_.reserve(size);
     states_->Reserve(size);
+    capacity_ = size;
   }
 
   void ReserveByRAMSize(size_t ram_size) {
@@ -40,6 +42,7 @@ class SearchGraph {
 
   virtual int GenerateNode(const std::vector<int> &state, int parent,
                            int action, bool is_preferred) {
+    ReserveIfFull();
     int node = states_->Add(state);
     parents_.push_back(parent);
     actions_.push_back(action);
@@ -72,6 +75,13 @@ class SearchGraph {
   }
 
  private:
+  void ReserveIfFull() {
+    if (actions_.size() == capacity_)
+      Reserve(capacity_ * resize_factor_);
+  }
+
+  size_t capacity_;
+  float resize_factor_;
   std::vector<int> actions_;
   std::vector<int> parents_;
   std::shared_ptr<StateVector> states_;
