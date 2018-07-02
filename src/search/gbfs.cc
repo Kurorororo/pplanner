@@ -1,7 +1,5 @@
 #include "search/gbfs.h"
 
-#include <cassert>
-
 #include <algorithm>
 #include <iostream>
 
@@ -56,75 +54,90 @@ void GBFS::Init(const boost::property_tree::ptree &pt) {
     graph_->ReserveByRAMSize(5000000000);
 }
 
-int GBFS::Search() {
+vector<int> GBFS::InitialExpand() {
   auto state = problem_->initial();
   int node = graph_->GenerateNode(state, -1, -1, true);
   ++generated_;
 
-  int best_h = open_list_->EvaluateAndPush(state, node, true);
-  std::cout << "Initial heuristic value: " << best_h << std::endl;
+  best_h_ = open_list_->EvaluateAndPush(state, node, true);
+  std::cout << "Initial heuristic value: " << best_h_ << std::endl;
   ++evaluated_;
 
-  vector<int> child(state);
-  vector<int> applicable;
-  unordered_set<int> preferred;
+  return state;
+}
 
-  while (!open_list_->IsEmpty()) {
-    int node = open_list_->Pop();
-    ++expanded_;
+int GBFS::Expand(int node, vector<int> &state, vector<int> &child,
+                 vector<int> &applicable, unordered_set<int> &preferred) {
+  ++expanded_;
 
-    if (graph_->GetStateAndClosed(node, state) != -1) continue;
-    graph_->Close(node);
+  if (graph_->GetStateAndClosed(node, state) != -1) return -1;
+  graph_->Close(node);
 
-    if (problem_->IsGoal(state)) return node;
+  if (problem_->IsGoal(state)) return node;
 
-    generator_->Generate(state, applicable);
+  generator_->Generate(state, applicable);
 
-    if (applicable.empty()) {
+  if (applicable.empty()) {
+    ++dead_ends_;
+    return -1;
+  }
+
+  if (use_preferred_)
+    preferring_->Evaluate(state, node, applicable, preferred);
+
+  ++n_preferred_evaluated_;
+
+  for (auto o : applicable) {
+    child = state;
+    problem_->ApplyEffect(o, child);
+
+    bool is_preferred = use_preferred_ && preferred.find(o) != preferred.end();
+
+    int child_node = graph_->GenerateNodeIfNotClosed(
+        child, node, o, is_preferred);
+    if (child_node == -1) continue;
+    ++generated_;
+
+    int h = open_list_->EvaluateAndPush(child, child_node, is_preferred);
+    ++evaluated_;
+
+    if (h == -1) {
       ++dead_ends_;
       continue;
     }
 
-    if (use_preferred_)
-      preferring_->Evaluate(state, node, applicable, preferred);
+    if (is_preferred) ++n_preferreds_;
+    ++n_branching_;
 
-    ++n_preferred_evaluated_;
+    if (h < best_h_) {
+      best_h_ = h;
+      std::cout << "New best heuristic value: " << best_h_ << std::endl;
+      std::cout << "[" << evaluated_ << " evaluated, "
+                << expanded_ << " expanded]" << std::endl;
 
-    for (auto o : applicable) {
-      child = state;
-      problem_->ApplyEffect(o, child);
-
-      bool is_preferred = use_preferred_ && preferred.find(o) != preferred.end();
-
-      int child_node = graph_->GenerateNodeIfNotClosed(child, node, o,
-                                                       is_preferred);
-      if (child_node == -1) continue;
-      ++generated_;
-
-      int h = open_list_->EvaluateAndPush(child, child_node, is_preferred);
-      ++evaluated_;
-
-      if (h == -1) {
-        ++dead_ends_;
-        continue;
-      }
-
-      if (is_preferred) ++n_preferreds_;
-      ++n_branching_;
-
-      if (h < best_h) {
-        best_h = h;
-        std::cout << "New best heuristic value: " << best_h << std::endl;
-        std::cout << "[" << evaluated_ << " evaluated, "
-                  << expanded_ << " expanded]" << std::endl;
-
-        if (use_preferred_) open_list_->Boost();
-      }
+      if (use_preferred_) open_list_->Boost();
     }
   }
 
   return -1;
 }
+
+int GBFS::Search() {
+  auto state = InitialExpand();
+  vector<int> child(state);
+  vector<int> applicable;
+  unordered_set<int> preferred;
+
+  while (!NoNode()) {
+    int node = NodeToExpand();
+    int goal = Expand(node, state, child, applicable, preferred);
+
+    if (goal != -1) return goal;
+  }
+
+  return -1;
+}
+
 
 void GBFS::DumpStatistics() const {
   std::cout << "Expanded " << expanded_ << " state(s)" << std::endl;

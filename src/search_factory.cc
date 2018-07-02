@@ -1,6 +1,7 @@
 #include "search_factory.h"
 
 #include "search/gbfs.h"
+#include "search/kgbfs.h"
 #include "search/lazy_gbfs.h"
 #include "search/mrw13.h"
 
@@ -24,6 +25,9 @@ std::unique_ptr<Search> SearchFactory(const std::shared_ptr<SASPlus> &problem,
 
   if (search.get() == "lazy_gbfs")
     return std::unique_ptr<LazyGBFS>(new LazyGBFS(problem, option.get()));
+
+  if (search.get() == "kgbfs")
+    return std::unique_ptr<KGBFS>(new KGBFS(problem, option.get()));
 
   throw std::runtime_error("No such search algorithm.");
 }

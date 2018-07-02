@@ -148,12 +148,14 @@ $(BIN_DIR)/libopen_lists.a: \
 $(BIN_DIR)/libsearch.a: \
 	$(BIN_DIR)/search.o \
 	$(BIN_DIR)/search_factory.o \
+	$(BIN_DIR)/search/kgbfs.o \
 	$(BIN_DIR)/search/gbfs.o \
 	$(BIN_DIR)/search/lazy_gbfs.o \
 	$(BIN_DIR)/search/mrw13.o
 	ar rcs $(BIN_DIR)/libsearch.a \
 		$(BIN_DIR)/search.o \
 		$(BIN_DIR)/search_factory.o \
+		$(BIN_DIR)/search/kgbfs.o \
 		$(BIN_DIR)/search/gbfs.o \
 		$(BIN_DIR)/search/lazy_gbfs.o \
 		$(BIN_DIR)/search/mrw13.o

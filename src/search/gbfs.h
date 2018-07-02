@@ -37,7 +37,7 @@ class GBFS : public Search {
       graph_(nullptr),
       open_list_(nullptr) { Init(pt); }
 
-  ~GBFS() {}
+  virtual ~GBFS() {}
 
   std::vector<int> Plan() override {
     int goal = Search();
@@ -47,10 +47,19 @@ class GBFS : public Search {
 
   void DumpStatistics() const override;
 
+  virtual int Search();
+
+  bool NoNode() const { return open_list_->IsEmpty(); }
+
+  int NodeToExpand() { return open_list_->Pop(); }
+
+  std::vector<int> InitialExpand();
+
+  int Expand(int node, std::vector<int> &state, std::vector<int> &child,
+             std::vector<int> &applicable, std::unordered_set<int> &preferred);
+
  private:
   void Init(const boost::property_tree::ptree &pt);
-
-  int Search();
 
   bool use_preferred_;
   int generated_;
@@ -60,6 +69,7 @@ class GBFS : public Search {
   int n_preferred_evaluated_;
   int n_branching_;
   int n_preferreds_;
+  int best_h_;
   std::shared_ptr<const SASPlus> problem_;
   std::shared_ptr<Evaluator> preferring_;
   std::unique_ptr<SuccessorGenerator> generator_;
