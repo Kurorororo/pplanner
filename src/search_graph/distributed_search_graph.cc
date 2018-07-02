@@ -4,14 +4,13 @@ namespace pplanner {
 
 using std::vector;
 
-void DistributedSearchGraph::BufferNode(int to_rank, int parent, int action,
-                                        int parent_rank,
+void DistributedSearchGraph::BufferNode(int parent, int action,
                                         const vector<int> &state,
                                         unsigned char *buffer) {
   int info[3];
   info[0] = parent;
   info[1] = action;
-  info[2] = parent_rank;
+  info[2] = rank_;
   memcpy(buffer, info, 3 * sizeof(int));
   uint32_t *packed = reinterpret_cast<uint32_t*>(buffer + 3 * sizeof(int));
   PackState(state, packed);

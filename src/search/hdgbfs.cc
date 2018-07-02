@@ -16,6 +16,8 @@ using std::unordered_set;
 using std::vector;
 
 void HDGBFS::Init(const boost::property_tree::ptree &pt) {
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank_);
+
   int closed_exponent = 22;
 
   if (auto closed_exponent_opt = pt.get_optional<int>("closed_exponent"))
@@ -23,9 +25,10 @@ void HDGBFS::Init(const boost::property_tree::ptree &pt) {
 
   if (auto use_landmark = pt.get_optional<int>("landmark"))
     graph_ = make_shared<DistributedSearchGraphWithLandmarks>(
-        *problem_, closed_exponent);
+        *problem_, closed_exponent, rank_);
   else
-    graph_ = make_shared<DistributedSearchGraph>(*problem_, closed_exponent);
+    graph_ = make_shared<DistributedSearchGraph>(
+        *problem_, closed_exponent, rank_);
 
   vector<std::shared_ptr<Evaluator> > evaluators;
 
@@ -55,10 +58,9 @@ void HDGBFS::Init(const boost::property_tree::ptree &pt) {
     graph_->ReserveByRAMSize(5000000000);
 
   MPI_Comm_size(MPI_COMM_WORLD, &world_size_);
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank_);
 
   unsigned int buffer_size =
-    (graph_->NodeSize() + MPI_BSEND_OVERHEAD) * world_size_ * 500000;
+    (graph_->NodeSize() + MPI_BSEND_OVERHEAD) * world_size_ * 50000;
   mpi_buffer_ = new unsigned char[buffer_size];
   MPI_Buffer_attach((void*)mpi_buffer_, buffer_size);
 
@@ -134,6 +136,7 @@ int HDGBFS::Expand(int node, vector<int> &state, vector<int> &child,
     int to_rank = z_hash_->operator()(child) % static_cast<size_t>(world_size_);
 
     if (to_rank == rank_) {
+      std::cout << "local " << node << std::endl;
       int child_node = graph_->GenerateNodeIfNotClosed(
           child, node, o, is_preferred, rank_);
       if (child_node == -1) continue;
@@ -144,7 +147,7 @@ int HDGBFS::Expand(int node, vector<int> &state, vector<int> &child,
       size_t index = outgoing_buffers_[to_rank].size();
       outgoing_buffers_[to_rank].resize(index + graph_->NodeSize());
       unsigned char *buffer = outgoing_buffers_[to_rank].data() + index;
-      graph_->BufferNode(to_rank, node, o, rank_, child, buffer);
+      graph_->BufferNode(node, o, child, buffer);
     }
   }
 

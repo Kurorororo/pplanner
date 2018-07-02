@@ -100,12 +100,8 @@ std::shared_ptr<Evaluator> EvaluatorFactory(
     if (auto option = pt.get_optional<int>("option.more"))
       more_helpful = option.get() == 1;
 
-    if (auto g = std::dynamic_pointer_cast<SearchGraphWithLandmarks>(graph)) {
-      return std::make_shared<LandmarkCount>(
-          problem, g, unit_cost, simplify, use_rpg_table, more_helpful);
-    } else {
-      throw std::runtime_error("Use SearchGraphWithLandmarks for lmcount.");
-    }
+    return std::make_shared<LandmarkCount>(
+        problem, graph, unit_cost, simplify, use_rpg_table, more_helpful);
   }
 
   throw std::runtime_error("No such heuristic.");

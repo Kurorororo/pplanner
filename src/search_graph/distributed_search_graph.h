@@ -16,8 +16,8 @@ class DistributedSearchGraph : public SearchGraph {
 
   DistributedSearchGraph() : SearchGraph() {}
 
-  DistributedSearchGraph(const SASPlus &problem, int closed_exponent)
-    : SearchGraph(problem, closed_exponent) {}
+  DistributedSearchGraph(const SASPlus &problem, int closed_exponent, int rank)
+    : SearchGraph(problem, closed_exponent), rank_(rank) {}
 
   ~DistributedSearchGraph() {}
 
@@ -68,12 +68,15 @@ class DistributedSearchGraph : public SearchGraph {
 
   virtual int GenerateNode(const unsigned char *d, int *h);
 
-  virtual void BufferNode(int to_rank, int parent, int action, int parent_rank,
-                          const std::vector<int> &state, unsigned char *buffer);
+  virtual void BufferNode(int parent, int action, const std::vector<int> &state,
+                          unsigned char *buffer);
+
+  int rank() const { return rank_; }
 
   int ParentRank(int i) const { return parent_ranks_[i]; }
 
  private:
+  int rank_;
   std::vector<int> parent_ranks_;
 };
 

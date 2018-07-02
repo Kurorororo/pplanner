@@ -21,7 +21,7 @@ class LandmarkCount : public Evaluator {
   }
 
   LandmarkCount(std::shared_ptr<const SASPlus> problem,
-                std::shared_ptr<SearchGraphWithLandmarks> search_graph,
+                std::shared_ptr<SearchGraph> search_graph,
                 bool unit_cost=true, bool simplify=false,
                 bool use_rpg_table=false, bool more_helpful=false)
     : search_graph_(search_graph),
@@ -34,12 +34,7 @@ class LandmarkCount : public Evaluator {
 
   int Evaluate(const std::vector<int> &state, int node) override {
     uint8_t *accepted = search_graph_->Landmark(node);
-    uint8_t *parent_accepted = nullptr;
-
-    if (node > 0) {
-      int parent = search_graph_->Parent(node);
-      parent_accepted = search_graph_->Landmark(parent);
-    }
+    uint8_t *parent_accepted = search_graph_->ParentLandmark(node);
 
     return lmcount_->Evaluate(state, parent_accepted, accepted);
   }
@@ -48,19 +43,14 @@ class LandmarkCount : public Evaluator {
                const std::vector<int> &applicable,
                std::unordered_set<int> &preferred) override {
     uint8_t *accepted = search_graph_->Landmark(node);
-    uint8_t *parent_accepted = nullptr;
-
-    if (node > 0) {
-      int parent = search_graph_->Parent(node);
-      parent_accepted = search_graph_->Landmark(parent);
-    }
+    uint8_t *parent_accepted = search_graph_->ParentLandmark(node);
 
     return lmcount_->Evaluate(
         state, applicable, parent_accepted, accepted, preferred);
   }
 
  private:
-  std::shared_ptr<SearchGraphWithLandmarks> search_graph_;
+  std::shared_ptr<SearchGraph> search_graph_;
   std::unique_ptr<LandmarkCountBase> lmcount_;
 };
 

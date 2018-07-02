@@ -5,7 +5,7 @@
 #include <vector>
 
 #include "sas_plus.h"
-#include "search_graph.h"
+#include "search_graph/distributed_search_graph.h"
 #include "landmark/landmark_graph.h"
 
 namespace pplanner {
@@ -16,17 +16,20 @@ class DistributedSearchGraphWithLandmarks : public DistributedSearchGraph {
                                           n_landmarks_bytes_(0) {}
 
   DistributedSearchGraphWithLandmarks(const SASPlus &problem,
-                                      int closed_exponent)
-    : DistributedSearchGraph(problem, closed_exponent), n_landmarks_bytes_(0) {}
+                                      int closed_exponent, int rank)
+    : DistributedSearchGraph(problem, closed_exponent, rank),
+      n_landmarks_bytes_(0) {}
 
   virtual ~DistributedSearchGraphWithLandmarks() {}
 
-  void InitLandmarks(std::shared_ptr<const LandmarkGraph> graph) {
+  void InitLandmarks(std::shared_ptr<const LandmarkGraph> graph) override {
     n_landmarks_bytes_ = (graph->landmark_id_max() + 7) / 8;
+    parent_landmark_.resize(n_landmarks_bytes_, 0);
   }
 
   virtual size_t NodeSize() const override {
     int node_size = DistributedSearchGraph::NodeSize();
+
     return n_landmarks_bytes_ * sizeof(uint8_t) + node_size;
   }
 
@@ -78,12 +81,22 @@ class DistributedSearchGraphWithLandmarks : public DistributedSearchGraph {
     return node;
   }
 
-  uint8_t* Landmark(int i) {
+  virtual int GenerateNodeIfNotClosed(const unsigned char *d) override;
+
+  virtual int GenerateNode(const unsigned char *d, int *h) override;
+
+  virtual void BufferNode(int parent, int action, const std::vector<int> &state,
+                          unsigned char *buffer) override;
+
+  uint8_t* Landmark(int i) override {
     return landmarks_.data() + i * n_landmarks_bytes_;
   }
 
+  uint8_t* ParentLandmark(int i) override;
+
  private:
   size_t n_landmarks_bytes_;
+  std::vector<uint8_t> parent_landmark_;
   std::vector<uint8_t> landmarks_;
 };
 

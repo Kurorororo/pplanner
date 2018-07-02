@@ -7,6 +7,7 @@
 
 #include "sas_plus.h"
 #include "search_graph/state_vector.h"
+#include "landmark/landmark_graph.h"
 
 namespace pplanner {
 
@@ -20,6 +21,8 @@ class SearchGraph {
       states_(std::make_shared<StateVector>(problem, closed_exponent)) {}
 
   virtual ~SearchGraph() {}
+
+  virtual void InitLandmarks(std::shared_ptr<const LandmarkGraph> graph) {}
 
   virtual size_t NodeSize() const {
     assert(states_ != nullptr);
@@ -93,6 +96,10 @@ class SearchGraph {
 
     return node;
   }
+
+  virtual uint8_t* Landmark(int i) { return nullptr; }
+
+  virtual uint8_t* ParentLandmark(int i) { return nullptr; }
 
   int GetStateAndClosed(int i, std::vector<int> &state) const {
     return states_->GetStateAndClosed(i, state);
