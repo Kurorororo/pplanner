@@ -23,7 +23,6 @@ void DistributedSearchGraphWithLandmarks::BufferNode(int parent, int action,
   DistributedSearchGraph::BufferNode(parent, action, state, buffer);
   uint8_t *landmark = reinterpret_cast<uint8_t*>(
       buffer + SearchGraph::NodeSize());
-  std::cout << "remote " << parent << std::endl;
   memcpy(landmark, Landmark(parent), n_landmarks_bytes_ * sizeof(uint8_t));
 }
 

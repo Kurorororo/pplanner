@@ -136,7 +136,6 @@ int HDGBFS::Expand(int node, vector<int> &state, vector<int> &child,
     int to_rank = z_hash_->operator()(child) % static_cast<size_t>(world_size_);
 
     if (to_rank == rank_) {
-      std::cout << "local " << node << std::endl;
       int child_node = graph_->GenerateNodeIfNotClosed(
           child, node, o, is_preferred, rank_);
       if (child_node == -1) continue;
