@@ -131,7 +131,7 @@ int HDGBFS::Expand(int node, vector<int> &state, vector<int> &child,
     bool is_preferred = use_preferred_ && preferred.find(o) != preferred.end();
     if (is_preferred) ++n_preferreds_;
 
-    int to_rank = z_hash_->operator()(state) % static_cast<size_t>(world_size_);
+    int to_rank = z_hash_->operator()(child) % static_cast<size_t>(world_size_);
 
     if (to_rank == rank_) {
       int child_node = graph_->GenerateNodeIfNotClosed(
@@ -162,11 +162,14 @@ void HDGBFS::Evaluate(const vector<int> &state, int node) {
     return;
   }
 
-  if (h < best_h_) {
+  if (best_h_ == -1 || h < best_h_) {
     best_h_ = h;
-    std::cout << "New best heuristic value: " << best_h_ << std::endl;
-    std::cout << "[" << evaluated_ << " evaluated, "
-              << expanded_ << " expanded]" << std::endl;
+
+    if (rank_ == 0) {
+      std::cout << "New best heuristic value: " << best_h_ << std::endl;
+      std::cout << "[" << evaluated_ << " evaluated, "
+                << expanded_ << " expanded]" << std::endl;
+    }
 
     if (use_preferred_) open_list_->Boost();
   }
@@ -196,11 +199,14 @@ void HDGBFS::ReceiveNodes() {
     MPI_Recv(incoming_buffer_.data(), d_size, MPI_BYTE, source, kNodeTag,
              MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-    for (int i=0, n=d_size/node_size; i<n; ++i) {
+    int n_nodes = d_size / node_size;
+
+    for (int i=0; i<n_nodes; ++i) {
       unsigned char *d = incoming_buffer_.data() + i * node_size;
       int node = graph_->GenerateNodeIfNotClosed(d);
 
       if (node != -1) {
+        ++generated_;
         graph_->State(node, tmp_state_);
         Evaluate(tmp_state_, node);
       }

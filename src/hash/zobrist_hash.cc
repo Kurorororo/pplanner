@@ -7,8 +7,8 @@ namespace pplanner {
 ZobristHash::ZobristHash(std::shared_ptr<const SASPlus> problem)
   : n_(static_cast<int>(problem->n_variables())),
     problem_(problem) {
-  // std::random_device rng;
-  // std::mt19937_64 mt(rng());
+  //std::random_device rng;
+  //std::mt19937_64 mt(rng());
   std::mt19937_64 mt(2886379259);
   array_.resize(problem_->n_facts());
 
