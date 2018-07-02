@@ -48,16 +48,13 @@ void StateVector::Close(int node) {
   closed_[i] = node;
 }
 
-int StateVector::AddIfNotClosed(const vector<int> &state) {
-  packer_->Pack(state, tmp_packed_.data());
-
-  if (GetClosedFromPacked(tmp_packed_.data()) != -1) return -1;
+int StateVector::AddIfNotClosed(const uint32_t *packed) {
+  if (GetClosedFromPacked(packed) != -1) return -1;
 
   size_t old_size = states_.size();
   size_t b_size = packer_->block_size();
   states_.resize(old_size + b_size);
-  memcpy(states_.data() + old_size, tmp_packed_.data(),
-         b_size * sizeof(uint32_t));
+  memcpy(states_.data() + old_size, packed, b_size * sizeof(uint32_t));
 
   return static_cast<int>(old_size / b_size);
 }

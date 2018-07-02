@@ -1,18 +1,49 @@
 #include <chrono>
 #include <iostream>
 
+#include <mpi.h>
+
 #include <boost/program_options.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
 #include "sas_plus.h"
-#include "search_factory.h"
+#include "mpi_search_factory.h"
 #include "postprocess/action_elimination.h"
 #include "utils/file_utils.h"
 
 using namespace pplanner;
 
+bool Run(std::shared_ptr<const SASPlus> sas,
+         const boost::property_tree::ptree &pt,
+         bool postprocess) {
+  auto chrono_start = std::chrono::system_clock::now();
+  auto search = MpiSearchFactory(sas, pt);
+  auto result = search->Plan();
+  auto chrono_end = std::chrono::system_clock::now();
+  auto ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
+     chrono_end - chrono_start).count();
+  auto search_time = static_cast<double>(ns) / 1e9;
+
+  if (postprocess) result = ActionElimination(*sas, result);
+
+  if (result.empty() || result[0] > 0)
+    WritePlan(*sas, result);
+
+  search->DumpStatistics();
+  std::cout << "Search time: " << search_time << "s" << std::endl;
+
+  if (!result.empty() && result[0] == -1) {
+    std::cerr << "faild to solve instance" << std::endl;
+    return false;
+  }
+
+  return true;
+}
+
 int main(int argc, char *argv[]) {
+  MPI_Init(&argc, &argv);
+
   namespace po = boost::program_options;
   po::options_description opt("Options");
   opt.add_options()
@@ -46,30 +77,10 @@ int main(int argc, char *argv[]) {
   read_json(config_filename, pt);
   auto child = pt.get_child_optional("config");
   if (!child) throw std::runtime_error("Invalid config file.");
+  bool postprocess = vm.count("postprocess");
+  bool result = Run(sas, child.get(), postprocess);
 
-  int max_expansion = -1;
-  if (vm.count("max_expansion")) max_expansion = vm["max_expansion"].as<int>();
+  MPI_Finalize();
 
-  auto chrono_start = std::chrono::system_clock::now();
-  auto search = SearchFactory(sas, child.get(), max_expansion);
-  auto result = search->Plan();
-  auto chrono_end = std::chrono::system_clock::now();
-  auto ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
-     chrono_end - chrono_start).count();
-  auto search_time = static_cast<double>(ns) / 1e9;
-
-  if (vm.count("postprocess")) result = ActionElimination(*sas, result);
-
-  if (result.empty() || result[0] > 0)
-    WritePlan(*sas, result);
-
-  search->DumpStatistics();
-
-  std::cout << "Search time: " << search_time << "s" << std::endl;
-
-  if (!result.empty() && result[0] == -1) {
-    std::cerr << "faild to solve instance" << std::endl;
-    exit(1);
-  }
-
+  if (!result) exit(1);
 }

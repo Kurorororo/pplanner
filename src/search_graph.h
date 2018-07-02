@@ -5,6 +5,7 @@
 
 #include <vector>
 
+#include "sas_plus.h"
 #include "search_graph/state_vector.h"
 
 namespace pplanner {
@@ -44,8 +45,16 @@ class SearchGraph {
                            int action, bool is_preferred) {
     ReserveIfFull();
     int node = states_->Add(state);
-    parents_.push_back(parent);
-    actions_.push_back(action);
+    AddEdge(parent, action);
+
+    return node;
+  }
+
+  virtual int GenerateNode(const uint32_t *packed, int parent, int action,
+                           bool is_preferred) {
+    ReserveIfFull();
+    int node = states_->Add(packed);
+    AddEdge(parent, action);
 
     return node;
   }
@@ -68,16 +77,40 @@ class SearchGraph {
 
   virtual int GenerateNodeIfNotClosed(const std::vector<int> &state,
                                       int parent, int action,
-                                      bool is_preferred);
+                                      bool is_preferred) {
+    ReserveIfFull();
+    int node = states_->AddIfNotClosed(state);
+    if (node != -1) AddEdge(parent, action);
+
+    return node;
+  }
+
+  virtual int GenerateNodeIfNotClosed(const uint32_t *packed, int parent,
+                                      int action, bool is_preferred) {
+    ReserveIfFull();
+    int node = states_->AddIfNotClosed(packed);
+    if (node != -1) AddEdge(parent, action);
+
+    return node;
+  }
 
   int GetStateAndClosed(int i, std::vector<int> &state) const {
     return states_->GetStateAndClosed(i, state);
+  }
+
+  void PackState(const std::vector<int> &state, uint32_t *packed) const {
+    return states_->PackState(state, packed);
   }
 
  private:
   void ReserveIfFull() {
     if (actions_.size() == capacity_)
       Reserve(capacity_ * resize_factor_);
+  }
+
+  void AddEdge(int parent, int action) {
+    parents_.push_back(parent);
+    actions_.push_back(action);
   }
 
   size_t capacity_;

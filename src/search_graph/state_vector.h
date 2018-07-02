@@ -38,18 +38,32 @@ class StateVector {
     states_.reserve(packer_->block_size() * size);
   }
 
+  void PackState(const std::vector<int> &state, uint32_t *packed) const {
+    packer_->Pack(state, packed);
+  }
+
   int Add(const std::vector<int> &state) {
     size_t old_size = states_.size();
     size_t b_size = packer_->block_size();
     states_.resize(old_size + b_size);
-    packer_->Pack(state, states_.data() + old_size);
+    PackState(state, states_.data() + old_size);
+
+    return static_cast<int>(old_size / b_size);
+  }
+
+  int Add(const uint32_t *packed) {
+    size_t old_size = states_.size();
+    size_t b_size = packer_->block_size();
+    states_.resize(old_size + b_size);
+    memcpy(states_.data() + old_size, packed, b_size);
 
     return static_cast<int>(old_size / b_size);
   }
 
   void Get(int i, std::vector<int> &state) const {
-    size_t index = static_cast<size_t>(i) * packer_->block_size();
-    packer_->Unpack(states_.data() + index, state);
+    size_t b_size = packer_->block_size();
+    const uint32_t *packed = states_.data() + static_cast<size_t>(i) * b_size;
+    packer_->Unpack(packed, state);
   }
 
   size_t closed_size() const { return closed_.size() * sizeof(int); }
@@ -57,14 +71,22 @@ class StateVector {
   void Close(int node);
 
   int GetClosed(const std::vector<int> &state) const {
-    packer_->Pack(state, tmp_packed_.data());
+    PackState(state, tmp_packed_.data());
 
     return GetClosedFromPacked(tmp_packed_.data());
   }
 
-  int AddIfNotClosed(const std::vector<int> &state);
+  int AddIfNotClosed(const uint32_t *packed);
+
+  int AddIfNotClosed(const std::vector<int> &state) {
+    PackState(state, tmp_packed_.data());
+
+    return AddIfNotClosed(tmp_packed_.data());
+  }
 
   int GetStateAndClosed(int i, std::vector<int> &state) const;
+
+  int GetClosedFromPacked(const uint32_t *ptr) const;
 
  private:
   void InitClosed() {
@@ -78,8 +100,6 @@ class StateVector {
   }
 
   void ResizeClosed();
-
-  int GetClosedFromPacked(const uint32_t *ptr) const;
 
   size_t n_closed_;
   int closed_exponent_;

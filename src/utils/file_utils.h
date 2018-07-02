@@ -3,10 +3,15 @@
 
 #include <queue>
 #include <string>
+#include <vector>
+
+#include "sas_plus.h"
 
 namespace pplanner {
 
 std::queue<std::string> FileToLines(const std::string &filename);
+
+void WritePlan(const SASPlus &sas, const std::vector<int> &plan);
 
 } // namespace pplanner
 

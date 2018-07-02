@@ -86,12 +86,14 @@ int GBFS::Expand(int node, vector<int> &state, vector<int> &child,
     preferring_->Evaluate(state, node, applicable, preferred);
 
   ++n_preferred_evaluated_;
+  n_branching_ += applicable.size();
 
   for (auto o : applicable) {
     child = state;
     problem_->ApplyEffect(o, child);
 
     bool is_preferred = use_preferred_ && preferred.find(o) != preferred.end();
+    if (is_preferred) ++n_preferreds_;
 
     int child_node = graph_->GenerateNodeIfNotClosed(
         child, node, o, is_preferred);
@@ -105,9 +107,6 @@ int GBFS::Expand(int node, vector<int> &state, vector<int> &child,
       ++dead_ends_;
       continue;
     }
-
-    if (is_preferred) ++n_preferreds_;
-    ++n_branching_;
 
     if (h < best_h_) {
       best_h_ = h;

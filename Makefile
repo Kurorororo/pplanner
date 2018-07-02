@@ -36,6 +36,38 @@ planner: \
 		$(BIN_DIR)/libsas_plus.a \
 		$(LIBS)
 
+mpi_planner: \
+	$(SRC_DIR)/mpi_planner.cc \
+	$(SRC_DIR)/mpi_search_factory.cc \
+	$(SRC_DIR)/search/hdgbfs.cc \
+	$(BIN_DIR)/successor_generator.o \
+	$(BIN_DIR)/postprocess/action_elimination.o \
+	$(BIN_DIR)/hash/zobrist_hash.o \
+	$(BIN_DIR)/utils/file_utils.o \
+	$(BIN_DIR)/libsearch.a \
+	$(BIN_DIR)/libopen_lists.a \
+	$(BIN_DIR)/libevaluators.a \
+	$(BIN_DIR)/liblandmark.a \
+	$(BIN_DIR)/libff.a \
+	$(BIN_DIR)/libsearch_graph.a \
+	$(BIN_DIR)/libsas_plus.a
+	$(MPIXX) $(INCS) $(RELEASE_FLAG) -o $(BIN_DIR)/mpi_planner \
+		$(SRC_DIR)/mpi_planner.cc \
+		$(SRC_DIR)/mpi_search_factory.cc \
+		$(SRC_DIR)/search/hdgbfs.cc \
+		$(BIN_DIR)/successor_generator.o \
+		$(BIN_DIR)/postprocess/action_elimination.o \
+		$(BIN_DIR)/hash/zobrist_hash.o \
+		$(BIN_DIR)/utils/file_utils.o \
+		$(BIN_DIR)/libsearch.a \
+		$(BIN_DIR)/libopen_lists.a \
+		$(BIN_DIR)/libevaluators.a \
+		$(BIN_DIR)/liblandmark.a \
+		$(BIN_DIR)/libff.a \
+		$(BIN_DIR)/libsearch_graph.a \
+		$(BIN_DIR)/libsas_plus.a \
+		$(LIBS)
+
 sas_relaxed_graphplan: \
 	$(TEST_DIR)/heuristics/sas_relaxed_graphplan.cc \
 	$(BIN_DIR)/heuristics/rpg.o \
@@ -106,10 +138,12 @@ $(BIN_DIR)/libsas_plus.a: \
 
 $(BIN_DIR)/libsearch_graph.a: \
 	$(BIN_DIR)/search_graph.o \
+	$(BIN_DIR)/search_graph/distributed_search_graph.o \
 	$(BIN_DIR)/search_graph/state_vector.o \
 	$(BIN_DIR)/search_graph/state_packer.o
 	ar rcs $(BIN_DIR)/libsearch_graph.a \
 		$(BIN_DIR)/search_graph.o \
+		$(BIN_DIR)/search_graph/distributed_search_graph.o \
 		$(BIN_DIR)/search_graph/state_vector.o \
 		$(BIN_DIR)/search_graph/state_packer.o
 
