@@ -25,22 +25,20 @@ bool Run(std::shared_ptr<const SASPlus> sas,
      chrono_end - chrono_start).count();
   auto search_time = static_cast<double>(ns) / 1e9;
 
-  int rank;
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-
-  if (rank == 0) {
+  if (!result.empty()) {
     if (postprocess) result = ActionElimination(*sas, result);
-
 
     if (result.empty() || result[0] > 0)
       WritePlan(*sas, result);
-
-    search->DumpStatistics();
-    std::cout << "Search time: " << search_time << "s" << std::endl;
   }
 
+  search->DumpStatistics();
+
+  if (!result.empty())
+    std::cout << "Search time: " << search_time << "s" << std::endl;
+
   if (!result.empty() && result[0] == -1) {
-    if (rank == 0) std::cerr << "faild to solve instance" << std::endl;
+    std::cerr << "faild to solve instance" << std::endl;
     return false;
   }
 
