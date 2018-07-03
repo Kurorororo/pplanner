@@ -4,19 +4,17 @@
 
 namespace pplanner {
 
-ZobristHash::ZobristHash(std::shared_ptr<const SASPlus> problem)
+ZobristHash::ZobristHash(std::shared_ptr<const SASPlus> problem, uint64_t seed)
   : n_(static_cast<int>(problem->n_variables())),
     problem_(problem) {
-  //std::random_device rng;
-  //std::mt19937_64 mt(rng());
-  std::mt19937_64 mt(2886379259);
+  std::mt19937_64 mt(seed);
   array_.resize(problem_->n_facts());
 
   for (auto &v : array_)
     v = mt();
 }
 
-size_t ZobristHash::operator()(const std::vector<int> &state) const {
+uint64_t ZobristHash::operator()(const std::vector<int> &state) const {
   size_t seed = 0;
 
   for (int i=0, n=n_; i<n; ++i)

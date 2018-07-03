@@ -7,108 +7,117 @@
 #include <iostream>
 #include <vector>
 
-#include "hash/array_hash.h"
+#include "hash/zobrist_hash.h"
 #include "search_graph/state_packer.h"
 
 namespace pplanner {
 
 class StateVector {
  public:
-  StateVector()
-    : n_closed_(0),
-      closed_exponent_(0),
-      closed_mask_(0),
-      packer_(nullptr) {}
-
-  StateVector(const SASPlus &problem, int closed_exponent=22)
+  StateVector(std::shared_ptr<const SASPlus> problem, int closed_exponent=22)
     : n_closed_(0),
       closed_exponent_(closed_exponent),
       closed_mask_((1u << closed_exponent) - 1),
-      packer_(std::make_shared<StatePacker>(problem)) {
-    InitClosed();
+      closed_(1 << closed_exponent, -1),
+      packer_(problem),
+      hash_(std::make_shared<ZobristHash>(problem)),
+      tmp_state_(problem->n_variables()) {
+    tmp_packed_.resize(packer_->block_size(), 0);
   }
 
   size_t size() const { return states_.size() / packer_->block_size(); }
 
   size_t state_size() const { return packer_->block_size() * sizeof(uint32_t); }
 
-  void Reserve(size_t size) {
-    assert(packer_ != nullptr);
+  size_t closed_size() const { return closed_.size() * sizeof(int); }
 
+  void Reserve(size_t size) {
     states_.reserve(packer_->block_size() * size);
   }
 
-  void PackState(const std::vector<int> &state, uint32_t *packed) const {
+  void Pack(const std::vector<int> &state, uint32_t *packed) const {
     packer_->Pack(state, packed);
   }
 
-  int Add(const std::vector<int> &state) {
-    size_t old_size = states_.size();
-    size_t b_size = packer_->block_size();
-    states_.resize(old_size + b_size);
-    PackState(state, states_.data() + old_size);
-
-    return static_cast<int>(old_size / b_size);
-  }
-
-  int Add(const uint32_t *packed) {
-    size_t old_size = states_.size();
-    size_t b_size = packer_->block_size();
-    states_.resize(old_size + b_size);
-    memcpy(states_.data() + old_size, packed, b_size);
-
-    return static_cast<int>(old_size / b_size);
-  }
-
-  void Get(int i, std::vector<int> &state) const {
-    size_t b_size = packer_->block_size();
-    const uint32_t *packed = states_.data() + static_cast<size_t>(i) * b_size;
+  void Unpack(const uint32_t *packed, std::vector<int> &state) const {
     packer_->Unpack(packed, state);
   }
 
-  size_t closed_size() const { return closed_.size() * sizeof(int); }
+  int Add(const std::vector<int> &state) {
+    auto front = GetFront();
+    PackState(state, front);
 
-  void Close(int node);
-
-  int GetClosed(const std::vector<int> &state) const {
-    PackState(state, tmp_packed_.data());
-
-    return GetClosedFromPacked(tmp_packed_.data());
+    return static_cast<int>(old_size / packer_->block_size());
   }
 
-  int AddIfNotClosed(const uint32_t *packed);
+  int Add(const uint32_t *packed) {
+    auto front = GetFront();
+    size_t block_size = packer_->block_size();
+    memcpy(front, packed, block_size * sizeof(uint32_t));
+
+    return static_cast<int>(old_size / block_size);
+  }
 
   int AddIfNotClosed(const std::vector<int> &state) {
-    PackState(state, tmp_packed_.data());
+    Pack(state, tmp_packed_.data());
 
-    return AddIfNotClosed(tmp_packed_.data());
+    return AddIfNotClosed(state, tmp_packed_.data());
   }
 
-  int GetStateAndClosed(int i, std::vector<int> &state) const;
+  int AddIfNotClosed(const uint32_t *packed) {
+    Unpack(tmp_packed_.data(), state);
 
-  int GetClosedFromPacked(const uint32_t *ptr) const;
+    return AddIfNotClosed(state, tmp_packed_.data());
+  }
+
+  int AddIfNotClosed(const vector<int> &state, const uint32_t *packed) {
+    if (GetClosed(state) != -1) return -1;
+
+    return Add(packed);
+  }
+
+  void Get(int i, std::vector<int> &state) const {
+    auto packed = GetPacked(i);
+    Unpack(packed, state);
+  }
+
+  int GetClosed(const std::vector<int> &state) const {
+    return closed_[Find(state)];
+  }
+
+  bool CloseIfNot(int node, std::vector<int> &state);
 
  private:
-  void InitClosed() {
-    assert(packer_ != nullptr);
-
-    size_t size = 1 << closed_exponent_;
-    closed_.resize(size, -1);
-    size_t b_size = packer_->block_size();
-    tmp_packed_.resize(b_size, 0);
-    hash_ = std::make_shared<ArrayHash<uint32_t> >(b_size);
+  size_t Hash(const std::vector<int> &state) const {
+    return hash_->operator()(state) & closed_mask_;
   }
+
+  uint32_t* GetPacked(int node) const {
+    return states_.data() + static_cast<size_t>(node) * packer_->block_size();
+  }
+
+  uint32_t* GetFront() {
+    size_t old_size = states_.size();
+    states_.resize(old_size + packer_->block_size());
+
+    return states_.data() + old_size;
+  }
+
+  void Close(size_t index, int node);
 
   void ResizeClosed();
 
+  size_t Find(const std::vector<int> &state) const;
+
   size_t n_closed_;
   int closed_exponent_;
-  uint32_t closed_mask_;
+  uint64_t closed_mask_;
   std::vector<int> closed_;
   std::vector<uint32_t> states_;
-  mutable std::vector<uint32_t> tmp_packed_;
   std::shared_ptr<StatePacker> packer_;
-  std::shared_ptr<ArrayHash<uint32_t> > hash_;
+  std::shared_ptr<ZobristHash> hash_;
+  mutable std::vector<int> tmp_state_;
+  mutable std::vector<uint32_t> tmp_packed_;
 };
 
 } // namespace pplanner

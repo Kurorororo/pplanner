@@ -135,7 +135,8 @@ int HDGBFS::Expand(int node, vector<int> &state, vector<int> &child,
 
     int to_rank = z_hash_->operator()(child) % static_cast<size_t>(world_size_);
 
-    if (to_rank == rank_) {
+    //if (to_rank == rank_) {
+    if (false) {
       int child_node = graph_->GenerateNodeIfNotClosed(
           child, node, o, is_preferred, rank_);
       if (child_node == -1) continue;
@@ -179,7 +180,7 @@ void HDGBFS::Evaluate(const vector<int> &state, int node) {
 
 void HDGBFS::SendNodes() {
   for (int i=0; i<world_size_; ++i) {
-    if (i == rank_ || outgoing_buffers_[i].empty()) continue;
+    //if (i == rank_ || outgoing_buffers_[i].empty()) continue;
     const unsigned char *d = outgoing_buffers_[i].data();
     MPI_Bsend(d, outgoing_buffers_[i].size(), MPI_BYTE, i, kNodeTag,
               MPI_COMM_WORLD);

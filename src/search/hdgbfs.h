@@ -44,7 +44,8 @@ class HDGBFS : public Search {
             new SuccessorGenerator(problem))),
       graph_(nullptr),
       open_list_(nullptr),
-      z_hash_(std::unique_ptr<ZobristHash>(new ZobristHash(problem))) {
+      z_hash_(std::unique_ptr<ZobristHash>(
+            new ZobristHash(problem, 2886379259))) {
     Init(pt);
   }
 

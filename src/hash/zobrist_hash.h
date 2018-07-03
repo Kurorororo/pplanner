@@ -12,15 +12,15 @@ struct ZobristHash {
  public:
   ZobristHash() : n_(0), problem_(nullptr) {}
 
-  ZobristHash(std::shared_ptr<const SASPlus> problem);
+  ZobristHash(std::shared_ptr<const SASPlus> problem, uint64_t seed);
 
-  size_t operator()(const std::vector<int> &state) const;
+  uint64_t operator()(const std::vector<int> &state) const;
 
  private:
   int n_;
   std::shared_ptr<const SASPlus> problem_;
   std::vector<int> offsets_;
-  std::vector<size_t> array_;
+  std::vector<uint64_t> array_;
 };
 
 } // namespace pplanner

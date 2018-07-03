@@ -4,6 +4,25 @@ namespace pplanner {
 
 using std::vector;
 
+bool StateVector::CloseIfNot(int node, vector<int> &state) {
+  Get(node, state);
+  size_t index = Find(state);
+
+  if (closed_[index] != -1) return false;
+
+  Close(index, closed_[index]);
+
+  return true;
+}
+
+void StateVector::Close(size_t index, int node) {
+  if (2 * (n_closed_ + 1) > closed_.size())
+    ResizeClosed();
+
+  ++n_closed_;
+  closed_[index] = node;
+}
+
 void StateVector::ResizeClosed() {
   int new_exponent = 1;
 
@@ -18,8 +37,8 @@ void StateVector::ResizeClosed() {
     int id = closed_[k];
 
     if (id != -1) {
-      auto packed = states_.data() + static_cast<size_t>(id) * b_size;
-      size_t i = hash_->operator()(packed) & new_mask;
+      Get(id, tmp_state_);
+      size_t i = Hash(tmp_state_);
 
       while (new_closed[i] != -1)
         i = i == (new_closed.size() - 1) ? 0 : i + 1;
@@ -33,46 +52,12 @@ void StateVector::ResizeClosed() {
   closed_.swap(new_closed);
 }
 
-void StateVector::Close(int node) {
-  if (2 * (n_closed_ + 1) > closed_.size())
-    ResizeClosed();
+size_t StateVector::Find(const vector<int> &state) const {
+  size_t i = Hash(state);
 
-  size_t b_size = packer_->block_size();
-  auto packed = states_.data() + static_cast<size_t>(node) * b_size;
-  size_t i = hash_->operator()(packed) & closed_mask_;
+  if (closed_[i] == -1) return i;
 
-  while (closed_[i] != -1)
-    i = i == (closed_.size() - 1) ? 0 : i + 1;
-
-  ++n_closed_;
-  closed_[i] = node;
-}
-
-int StateVector::AddIfNotClosed(const uint32_t *packed) {
-  if (GetClosedFromPacked(packed) != -1) return -1;
-
-  size_t old_size = states_.size();
-  size_t b_size = packer_->block_size();
-  states_.resize(old_size + b_size);
-  memcpy(states_.data() + old_size, packed, b_size * sizeof(uint32_t));
-
-  return static_cast<int>(old_size / b_size);
-}
-
-int StateVector::GetStateAndClosed(int i, vector<int> &state) const {
-  size_t index = static_cast<size_t>(i) * packer_->block_size();
-  auto packed = states_.data() + index;
-
-  int closed_node = GetClosedFromPacked(packed);
-  if (closed_node != -1) return closed_node;
-
-  packer_->Unpack(packed, state);
-
-  return closed_node;
-}
-
-int StateVector::GetClosedFromPacked(const uint32_t *ptr) const {
-  size_t i = hash_->operator()(ptr) & closed_mask_;
+  PackState(state, tmp_packed_.data());
   size_t b_size = packer_->block_size();
 
   while (closed_[i] != -1) {
@@ -80,17 +65,17 @@ int StateVector::GetClosedFromPacked(const uint32_t *ptr) const {
     bool all = true;
 
     for (size_t j=0; j<b_size; ++j) {
-      if (ptr[j] != packed[j]) {
+      if (tmp_packed[j] != packed[j]) {
         all = false;
         break;
       }
     }
 
-    if (all) return closed_[i];
+    if (all) break;
     i = (i == closed_.size() - 1) ? 0 : i + 1;
   }
 
-  return -1;
+  return i;
 }
 
 } // namespace pplanner

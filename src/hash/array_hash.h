@@ -13,7 +13,7 @@ namespace pplanner {
 template<typename T>
 class ArrayHash {
  public:
-  ArrayHash() : size_(0) {}
+  ArrayHash() {}
 
   ArrayHash(size_t size);
 
@@ -22,7 +22,6 @@ class ArrayHash {
   uint32_t operator()(const std::vector<T> &array) const;
 
  private:
-  size_t size_;
   uint64_t zz_;
   std::vector<uint64_t> z_;
   std::hash<T> hash_;

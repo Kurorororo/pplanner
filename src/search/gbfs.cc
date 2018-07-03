@@ -69,9 +69,9 @@ vector<int> GBFS::InitialExpand() {
 int GBFS::Expand(int node, vector<int> &state, vector<int> &child,
                  vector<int> &applicable, unordered_set<int> &preferred) {
   ++expanded_;
+  bool is_open = graph_->Expand(node, state);
 
-  if (graph_->GetStateAndClosed(node, state) != -1) return -1;
-  graph_->Close(node);
+  if (!is_open) return -1;
 
   if (problem_->IsGoal(state)) return node;
 
