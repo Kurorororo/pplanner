@@ -60,7 +60,7 @@ void HDGBFS::Init(const boost::property_tree::ptree &pt) {
   MPI_Comm_size(MPI_COMM_WORLD, &world_size_);
 
   unsigned int buffer_size =
-    (graph_->NodeSize() + MPI_BSEND_OVERHEAD) * world_size_ * 50000;
+    (graph_->NodeSize() + MPI_BSEND_OVERHEAD) * world_size_ * 100000;
   mpi_buffer_ = new unsigned char[buffer_size];
   MPI_Buffer_attach((void*)mpi_buffer_, buffer_size);
 

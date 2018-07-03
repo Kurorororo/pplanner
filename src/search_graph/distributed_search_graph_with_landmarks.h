@@ -89,7 +89,7 @@ class DistributedSearchGraphWithLandmarks : public DistributedSearchGraph {
                           unsigned char *buffer) override;
 
   uint8_t* Landmark(int i) override {
-    return landmarks_.data() + i * n_landmarks_bytes_;
+    return landmarks_.data() + static_cast<size_t>(i) * n_landmarks_bytes_;
   }
 
   uint8_t* ParentLandmark(int i) override;

@@ -22,7 +22,7 @@ void DistributedSearchGraphWithLandmarks::BufferNode(int parent, int action,
                                                      unsigned char *buffer) {
   DistributedSearchGraph::BufferNode(parent, action, state, buffer);
   uint8_t *landmark = reinterpret_cast<uint8_t*>(
-      buffer + SearchGraph::NodeSize());
+      buffer + DistributedSearchGraph::NodeSize());
   memcpy(landmark, Landmark(parent), n_landmarks_bytes_ * sizeof(uint8_t));
 }
 
@@ -32,7 +32,7 @@ int DistributedSearchGraphWithLandmarks::GenerateNodeIfNotClosed(
 
   if (node != -1) {
     const uint8_t *landmark = reinterpret_cast<const uint8_t*>(
-        d + SearchGraph::NodeSize());
+        d + DistributedSearchGraph::NodeSize());
     size_t index = landmarks_.size();
     landmarks_.resize(index + n_landmarks_bytes_, 0);
     memcpy(landmarks_.data() + index, landmark,
@@ -46,7 +46,7 @@ int DistributedSearchGraphWithLandmarks::GenerateNode(const unsigned char *d,
                                                       int *h) {
   int node = DistributedSearchGraph::GenerateNode(d, h);
   const uint8_t *landmark = reinterpret_cast<const uint8_t*>(
-      d + sizeof(int) + SearchGraph::NodeSize());
+      d + sizeof(int) + DistributedSearchGraph::NodeSize());
   size_t index = landmarks_.size();
   landmarks_.resize(index + n_landmarks_bytes_, 0);
   memcpy(landmarks_.data() + index, landmark,
