@@ -141,13 +141,15 @@ $(BIN_DIR)/libsearch_graph.a: \
 	$(BIN_DIR)/search_graph/distributed_search_graph_with_landmarks.o \
 	$(BIN_DIR)/search_graph/distributed_search_graph.o \
 	$(BIN_DIR)/search_graph/state_vector.o \
-	$(BIN_DIR)/search_graph/state_packer.o
+	$(BIN_DIR)/search_graph/state_packer.o \
+	$(BIN_DIR)/hash/zobrist_hash.o
 	ar rcs $(BIN_DIR)/libsearch_graph.a \
 		$(BIN_DIR)/search_graph.o \
 		$(BIN_DIR)/search_graph/distributed_search_graph_with_landmarks.o \
 		$(BIN_DIR)/search_graph/distributed_search_graph.o \
 		$(BIN_DIR)/search_graph/state_vector.o \
-		$(BIN_DIR)/search_graph/state_packer.o
+		$(BIN_DIR)/search_graph/state_packer.o \
+		$(BIN_DIR)/hash/zobrist_hash.o
 
 $(BIN_DIR)/libevaluators.a: \
 	$(BIN_DIR)/evaluator.o \
@@ -298,7 +300,8 @@ $(BIN_DIR)/search_graph/test_state_packer: \
 	$(TEST_DIR)/search_graph/test_state_packer.cc \
 	$(BIN_DIR)/search_graph/state_packer.o \
 	$(BIN_DIR)/libsas_plus.a
-	$(CXX) $(INCS) $(TEST_FLAG) -o $(BIN_DIR)/search_graph/test_state_packer \ $(TEST_DIR)/search_graph/test_state_packer.cc \
+	$(CXX) $(INCS) $(TEST_FLAG) -o $(BIN_DIR)/search_graph/test_state_packer \
+		$(TEST_DIR)/search_graph/test_state_packer.cc \
 		$(BIN_DIR)/search_graph/state_packer.o \
 		$(BIN_DIR)/libsas_plus.a
 
@@ -306,11 +309,13 @@ $(BIN_DIR)/search_graph/test_state_vector: \
 	$(TEST_DIR)/search_graph/test_state_vector.cc \
 	$(BIN_DIR)/search_graph/state_vector.o \
 	$(BIN_DIR)/search_graph/state_packer.o \
+	$(BIN_DIR)/hash/zobrist_hash.o \
 	$(BIN_DIR)/libsas_plus.a
 	$(CXX) $(INCS) $(TEST_FLAG) -o $(BIN_DIR)/search_graph/test_state_vector \
 		$(TEST_DIR)/search_graph/test_state_vector.cc \
 		$(BIN_DIR)/search_graph/state_vector.o \
 		$(BIN_DIR)/search_graph/state_packer.o \
+		$(BIN_DIR)/hash/zobrist_hash.o \
 		$(BIN_DIR)/libsas_plus.a
 
 $(BIN_DIR)/test_search_graph: \

@@ -8,8 +8,8 @@ using std::vector;
 
 namespace pplanner {
 
-StatePacker::StatePacker(const SASPlus &problem) {
-  size_t size = problem.n_variables();
+StatePacker::StatePacker(std::shared_ptr<const SASPlus> problem) {
+  size_t size = problem->n_variables();
   block_index_.resize(size);
   vector<int> bit_index(size);
   vector<int> bit_size(size);
@@ -18,7 +18,7 @@ StatePacker::StatePacker(const SASPlus &problem) {
   int offset = 0;
 
   for (size_t i=0; i<size; ++i) {
-    int n_bit = static_cast<int>(std::ceil(std::log2(problem.VarRange(i))));
+    int n_bit = static_cast<int>(std::ceil(std::log2(problem->VarRange(i))));
     assert(n_bit <= 32);
     bit_size[i] = n_bit;
 

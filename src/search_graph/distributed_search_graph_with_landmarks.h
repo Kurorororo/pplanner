@@ -15,7 +15,7 @@ class DistributedSearchGraphWithLandmarks : public DistributedSearchGraph {
   DistributedSearchGraphWithLandmarks() : DistributedSearchGraph(),
                                           n_landmarks_bytes_(0) {}
 
-  DistributedSearchGraphWithLandmarks(const SASPlus &problem,
+  DistributedSearchGraphWithLandmarks(std::shared_ptr<const SASPlus> problem,
                                       int closed_exponent, int rank)
     : DistributedSearchGraph(problem, closed_exponent, rank),
       n_landmarks_bytes_(0) {}

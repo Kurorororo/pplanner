@@ -20,31 +20,15 @@ uint8_t* DistributedSearchGraphWithLandmarks::ParentLandmark(int i) {
 void DistributedSearchGraphWithLandmarks::BufferNode(int parent, int action,
                                                      const vector<int> &state,
                                                      unsigned char *buffer) {
-  std::cout << "send" << std::endl;
   DistributedSearchGraph::BufferNode(parent, action, state, buffer);
   uint8_t *landmark = reinterpret_cast<uint8_t*>(
       buffer + DistributedSearchGraph::NodeSize());
   memcpy(landmark, Landmark(parent), n_landmarks_bytes_ * sizeof(uint8_t));
-
-  for (int i=0; i<NodeSize(); ++i) {
-    if (i == 3 * sizeof(int)) std::cout << "st ";
-    if (i == DistributedSearchGraph::NodeSize()) std::cout << "lm ";
-    std::cout << (int)buffer[i] << " ";
-  }
-  std::cout << std::endl;
 }
 
 int DistributedSearchGraphWithLandmarks::GenerateNodeIfNotClosed(
     const unsigned char *d) {
-  std::cout << "receive" << std::endl;
-  for (int i=0; i<NodeSize(); ++i) {
-    if (i == 3 * sizeof(int)) std::cout << "st ";
-    if (i == DistributedSearchGraph::NodeSize()) std::cout << "lm ";
-    std::cout << (int)d[i] << " ";
-  }
-  std::cout << std::endl;
   int node = DistributedSearchGraph::GenerateNodeIfNotClosed(d);
-  std::cout << node << std::endl;
 
   if (node != -1) {
     const uint8_t *landmark = reinterpret_cast<const uint8_t*>(

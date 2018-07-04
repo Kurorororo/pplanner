@@ -24,9 +24,9 @@ void LazyGBFS::Init(const boost::property_tree::ptree &pt) {
     closed_exponent = closed_exponent_opt.get();
 
   if (auto use_landmark = pt.get_optional<int>("landmark"))
-    graph_ = make_shared<SearchGraphWithLandmarks>(*problem_, closed_exponent);
+    graph_ = make_shared<SearchGraphWithLandmarks>(problem_, closed_exponent);
   else
-    graph_ = make_shared<SearchGraph>(*problem_, closed_exponent);
+    graph_ = make_shared<SearchGraph>(problem_, closed_exponent);
 
   BOOST_FOREACH (const boost::property_tree::ptree::value_type& child,
                  pt.get_child("evaluators")) {
@@ -69,8 +69,8 @@ int LazyGBFS::Search() {
     if (best_h != -1) node = open_list_->Pop();
     ++expanded_;
 
-    if (graph_->GetStateAndClosed(node, state) != -1) continue;
-    graph_->Close(node);
+    bool is_open = graph_->Expand(node, state);
+    if (!is_open) continue;
 
     generator_->Generate(state, applicable);
 

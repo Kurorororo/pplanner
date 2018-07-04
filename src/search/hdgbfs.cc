@@ -25,10 +25,10 @@ void HDGBFS::Init(const boost::property_tree::ptree &pt) {
 
   if (auto use_landmark = pt.get_optional<int>("landmark"))
     graph_ = make_shared<DistributedSearchGraphWithLandmarks>(
-        *problem_, closed_exponent, rank_);
+        problem_, closed_exponent, rank_);
   else
     graph_ = make_shared<DistributedSearchGraph>(
-        *problem_, closed_exponent, rank_);
+        problem_, closed_exponent, rank_);
 
   vector<std::shared_ptr<Evaluator> > evaluators;
 
@@ -107,11 +107,14 @@ vector<int> HDGBFS::InitialExpand() {
 int HDGBFS::Expand(int node, vector<int> &state, vector<int> &child,
                    vector<int> &applicable, unordered_set<int> &preferred) {
   ++expanded_;
+  int is_open = graph_->Expand(node, state);
 
-  if (graph_->GetStateAndClosed(node, state) != -1) return -1;
-  graph_->Close(node);
+  if (!is_open) return -1;
 
-  if (problem_->IsGoal(state)) return node;
+  if (problem_->IsGoal(state)) {
+    std::cout << "goal" << std::endl;
+    return node;
+  }
 
   generator_->Generate(state, applicable);
 
@@ -135,8 +138,8 @@ int HDGBFS::Expand(int node, vector<int> &state, vector<int> &child,
 
     int to_rank = z_hash_->operator()(child) % static_cast<size_t>(world_size_);
 
-    //if (to_rank == rank_) {
     if (false) {
+    //if (to_rank == rank_) {
       int child_node = graph_->GenerateNodeIfNotClosed(
           child, node, o, is_preferred, rank_);
       if (child_node == -1) continue;
@@ -181,6 +184,7 @@ void HDGBFS::Evaluate(const vector<int> &state, int node) {
 void HDGBFS::SendNodes() {
   for (int i=0; i<world_size_; ++i) {
     //if (i == rank_ || outgoing_buffers_[i].empty()) continue;
+    if (outgoing_buffers_[i].empty()) continue;
     const unsigned char *d = outgoing_buffers_[i].data();
     MPI_Bsend(d, outgoing_buffers_[i].size(), MPI_BYTE, i, kNodeTag,
               MPI_COMM_WORLD);
@@ -202,9 +206,9 @@ void HDGBFS::ReceiveNodes() {
     MPI_Recv(incoming_buffer_.data(), d_size, MPI_BYTE, source, kNodeTag,
              MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-    int n_nodes = d_size / node_size;
+    size_t n_nodes = d_size / node_size;
 
-    for (int i=0; i<n_nodes; ++i) {
+    for (size_t i=0; i<n_nodes; ++i) {
       unsigned char *d = incoming_buffer_.data() + i * node_size;
       int node = graph_->GenerateNodeIfNotClosed(d);
 

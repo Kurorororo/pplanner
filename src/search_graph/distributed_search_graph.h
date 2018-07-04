@@ -16,8 +16,9 @@ class DistributedSearchGraph : public SearchGraph {
 
   DistributedSearchGraph() : SearchGraph() {}
 
-  DistributedSearchGraph(const SASPlus &problem, int closed_exponent, int rank)
-    : SearchGraph(problem, closed_exponent), rank_(rank) {}
+  DistributedSearchGraph(std::shared_ptr<const SASPlus> problem,
+                         int closed_exponent, int rank)
+    : SearchGraph(problem, closed_exponent), rank_(rank){}
 
   ~DistributedSearchGraph() {}
 

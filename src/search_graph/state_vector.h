@@ -4,7 +4,8 @@
 #include <cstdint>
 #include <cstring>
 
-#include <iostream>
+#include <memory>
+#include <random>
 #include <vector>
 
 #include "hash/zobrist_hash.h"
@@ -19,9 +20,10 @@ class StateVector {
       closed_exponent_(closed_exponent),
       closed_mask_((1u << closed_exponent) - 1),
       closed_(1 << closed_exponent, -1),
-      packer_(problem),
-      hash_(std::make_shared<ZobristHash>(problem)),
+      packer_(std::make_shared<StatePacker>(problem)),
       tmp_state_(problem->n_variables()) {
+    std::random_device rnd;
+    hash_ = std::make_shared<ZobristHash>(problem, rnd());
     tmp_packed_.resize(packer_->block_size(), 0);
   }
 
@@ -44,16 +46,19 @@ class StateVector {
   }
 
   int Add(const std::vector<int> &state) {
-    auto front = GetFront();
-    PackState(state, front);
+    size_t block_size = packer_->block_size();
+    size_t old_size = states_.size();
+    states_.resize(old_size + block_size);
+    Pack(state, states_.data() + old_size);
 
-    return static_cast<int>(old_size / packer_->block_size());
+    return static_cast<int>(old_size / block_size);
   }
 
   int Add(const uint32_t *packed) {
-    auto front = GetFront();
     size_t block_size = packer_->block_size();
-    memcpy(front, packed, block_size * sizeof(uint32_t));
+    size_t old_size = states_.size();
+    states_.resize(old_size + block_size);
+    memcpy(states_.data() + old_size, packed, block_size * sizeof(uint32_t));
 
     return static_cast<int>(old_size / block_size);
   }
@@ -65,19 +70,20 @@ class StateVector {
   }
 
   int AddIfNotClosed(const uint32_t *packed) {
-    Unpack(tmp_packed_.data(), state);
+    Unpack(packed, tmp_state_);
 
-    return AddIfNotClosed(state, tmp_packed_.data());
+    return AddIfNotClosed(tmp_state_, packed);
   }
 
-  int AddIfNotClosed(const vector<int> &state, const uint32_t *packed) {
+  int AddIfNotClosed(const std::vector<int> &state, const uint32_t *packed) {
     if (GetClosed(state) != -1) return -1;
 
     return Add(packed);
   }
 
   void Get(int i, std::vector<int> &state) const {
-    auto packed = GetPacked(i);
+    size_t block_size = packer_->block_size();
+    auto packed = states_.data() + static_cast<size_t>(i) * block_size;
     Unpack(packed, state);
   }
 
@@ -85,22 +91,18 @@ class StateVector {
     return closed_[Find(state)];
   }
 
-  bool CloseIfNot(int node, std::vector<int> &state);
+  void Close(int node) {
+    Get(node, tmp_state_);
+    size_t index = Find(tmp_state_);
+
+    Close(index, node);
+  }
+
+  bool Expand(int node, std::vector<int> &state);
 
  private:
   size_t Hash(const std::vector<int> &state) const {
     return hash_->operator()(state) & closed_mask_;
-  }
-
-  uint32_t* GetPacked(int node) const {
-    return states_.data() + static_cast<size_t>(node) * packer_->block_size();
-  }
-
-  uint32_t* GetFront() {
-    size_t old_size = states_.size();
-    states_.resize(old_size + packer_->block_size());
-
-    return states_.data() + old_size;
   }
 
   void Close(size_t index, int node);

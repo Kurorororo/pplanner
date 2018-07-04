@@ -1,5 +1,7 @@
 #include "search_graph/distributed_search_graph.h"
 
+#include <iostream>
+
 namespace pplanner {
 
 using std::vector;

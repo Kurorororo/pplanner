@@ -3,6 +3,7 @@
 
 #include <cassert>
 
+#include <memory>
 #include <vector>
 
 #include "sas_plus.h"
@@ -15,7 +16,7 @@ class SearchGraph {
  public:
   SearchGraph() : capacity_(0), resize_factor_(1.2), states_(nullptr) {}
 
-  SearchGraph(const SASPlus &problem, int closed_exponent)
+  SearchGraph(std::shared_ptr<const SASPlus> problem, int closed_exponent)
     : capacity_(0),
       resize_factor_(1.2),
       states_(std::make_shared<StateVector>(problem, closed_exponent)) {}
@@ -101,12 +102,16 @@ class SearchGraph {
 
   virtual uint8_t* ParentLandmark(int i) { return nullptr; }
 
-  int GetStateAndClosed(int i, std::vector<int> &state) const {
-    return states_->GetStateAndClosed(i, state);
+  int Expand(int i, std::vector<int> &state) const {
+    return states_->Expand(i, state);
   }
 
   void PackState(const std::vector<int> &state, uint32_t *packed) const {
-    return states_->PackState(state, packed);
+    return states_->Pack(state, packed);
+  }
+
+  void UnpackState(const uint32_t *packed, std::vector<int> &state) const {
+    return states_->Unpack(packed, state);
   }
 
  private:

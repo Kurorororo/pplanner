@@ -13,7 +13,8 @@ class SearchGraphWithLandmarks : public SearchGraph {
  public:
   SearchGraphWithLandmarks() : SearchGraph(), n_landmarks_bytes_(0) {}
 
-  SearchGraphWithLandmarks(const SASPlus &problem, int closed_exponent)
+  SearchGraphWithLandmarks(std::shared_ptr<const SASPlus> problem,
+                           int closed_exponent)
     : SearchGraph(problem, closed_exponent), n_landmarks_bytes_(0) {}
 
   ~SearchGraphWithLandmarks() {}

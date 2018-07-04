@@ -10,9 +10,7 @@ namespace pplanner {
 
 struct ZobristHash {
  public:
-  ZobristHash() : n_(0), problem_(nullptr) {}
-
-  ZobristHash(std::shared_ptr<const SASPlus> problem, uint64_t seed);
+  ZobristHash(std::shared_ptr<const SASPlus> problem, uint32_t seed);
 
   uint64_t operator()(const std::vector<int> &state) const;
 

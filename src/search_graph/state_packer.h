@@ -3,6 +3,7 @@
 
 #include <cstdint>
 
+#include <memory>
 #include <vector>
 
 #include "sas_plus.h"
@@ -11,9 +12,7 @@ namespace pplanner {
 
 class StatePacker {
  public:
-  StatePacker() : block_size_(0) {};
-
-  StatePacker(const SASPlus &problem);
+  StatePacker(std::shared_ptr<const SASPlus> problem);
 
   size_t block_size() const { return block_size_; }
 
