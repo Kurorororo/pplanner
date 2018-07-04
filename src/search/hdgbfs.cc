@@ -111,10 +111,7 @@ int HDGBFS::Expand(int node, vector<int> &state, vector<int> &child,
 
   if (!is_open) return -1;
 
-  if (problem_->IsGoal(state)) {
-    std::cout << "goal" << std::endl;
-    return node;
-  }
+  if (problem_->IsGoal(state)) return node;
 
   generator_->Generate(state, applicable);
 

@@ -76,7 +76,7 @@ class StateVector {
   }
 
   int AddIfNotClosed(const std::vector<int> &state, const uint32_t *packed) {
-    if (GetClosed(state) != -1) return -1;
+    if (closed_[Find(state, packed)] != -1) return -1;
 
     return Add(packed);
   }
@@ -109,7 +109,13 @@ class StateVector {
 
   void ResizeClosed();
 
-  size_t Find(const std::vector<int> &state) const;
+  size_t Find(const std::vector<int> &state) const {
+    Pack(state, tmp_packed_.data());
+
+    return Find(state, tmp_packed_.data());
+  }
+
+  size_t Find(const std::vector<int> &state, const uint32_t *packed) const;
 
   size_t n_closed_;
   int closed_exponent_;

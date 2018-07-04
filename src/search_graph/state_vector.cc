@@ -6,7 +6,9 @@ using std::vector;
 
 bool StateVector::Expand(int node, vector<int> &state) {
   Get(node, state);
-  size_t index = Find(state);
+  size_t block_size = packer_->block_size();
+  auto packed = states_.data() + static_cast<size_t>(node) * block_size;
+  size_t index = Find(state, packed);
 
   if (closed_[index] != -1) return false;
 
@@ -49,21 +51,21 @@ void StateVector::ResizeClosed() {
   closed_.swap(new_closed);
 }
 
-size_t StateVector::Find(const vector<int> &state) const {
-  size_t i = Hash(state);
+size_t StateVector::Find(const vector<int> &state, const uint32_t *packed)
+  const {
+  size_t hash = Hash(state);
 
-  if (closed_[i] == -1) return i;
+  if (closed_[hash] == -1) return hash;
 
-  Pack(state, tmp_packed_.data());
   size_t b_size = packer_->block_size();
 
-  while (closed_[i] != -1) {
-    auto found = states_.data() + static_cast<size_t>(closed_[i]) * b_size;
-    if (BytesEqual(b_size, tmp_packed_.data(), found)) break;
-    i = (i == closed_.size() - 1) ? 0 : i + 1;
+  while (closed_[hash] != -1) {
+    auto found = states_.data() + static_cast<size_t>(closed_[hash]) * b_size;
+    if (BytesEqual(b_size, packed, found)) break;
+    hash = (hash == closed_.size() - 1) ? 0 : hash + 1;
   }
 
-  return i;
+  return hash;
 }
 
 } // namespace pplanner
