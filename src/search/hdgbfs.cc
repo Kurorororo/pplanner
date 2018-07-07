@@ -95,7 +95,7 @@ vector<int> HDGBFS::InitialEvaluate() {
   int initial_rank_ = z_hash_->operator()(state) % world_size;
 
   if (rank_ == initial_rank_) {
-    int node = graph_->GenerateNode(-1, -1, state, rank_);
+    int node = graph_->GenerateNode(-1, -1, state, -1);
     ++generated_;
     best_h_ = open_list_->EvaluateAndPush(state, node, true);
     std::cout << "Initial heuristic value: " << best_h_ << std::endl;
@@ -107,10 +107,9 @@ vector<int> HDGBFS::InitialEvaluate() {
 
 int HDGBFS::Expand(int node, vector<int> &state, vector<int> &child,
                    vector<int> &applicable, unordered_set<int> &preferred) {
-  ++expanded_;
-
   if (!graph_->CloseIfNot(node)) return -1;
 
+  ++expanded_;
   graph_->State(node, state);
 
   if (problem_->IsGoal(state)) return node;

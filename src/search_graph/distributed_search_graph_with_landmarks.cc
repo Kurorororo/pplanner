@@ -5,7 +5,7 @@ namespace pplanner {
 using std::vector;
 
 uint8_t* DistributedSearchGraphWithLandmarks::ParentLandmark(int i) {
-  int parent_rank= ParentRank(i);
+  int parent_rank = ParentRank(i);
 
   if (parent_rank == -1) return nullptr;
 
@@ -36,7 +36,7 @@ int DistributedSearchGraphWithLandmarks::GenerateNodeIfNotClosed(
   if (node != -1) {
     const uint8_t *landmark = reinterpret_cast<const uint8_t*>(
         d + DistributedSearchGraph::node_size());
-    size_t index = landmarks_.size();
+    size_t index = landmarks_.size() - n_landmarks_bytes_;
     memcpy(landmarks_.data() + index, landmark,
            n_landmarks_bytes_ * sizeof(uint8_t));
   }

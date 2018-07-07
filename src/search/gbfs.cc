@@ -68,10 +68,9 @@ vector<int> GBFS::InitialExpand() {
 
 int GBFS::Expand(int node, vector<int> &state, vector<int> &child,
                  vector<int> &applicable, unordered_set<int> &preferred) {
-  ++expanded_;
-
   if (!graph_->CloseIfNot(node)) return -1;
 
+  ++expanded_;
   graph_->State(node, state);
 
   if (problem_->IsGoal(state)) return node;
