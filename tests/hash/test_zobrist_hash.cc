@@ -10,12 +10,13 @@ class ZobristHashTest : public ::testing::Test {
  protected:
   virtual void SetUp() {
     auto lines = ExampleSASPlusLines();
-    auto sas = std::make_shared<SASPlus>();
-    sas->InitFromLines(lines);
-    hash_ = ZobristHash(sas);
+    sas_ = std::make_shared<SASPlus>();
+    sas_->InitFromLines(lines);
+    hash_ = std::make_shared<ZobristHash>(sas_, 123);
   }
 
-  ZobristHash hash_;
+  std::shared_ptr<ZobristHash> hash_;
+  std::shared_ptr<SASPlus> sas_;
 };
 
 TEST_F(ZobristHashTest, Works) {
@@ -24,8 +25,18 @@ TEST_F(ZobristHashTest, Works) {
   std::vector<int> state_2{0, 0, 0};
   std::vector<int> state_3{0, 0, 0};
 
-  EXPECT_EQ(hash_(state_0), hash_(state_1));
-  EXPECT_EQ(hash_(state_2), hash_(state_3));
+  EXPECT_EQ(hash_->operator()(state_0), hash_->operator()(state_1));
+  EXPECT_EQ(hash_->operator()(state_2), hash_->operator()(state_3));
+}
+
+TEST_F(ZobristHashTest, HashByDifferenceWorks) {
+  std::vector<int> state_0{0, 1, 0};
+  std::vector<int> state_1(state_0);
+
+  uint32_t seed = hash_->operator()(state_0);
+  sas_->ApplyEffect(4, state_1);
+  EXPECT_EQ(hash_->operator()(state_1),
+            hash_->HashByDifference(4, seed, state_0, state_1));
 }
 
 std::queue<std::string> ExampleSASPlusLines() {

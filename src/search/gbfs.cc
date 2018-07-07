@@ -56,7 +56,7 @@ void GBFS::Init(const boost::property_tree::ptree &pt) {
 
 vector<int> GBFS::InitialExpand() {
   auto state = problem_->initial();
-  int node = graph_->GenerateNode(state, -1, -1, true);
+  int node = graph_->GenerateNode(-1, -1, state);
   ++generated_;
 
   best_h_ = open_list_->EvaluateAndPush(state, node, true);
@@ -69,9 +69,10 @@ vector<int> GBFS::InitialExpand() {
 int GBFS::Expand(int node, vector<int> &state, vector<int> &child,
                  vector<int> &applicable, unordered_set<int> &preferred) {
   ++expanded_;
-  bool is_open = graph_->Expand(node, state);
 
-  if (!is_open) return -1;
+  if (!graph_->CloseIfNot(node)) return -1;
+
+  graph_->State(node, state);
 
   if (problem_->IsGoal(state)) return node;
 
@@ -95,8 +96,7 @@ int GBFS::Expand(int node, vector<int> &state, vector<int> &child,
     bool is_preferred = use_preferred_ && preferred.find(o) != preferred.end();
     if (is_preferred) ++n_preferreds_;
 
-    int child_node = graph_->GenerateNodeIfNotClosed(
-        child, node, o, is_preferred);
+    int child_node = graph_->GenerateNodeIfNotClosed(o, node, state, child);
     if (child_node == -1) continue;
     ++generated_;
 

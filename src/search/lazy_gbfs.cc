@@ -56,7 +56,7 @@ void LazyGBFS::Init(const boost::property_tree::ptree &pt) {
 
 int LazyGBFS::Search() {
   auto state = problem_->initial();
-  int node = graph_->GenerateNode(state, -1, -1, true);
+  int node = graph_->GenerateNode(-1, -1, state);
   ++generated_;
 
   vector<int> child(state);
@@ -69,8 +69,8 @@ int LazyGBFS::Search() {
     if (best_h != -1) node = open_list_->Pop();
     ++expanded_;
 
-    bool is_open = graph_->Expand(node, state);
-    if (!is_open) continue;
+    if (!graph_->CloseIfNot(node)) continue;
+    graph_->State(node, state);
 
     generator_->Generate(state, applicable);
 
@@ -104,7 +104,7 @@ int LazyGBFS::Search() {
 
       bool is_preferred = use_preferred_
         && preferred.find(o) != preferred.end();
-      int child_node = graph_->GenerateNode(child, node, o, is_preferred);
+      int child_node = graph_->GenerateNode(o, node, state, child);
       ++generated_;
 
       open_list_->Push(values_, child_node, is_preferred);

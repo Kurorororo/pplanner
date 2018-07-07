@@ -14,16 +14,14 @@ class DistributedSearchGraph : public SearchGraph {
   using SearchGraph::GenerateNode;
   using SearchGraph::GenerateNodeIfNotClosed;
 
-  DistributedSearchGraph() : SearchGraph() {}
-
   DistributedSearchGraph(std::shared_ptr<const SASPlus> problem,
                          int closed_exponent, int rank)
     : SearchGraph(problem, closed_exponent), rank_(rank){}
 
-  ~DistributedSearchGraph() {}
+  virtual ~DistributedSearchGraph() {}
 
-  virtual size_t NodeSize() const override {
-    return sizeof(int) + SearchGraph::NodeSize();
+  virtual size_t node_size() const override {
+    return sizeof(int) + SearchGraph::node_size();
   }
 
   virtual void Reserve(size_t size) override {
@@ -31,50 +29,52 @@ class DistributedSearchGraph : public SearchGraph {
     parent_ranks_.reserve(size);
   }
 
-  virtual int GenerateNode(const std::vector<int> &state, int parent,
-                           int action, bool is_preferred, int parent_rank) {
-    int node = GenerateNode(state, parent, action, is_preferred);
+  virtual void AddMoreProperties(int parent_rank) {
     parent_ranks_.push_back(parent_rank);
-
-    return node;
-  }
-
-  virtual int GenerateNode(const uint32_t *packed, int parent, int action,
-                           bool is_preferred, int parent_rank) {
-    int node = GenerateNode(packed, parent, action, is_preferred);
-    parent_ranks_.push_back(parent_rank);
-
-    return node;
-  }
-
-  virtual int GenerateNodeIfNotClosed(const std::vector<int> &state, int parent,
-                                      int action, bool is_preferred,
-                                      int parent_rank) {
-    int node = GenerateNodeIfNotClosed(state, parent, action, is_preferred);
-    if (node != -1) parent_ranks_.push_back(parent_rank);
-
-    return node;
-  }
-
-  virtual int GenerateNodeIfNotClosed(const uint32_t *packed, int parent,
-                                      int action, bool is_preferred,
-                                      int parent_rank) {
-    int node = GenerateNodeIfNotClosed(packed, parent, action, is_preferred);
-    if (node != -1) parent_ranks_.push_back(parent_rank);
-
-    return node;
   }
 
   virtual int GenerateNodeIfNotClosed(const unsigned char *d);
 
   virtual int GenerateNode(const unsigned char *d, int *h);
 
-  virtual void BufferNode(int parent, int action, const std::vector<int> &state,
-                          unsigned char *buffer);
+  virtual void BufferNode(int action, int parent_node,
+                          const std::vector<int> &parent,
+                          const std::vector<int> &state, unsigned char *buffer);
 
   int rank() const { return rank_; }
 
   int ParentRank(int i) const { return parent_ranks_[i]; }
+
+  int GenerateNode(int action, int parent_node, const std::vector<int> &state,
+                   int parent_rank) {
+    AddMoreProperties(parent_rank);
+
+    return GenerateNode(action, parent_node, state);
+  }
+
+  int GenerateNode(int action, int parent_node, const std::vector<int> &parent,
+                   const std::vector<int> &state, int parent_rank) {
+    AddMoreProperties(parent_rank);
+
+    return GenerateNode(action, parent_node, parent, state);
+  }
+
+  int GenerateNode(int action, int parent_node, uint32_t hash_value,
+                   const uint32_t *packed, int parent_rank) {
+    AddMoreProperties(parent_rank);
+
+    return GenerateNode(action, parent_node, hash_value, packed);
+  }
+
+  int GenerateNodeIfNotClosed(int action, int parent_node, uint32_t hash_value,
+                              const uint32_t *packed, int parent_rank);
+
+  int GenerateNodeIfNotClosed(int action, int parent_node,
+                              const std::vector<int> &state, int parent_rank);
+
+  int GenerateNodeIfNotClosed(int action, int parent_node,
+                              const std::vector<int> &parent,
+                              const std::vector<int> &state, int parent_rank);
 
  private:
   int rank_;

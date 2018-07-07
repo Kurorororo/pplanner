@@ -42,7 +42,7 @@ class GBFS : public Search {
   std::vector<int> Plan() override {
     int goal = Search();
 
-    return ExtractPath(*graph_, goal);
+    return ExtractPath(graph_, goal);
   }
 
   void DumpStatistics() const override;

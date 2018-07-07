@@ -17,13 +17,16 @@ uint8_t* DistributedSearchGraphWithLandmarks::ParentLandmark(int i) {
   return parent_landmark_.data();
 }
 
-void DistributedSearchGraphWithLandmarks::BufferNode(int parent, int action,
+void DistributedSearchGraphWithLandmarks::BufferNode(int action,
+                                                     int parent_node,
+                                                     const vector<int> &parent,
                                                      const vector<int> &state,
                                                      unsigned char *buffer) {
-  DistributedSearchGraph::BufferNode(parent, action, state, buffer);
+  DistributedSearchGraph::BufferNode(
+      action, parent_node, parent, state, buffer);
   uint8_t *landmark = reinterpret_cast<uint8_t*>(
-      buffer + DistributedSearchGraph::NodeSize());
-  memcpy(landmark, Landmark(parent), n_landmarks_bytes_ * sizeof(uint8_t));
+      buffer + DistributedSearchGraph::node_size());
+  memcpy(landmark, Landmark(parent_node), n_landmarks_bytes_ * sizeof(uint8_t));
 }
 
 int DistributedSearchGraphWithLandmarks::GenerateNodeIfNotClosed(
@@ -32,9 +35,8 @@ int DistributedSearchGraphWithLandmarks::GenerateNodeIfNotClosed(
 
   if (node != -1) {
     const uint8_t *landmark = reinterpret_cast<const uint8_t*>(
-        d + DistributedSearchGraph::NodeSize());
+        d + DistributedSearchGraph::node_size());
     size_t index = landmarks_.size();
-    landmarks_.resize(index + n_landmarks_bytes_, 0);
     memcpy(landmarks_.data() + index, landmark,
            n_landmarks_bytes_ * sizeof(uint8_t));
   }
@@ -46,9 +48,8 @@ int DistributedSearchGraphWithLandmarks::GenerateNode(const unsigned char *d,
                                                       int *h) {
   int node = DistributedSearchGraph::GenerateNode(d, h);
   const uint8_t *landmark = reinterpret_cast<const uint8_t*>(
-      d + sizeof(int) + DistributedSearchGraph::NodeSize());
+      d + sizeof(int) + DistributedSearchGraph::node_size());
   size_t index = landmarks_.size();
-  landmarks_.resize(index + n_landmarks_bytes_, 0);
   memcpy(landmarks_.data() + index, landmark,
          n_landmarks_bytes_ * sizeof(uint8_t));
 

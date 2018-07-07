@@ -42,7 +42,7 @@ class LazyGBFS : public Search {
 
   std::vector<int> Plan() override {
     int goal = Search();
-    plan_ = ExtractPath(*graph_, goal);
+    plan_ = ExtractPath(graph_, goal);
 
     return plan_;
   }

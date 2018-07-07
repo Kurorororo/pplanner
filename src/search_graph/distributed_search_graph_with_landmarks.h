@@ -12,9 +12,6 @@ namespace pplanner {
 
 class DistributedSearchGraphWithLandmarks : public DistributedSearchGraph {
  public:
-  DistributedSearchGraphWithLandmarks() : DistributedSearchGraph(),
-                                          n_landmarks_bytes_(0) {}
-
   DistributedSearchGraphWithLandmarks(std::shared_ptr<const SASPlus> problem,
                                       int closed_exponent, int rank)
     : DistributedSearchGraph(problem, closed_exponent, rank),
@@ -27,8 +24,8 @@ class DistributedSearchGraphWithLandmarks : public DistributedSearchGraph {
     parent_landmark_.resize(n_landmarks_bytes_, 0);
   }
 
-  virtual size_t NodeSize() const override {
-    int node_size = DistributedSearchGraph::NodeSize();
+  virtual size_t node_size() const override {
+    int node_size = DistributedSearchGraph::node_size();
 
     return n_landmarks_bytes_ * sizeof(uint8_t) + node_size;
   }
@@ -38,54 +35,18 @@ class DistributedSearchGraphWithLandmarks : public DistributedSearchGraph {
     landmarks_.reserve(n_landmarks_bytes_ * size);
   }
 
-  virtual int GenerateNode(const std::vector<int> &state, int parent,
-                           int action, bool is_preferred, int parent_rank)
-    override {
-    int node = DistributedSearchGraph::GenerateNode(
-        state, parent, action, is_preferred, parent_rank);
+  virtual void AddMoreProperties(int parent_rank) override {
+    DistributedSearchGraph::AddMoreProperties(parent_rank);
     landmarks_.resize(landmarks_.size() + n_landmarks_bytes_, 0);
-
-    return node;
-  }
-
-  virtual int GenerateNode(const uint32_t *packed, int parent, int action,
-                           bool is_preferred, int parent_rank) override {
-    int node = DistributedSearchGraph::GenerateNode(
-        packed, parent, action, is_preferred, parent_rank);
-    landmarks_.resize(landmarks_.size() + n_landmarks_bytes_, 0);
-
-    return node;
-  }
-
-  virtual int GenerateNodeIfNotClosed(const std::vector<int> &state, int parent,
-                                      int action, bool is_preferred,
-                                      int parent_rank) override {
-    int node = DistributedSearchGraph::GenerateNodeIfNotClosed(
-        state, parent, action, is_preferred, parent_rank);
-
-    if (node != -1)
-      landmarks_.resize(landmarks_.size() + n_landmarks_bytes_, 0);
-
-    return node;
-  }
-
-  virtual int GenerateNodeIfNotClosed(const uint32_t *packed, int parent,
-                                      int action, bool is_preferred,
-                                      int parent_rank) override {
-    int node = DistributedSearchGraph::GenerateNodeIfNotClosed(
-        packed, parent, action, is_preferred, parent_rank);
-
-    if (node != -1)
-      landmarks_.resize(landmarks_.size() + n_landmarks_bytes_, 0);
-
-    return node;
   }
 
   virtual int GenerateNodeIfNotClosed(const unsigned char *d) override;
 
   virtual int GenerateNode(const unsigned char *d, int *h) override;
 
-  virtual void BufferNode(int parent, int action, const std::vector<int> &state,
+  virtual void BufferNode(int action, int parent_node,
+                          const std::vector<int> &parent,
+                          const std::vector<int> &state,
                           unsigned char *buffer) override;
 
   uint8_t* Landmark(int i) override {

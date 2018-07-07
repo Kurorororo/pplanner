@@ -11,8 +11,6 @@ namespace pplanner {
 
 class SearchGraphWithLandmarks : public SearchGraph {
  public:
-  SearchGraphWithLandmarks() : SearchGraph(), n_landmarks_bytes_(0) {}
-
   SearchGraphWithLandmarks(std::shared_ptr<const SASPlus> problem,
                            int closed_exponent)
     : SearchGraph(problem, closed_exponent), n_landmarks_bytes_(0) {}
@@ -23,8 +21,8 @@ class SearchGraphWithLandmarks : public SearchGraph {
     n_landmarks_bytes_ = (graph->landmark_id_max() + 7) / 8;
   }
 
-  virtual size_t NodeSize() const override {
-    return n_landmarks_bytes_ * sizeof(uint8_t) + SearchGraph::NodeSize();
+  virtual size_t node_size() const override {
+    return n_landmarks_bytes_ * sizeof(uint8_t) + SearchGraph::node_size();
   }
 
   virtual void Reserve(size_t size) override {
@@ -32,24 +30,10 @@ class SearchGraphWithLandmarks : public SearchGraph {
     landmarks_.reserve(n_landmarks_bytes_ * size);
   }
 
-  virtual int GenerateNode(const std::vector<int> &state, int parent,
-                           int action, bool is_preferred) override {
-    int node = SearchGraph::GenerateNode(state, parent, action, is_preferred);
+  virtual void AddProperties(int action, int parent_node, uint32_t hash_value)
+    override {
+    SearchGraph::AddProperties(action, parent_node, hash_value);
     landmarks_.resize(landmarks_.size() + n_landmarks_bytes_, 0);
-
-    return node;
-  }
-
-  virtual int GenerateNodeIfNotClosed(const std::vector<int> &state, int parent,
-                                      int action, bool is_preferred) override {
-    int node = SearchGraph::GenerateNodeIfNotClosed(
-        state, parent, action, is_preferred);
-
-    if (node != -1) {
-      landmarks_.resize(landmarks_.size() + n_landmarks_bytes_, 0);
-    }
-
-    return node;
   }
 
   uint8_t* Landmark(int i) override {

@@ -21,8 +21,7 @@
 
 namespace pplanner {
 
-class HDGBFS : public Search {
- public:
+class HDGBFS : public Search { public:
   HDGBFS(std::shared_ptr<const SASPlus> problem,
          const boost::property_tree::ptree &pt)
     : use_preferred_(false),
@@ -34,6 +33,7 @@ class HDGBFS : public Search {
       n_branching_(0),
       n_preferreds_(0),
       best_h_(-1),
+      initial_rank_(0),
       world_size_(2),
       rank_(0),
       mpi_buffer_(nullptr),
@@ -76,7 +76,7 @@ class HDGBFS : public Search {
 
   int NodeToExpand() { return open_list_->Pop(); }
 
-  std::vector<int> InitialExpand();
+  std::vector<int> InitialEvaluate();
 
   void SendNodes();
 
@@ -109,6 +109,7 @@ class HDGBFS : public Search {
   int n_branching_;
   int n_preferreds_;
   int best_h_;
+  int initial_rank_;
   int world_size_;
   int rank_;
   unsigned char *mpi_buffer_;
