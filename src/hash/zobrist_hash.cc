@@ -1,7 +1,6 @@
 #include "hash/zobrist_hash.h"
 
 #include <random>
-#include <iostream>
 
 namespace pplanner {
 
@@ -34,8 +33,8 @@ uint32_t ZobristHash::HashByDifference(int action, uint32_t seed,
 
   for (; itr != end; ++itr) {
     int var = *itr;
-    seed ^= array_[problem_->Fact(var, parent[var])];
-    seed ^= array_[problem_->Fact(var, state[var])];
+    seed = seed ^ array_[problem_->Fact(var, parent[var])]
+                ^ array_[problem_->Fact(var, state[var])];
   }
 
   return seed;

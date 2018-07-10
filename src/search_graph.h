@@ -7,6 +7,7 @@
 #include <memory>
 #include <random>
 #include <vector>
+#include <iostream>
 
 #include "landmark/landmark_graph.h"
 #include "hash/zobrist_hash.h"
@@ -24,8 +25,7 @@ class SearchGraph {
       closed_mask_((1u << closed_exponent) - 1),
       closed_(1 << closed_exponent, -1),
       packer_(std::make_shared<StatePacker>(problem)) {
-    std::random_device rnd;
-    hash_ = std::make_shared<ZobristHash>(problem, rnd());
+    hash_ = std::make_shared<ZobristHash>(problem, 4166245435);
     tmp_packed_.resize(packer_->block_size(), 0);
   }
 

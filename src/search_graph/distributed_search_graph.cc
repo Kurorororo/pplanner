@@ -17,11 +17,9 @@ int DistributedSearchGraph::GenerateNodeIfNotClosed(int action, int parent_node,
   return node;
 }
 
-int DistributedSearchGraph::GenerateNodeIfNotClosed(
-    int action,
-    int parent_node,
-    const std::vector<int> &state,
-    int parent_rank) {
+int DistributedSearchGraph::GenerateNodeIfNotClosed(int action, int parent_node,
+                                                    const vector<int> &state,
+                                                    int parent_rank) {
   int node = GenerateNodeIfNotClosed(action, parent_node, state);
 
   if (node != -1) AddMoreProperties(parent_rank);
@@ -29,12 +27,10 @@ int DistributedSearchGraph::GenerateNodeIfNotClosed(
   return node;
 }
 
-int DistributedSearchGraph::GenerateNodeIfNotClosed(
-    int action,
-    int parent_node,
-    const std::vector<int> &parent,
-    const std::vector<int> &state,
-    int parent_rank) {
+int DistributedSearchGraph::GenerateNodeIfNotClosed(int action, int parent_node,
+                                                    const vector<int> &parent,
+                                                    const vector<int> &state,
+                                                    int parent_rank) {
   int node = GenerateNodeIfNotClosed(action, parent_node, parent, state);
 
   if (node != -1) AddMoreProperties(parent_rank);
@@ -65,7 +61,7 @@ int DistributedSearchGraph::GenerateNode(const unsigned char *d, int *h) {
 }
 
 void DistributedSearchGraph::BufferNode(int action, int parent_node,
-                                        const std::vector<int> &parent,
+                                        const vector<int> &parent,
                                         const vector<int> &state,
                                         unsigned char *buffer) {
   int info[3];
