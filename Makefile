@@ -39,6 +39,7 @@ planner: \
 mpi_planner: \
 	$(SRC_DIR)/mpi_planner.cc \
 	$(SRC_DIR)/mpi_search_factory.cc \
+	$(SRC_DIR)/search/pddsgbfs.cc \
 	$(SRC_DIR)/search/hdgbfs.cc \
 	$(BIN_DIR)/successor_generator.o \
 	$(BIN_DIR)/postprocess/action_elimination.o \
@@ -54,6 +55,7 @@ mpi_planner: \
 	$(MPIXX) $(INCS) $(RELEASE_FLAG) -o $(BIN_DIR)/mpi_planner \
 		$(SRC_DIR)/mpi_planner.cc \
 		$(SRC_DIR)/mpi_search_factory.cc \
+		$(SRC_DIR)/search/pddsgbfs.cc \
 		$(SRC_DIR)/search/hdgbfs.cc \
 		$(BIN_DIR)/successor_generator.o \
 		$(BIN_DIR)/postprocess/action_elimination.o \

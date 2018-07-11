@@ -45,10 +45,10 @@ int DistributedSearchGraphWithLandmarks::GenerateNodeIfNotClosed(
 }
 
 int DistributedSearchGraphWithLandmarks::GenerateNode(const unsigned char *d,
-                                                      int *h) {
-  int node = DistributedSearchGraph::GenerateNode(d, h);
+                                                      vector<int> &values) {
+  int node = DistributedSearchGraph::GenerateNode(d, values);
   const uint8_t *landmark = reinterpret_cast<const uint8_t*>(
-      d + sizeof(int) + DistributedSearchGraph::node_size());
+      d + n_evaluators() * sizeof(int) + DistributedSearchGraph::node_size());
   size_t index = landmarks_.size();
   memcpy(landmarks_.data() + index, landmark,
          n_landmarks_bytes_ * sizeof(uint8_t));

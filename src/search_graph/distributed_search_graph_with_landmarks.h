@@ -13,8 +13,9 @@ namespace pplanner {
 class DistributedSearchGraphWithLandmarks : public DistributedSearchGraph {
  public:
   DistributedSearchGraphWithLandmarks(std::shared_ptr<const SASPlus> problem,
-                                      int closed_exponent, int rank)
-    : DistributedSearchGraph(problem, closed_exponent, rank),
+                                      int closed_exponent, int n_evaluators,
+                                      int rank)
+    : DistributedSearchGraph(problem, closed_exponent, n_evaluators, rank),
       n_landmarks_bytes_(0) {}
 
   virtual ~DistributedSearchGraphWithLandmarks() {}
@@ -42,7 +43,8 @@ class DistributedSearchGraphWithLandmarks : public DistributedSearchGraph {
 
   virtual int GenerateNodeIfNotClosed(const unsigned char *d) override;
 
-  virtual int GenerateNode(const unsigned char *d, int *h) override;
+  virtual int GenerateNode(const unsigned char *d, std::vector<int> &values)
+    override;
 
   virtual void BufferNode(int action, int parent_node,
                           const std::vector<int> &parent,

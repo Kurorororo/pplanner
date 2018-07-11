@@ -49,15 +49,26 @@ int DistributedSearchGraph::GenerateNodeIfNotClosed(const unsigned char *d) {
   return GenerateNodeIfNotClosed(info[0], info[1], hash_value, packed, info[2]);
 }
 
-int DistributedSearchGraph::GenerateNode(const unsigned char *d, int *h) {
-  int info[4];
-  memcpy(info, d, 4 * sizeof(int));
-  *h = info[0];
+int DistributedSearchGraph::GenerateNode(const unsigned char *d,
+                                         vector<int> &values) {
+  size_t n_info = n_evaluators() + 3;
+  int info[n_info];
+  memcpy(info, d, n_info * sizeof(int));
+  values.clear();
+
+  for (size_t i=0; i<n_evaluators(); ++i)
+    values.push_back(info[i]);
+
+  int action = info[n_evaluators()];
+  int parent = info[n_evaluators() + 1];
+  int parent_rank = info[n_evaluators() + 2];
+
   uint32_t hash_value;
-  memcpy(&hash_value, d + 3 * sizeof(int), sizeof(uint32_t));
+  memcpy(&hash_value, d + n_info * sizeof(int), sizeof(uint32_t));
   const uint32_t *packed = reinterpret_cast<const uint32_t*>(
-      d + 4 * sizeof(int) + sizeof(uint32_t));
-  return GenerateNode(info[1], info[2], hash_value, packed, info[3]);
+      d + n_info * sizeof(int) + sizeof(uint32_t));
+
+  return GenerateNode(action, parent, hash_value, packed, parent_rank);
 }
 
 void DistributedSearchGraph::BufferNode(int action, int parent_node,

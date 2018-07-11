@@ -4,7 +4,6 @@
 #include <memory>
 #include <random>
 #include <string>
-#include <unordered_set>
 #include <vector>
 
 #include <mpi.h>
@@ -21,7 +20,8 @@
 
 namespace pplanner {
 
-class HDGBFS : public Search { public:
+class HDGBFS : public Search {
+ public:
   HDGBFS(std::shared_ptr<const SASPlus> problem,
          const boost::property_tree::ptree &pt)
     : use_preferred_(false),
@@ -36,6 +36,7 @@ class HDGBFS : public Search { public:
       initial_rank_(0),
       world_size_(2),
       rank_(0),
+      n_evaluators_(0),
       mpi_buffer_(nullptr),
       tmp_state_(problem->n_variables()),
       problem_(problem),
@@ -68,23 +69,87 @@ class HDGBFS : public Search { public:
 
   virtual int Search();
 
-  virtual int Expand(int node, std::vector<int> &state, std::vector<int> &child,
-                     std::vector<int> &applicable,
-                     std::unordered_set<int> &preferred);
+  virtual void CallbackOnReceiveNode(int source, const unsigned char *d);
 
-  bool NoNode() const { return open_list_->IsEmpty(); }
+  virtual void CallbackOnReceiveAllNodes() {}
 
-  int NodeToExpand() { return open_list_->Pop(); }
+  int rank() const { return rank_; }
+
+  int best_h() const { return best_h_; }
+
+  void set_best_h(int h) { best_h_ = h; }
+
+  size_t n_evaluators() const { return n_evaluators_; }
+
+  size_t node_size() const { return graph_->node_size(); }
+
+  size_t n_variables() const { return problem_->n_variables(); }
 
   std::vector<int> InitialEvaluate();
 
-  void SendNodes();
+  int Expand(int node, std::vector<int> &state);
+
+  int Evaluate(const std::vector<int> &state, int node,
+               std::vector<int> &values);
+
+  void Push(std::vector<int> &values, int node);
+
+  int Pop() { return open_list_->Pop(); }
+
+  bool NoNode() const { return open_list_->IsEmpty(); }
+
+  unsigned char* IncomingBuffer() {
+    return incoming_buffer_.data();
+  }
+
+  void ResizeIncomingBuffer(size_t size) {
+    incoming_buffer_.resize(size);
+  }
+
+  unsigned char* OutgoingBuffer(int i) {
+    return outgoing_buffers_[i].data();
+  }
+
+  size_t OutgoingBufferSize(int i) const {
+    return outgoing_buffers_[i].size();
+  }
+
+  bool IsOutgoingBufferEmpty(int i) const {
+    return outgoing_buffers_[i].empty();
+  }
+
+  unsigned char* ExtendOutgoingBuffer(int i, size_t size) {
+    size_t index = outgoing_buffers_[i].size();
+    outgoing_buffers_[i].resize(index + size);
+
+    return outgoing_buffers_[i].data() + index;
+  }
+
+  void ClearOutgoingBuffer(int i) { outgoing_buffers_[i].clear(); }
+
+  void SendNodes(int tag);
 
   void ReceiveNodes();
 
   void SendTermination();
 
   bool ReceiveTermination();
+
+  int GenerateNodeIfNotClosed(const unsigned char *d) {
+    return graph_->GenerateNodeIfNotClosed(d);
+  }
+
+  int GenerateNode(const unsigned char *d, std::vector<int> &values) {
+    return graph_->GenerateNode(d, values);
+  }
+
+  void NodeToState(int node, std::vector<int> &state) const {
+    graph_->State(node, state);
+  }
+
+  void IncrementGenerated() { ++generated_; }
+
+  void IncrementDeadEnds() { ++dead_ends_; }
 
   static constexpr int kNodeTag = 0;
   static constexpr int kTerminationTag = 1;
@@ -93,8 +158,6 @@ class HDGBFS : public Search { public:
 
  private:
   void Init(const boost::property_tree::ptree &pt);
-
-  void Evaluate(const std::vector<int> &state, int node);
 
   std::vector<int> ExtractPath(int node);
 
@@ -112,11 +175,13 @@ class HDGBFS : public Search { public:
   int initial_rank_;
   int world_size_;
   int rank_;
+  size_t n_evaluators_;
   unsigned char *mpi_buffer_;
   std::vector<int> tmp_state_;
   std::vector<unsigned char> incoming_buffer_;
   std::vector<std::vector<unsigned char> > outgoing_buffers_;
   std::shared_ptr<const SASPlus> problem_;
+  std::vector<std::shared_ptr<Evaluator> > evaluators_;
   std::shared_ptr<Evaluator> preferring_;
   std::unique_ptr<SuccessorGenerator> generator_;
   std::shared_ptr<DistributedSearchGraph> graph_;

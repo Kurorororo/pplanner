@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <iostream>
+#include <unordered_set>
 
 #include <boost/foreach.hpp>
 
@@ -23,34 +24,37 @@ void HDGBFS::Init(const boost::property_tree::ptree &pt) {
   if (auto closed_exponent_opt = pt.get_optional<int>("closed_exponent"))
     closed_exponent = closed_exponent_opt.get();
 
-  if (auto use_landmark = pt.get_optional<int>("landmark"))
-    graph_ = make_shared<DistributedSearchGraphWithLandmarks>(
-        problem_, closed_exponent, rank_);
-  else
-    graph_ = make_shared<DistributedSearchGraph>(
-        problem_, closed_exponent, rank_);
-
-  vector<std::shared_ptr<Evaluator> > evaluators;
+  vector<boost::property_tree::ptree> evaluator_names;
 
   BOOST_FOREACH (const boost::property_tree::ptree::value_type& child,
                  pt.get_child("evaluators")) {
-    auto e = child.second;
-    evaluators.push_back(EvaluatorFactory(problem_, graph_, e));
+    evaluator_names.push_back(child.second);
+    ++n_evaluators_;
   }
+
+  if (auto use_landmark = pt.get_optional<int>("landmark"))
+    graph_ = make_shared<DistributedSearchGraphWithLandmarks>(
+        problem_, closed_exponent, n_evaluators_, rank_);
+  else
+    graph_ = make_shared<DistributedSearchGraph>(
+        problem_, closed_exponent, n_evaluators_, rank_);
+
+  for (auto e : evaluator_names)
+    evaluators_.push_back(EvaluatorFactory(problem_, graph_, e));
 
   if (auto preferring = pt.get_child_optional("preferring")) {
     use_preferred_ = true;
 
     if (auto name = preferring.get().get_optional<std::string>("name")) {
       if (name.get() == "same")
-        preferring_ = evaluators[0];
+        preferring_ = evaluators_[0];
       else
         preferring_ = EvaluatorFactory(problem_, graph_, preferring.get());
     }
   }
 
   auto open_list_option = pt.get_child("open_list");
-  open_list_ = OpenListFactory(open_list_option, evaluators);
+  open_list_ = OpenListFactory(open_list_option, evaluators_);
 
   if (auto ram = pt.get_optional<size_t>("ram"))
     graph_->ReserveByRAMSize(ram.get());
@@ -60,7 +64,7 @@ void HDGBFS::Init(const boost::property_tree::ptree &pt) {
   MPI_Comm_size(MPI_COMM_WORLD, &world_size_);
 
   unsigned int buffer_size =
-    (graph_->node_size() + MPI_BSEND_OVERHEAD) * world_size_ * 100000;
+    (node_size() + MPI_BSEND_OVERHEAD) * world_size_ * 50000;
   mpi_buffer_ = new unsigned char[buffer_size];
   MPI_Buffer_attach((void*)mpi_buffer_, buffer_size);
 
@@ -69,19 +73,17 @@ void HDGBFS::Init(const boost::property_tree::ptree &pt) {
 
 int HDGBFS::Search() {
   auto state = InitialEvaluate();
-  vector<int> child(state);
-  vector<int> applicable;
-  unordered_set<int> preferred;
 
   while (!ReceiveTermination()) {
     ReceiveNodes();
     if (NoNode()) continue;
 
-    int node = NodeToExpand();
-    int goal = Expand(node, state, child, applicable, preferred);
+    int node = Pop();
+    int goal = Expand(node, state);
 
     if (goal != -1) {
       SendTermination();
+
       return goal;
     }
   }
@@ -96,28 +98,33 @@ vector<int> HDGBFS::InitialEvaluate() {
 
   if (rank_ == initial_rank_) {
     int node = graph_->GenerateNode(-1, -1, state, -1);
-    ++generated_;
-    best_h_ = open_list_->EvaluateAndPush(state, node, true);
-    std::cout << "Initial heuristic value: " << best_h_ << std::endl;
+    IncrementGenerated();
+    int h = open_list_->EvaluateAndPush(state, node, true);
+    set_best_h(h);
+    std::cout << "Initial heuristic value: " << best_h() << std::endl;
     ++evaluated_;
   }
 
   return state;
 }
 
-int HDGBFS::Expand(int node, vector<int> &state, vector<int> &child,
-                   vector<int> &applicable, unordered_set<int> &preferred) {
+int HDGBFS::Expand(int node, vector<int> &state) {
+  static vector<int> values;
+  static vector<int> child;
+  static vector<int> applicable;
+  static unordered_set<int> preferred;
+
   if (!graph_->CloseIfNot(node)) return -1;
 
   ++expanded_;
-  graph_->State(node, state);
+  NodeToState(node, state);
 
   if (problem_->IsGoal(state)) return node;
 
   generator_->Generate(state, applicable);
 
   if (applicable.empty()) {
-    ++dead_ends_;
+    IncrementDeadEnds();
     return -1;
   }
 
@@ -141,35 +148,50 @@ int HDGBFS::Expand(int node, vector<int> &state, vector<int> &child,
       int child_node = graph_->GenerateNodeIfNotClosed(
           o, node, state, child, rank_);
       if (child_node == -1) continue;
-      ++generated_;
-      Evaluate(child, child_node);
+      IncrementGenerated();
+      int h = Evaluate(child, child_node, values);
+      if (h != -1) Push(values, child_node);
     } else {
-      size_t index = outgoing_buffers_[to_rank].size();
-      outgoing_buffers_[to_rank].resize(index + graph_->node_size());
-      unsigned char *buffer = outgoing_buffers_[to_rank].data() + index;
+      unsigned char *buffer = ExtendOutgoingBuffer(to_rank, node_size());
       graph_->BufferNode(o, node, state, child, buffer);
     }
   }
 
-  SendNodes();
+  SendNodes(kNodeTag);
 
   return -1;
 }
 
-void HDGBFS::Evaluate(const vector<int> &state, int node) {
-  int h = open_list_->EvaluateAndPush(state, node, false);
+int HDGBFS::Evaluate(const vector<int> &state, int node, vector<int> &values) {
   ++evaluated_;
 
-  if (h == -1) {
-    ++dead_ends_;
-    return;
+  values.clear();
+
+  for (auto evaluator : evaluators_) {
+    int value = evaluator->Evaluate(state, node);
+
+    if (value == -1) {
+      IncrementDeadEnds();
+
+      return value;
+    }
+
+    values.push_back(value);
   }
 
-  if (best_h_ == -1 || h < best_h_) {
-    best_h_ = h;
+  return values[0];
+}
+
+
+void HDGBFS::Push(std::vector<int> &values, int node) {
+  int h = values[0];
+  open_list_->Push(values, node, false);
+
+  if (best_h() == -1 || h < best_h()) {
+    set_best_h(h);
 
     if (rank_ == initial_rank_) {
-      std::cout << "New best heuristic value: " << best_h_ << std::endl;
+      std::cout << "New best heuristic value: " << best_h() << std::endl;
       std::cout << "[" << evaluated_ << " evaluated, "
                 << expanded_ << " expanded]" << std::endl;
     }
@@ -178,19 +200,18 @@ void HDGBFS::Evaluate(const vector<int> &state, int node) {
   }
 }
 
-void HDGBFS::SendNodes() {
+void HDGBFS::SendNodes(int tag) {
   for (int i=0; i<world_size_; ++i) {
-    if (i == rank_ || outgoing_buffers_[i].empty()) continue;
-    const unsigned char *d = outgoing_buffers_[i].data();
-    MPI_Bsend(d, outgoing_buffers_[i].size(), MPI_BYTE, i, kNodeTag,
-              MPI_COMM_WORLD);
-    outgoing_buffers_[i].clear();
+    if (i == rank_ || IsOutgoingBufferEmpty(i)) continue;
+    const unsigned char *d = OutgoingBuffer(i);
+    MPI_Bsend(d, OutgoingBufferSize(i), MPI_BYTE, i, tag, MPI_COMM_WORLD);
+    ClearOutgoingBuffer(i);
   }
 }
 
 void HDGBFS::ReceiveNodes() {
   int has_received = 0;
-  size_t node_size = graph_->node_size();
+  size_t unit_size = node_size();
   MPI_Status status;
   MPI_Iprobe(MPI_ANY_SOURCE, kNodeTag, MPI_COMM_WORLD, &has_received, &status);
 
@@ -198,26 +219,40 @@ void HDGBFS::ReceiveNodes() {
     int d_size = 0;
     int source = status.MPI_SOURCE;
     MPI_Get_count(&status, MPI_BYTE, &d_size);
-    incoming_buffer_.resize(d_size);
-    MPI_Recv(incoming_buffer_.data(), d_size, MPI_BYTE, source, kNodeTag,
+    ResizeIncomingBuffer(d_size);
+    MPI_Recv(IncomingBuffer(), d_size, MPI_BYTE, source, kNodeTag,
              MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-    size_t n_nodes = d_size / node_size;
+    size_t n_nodes = d_size / unit_size;
 
-    for (size_t i=0; i<n_nodes; ++i) {
-      unsigned char *d = incoming_buffer_.data() + i * node_size;
-      int node = graph_->GenerateNodeIfNotClosed(d);
-
-      if (node != -1) {
-        ++generated_;
-        graph_->State(node, tmp_state_);
-        Evaluate(tmp_state_, node);
-      }
-    }
+    for (size_t i=0; i<n_nodes; ++i)
+      CallbackOnReceiveNode(source, IncomingBuffer() + i * unit_size);
 
     has_received = 0;
-    MPI_Iprobe(MPI_ANY_SOURCE, kNodeTag, MPI_COMM_WORLD, &has_received,
-               &status);
+    MPI_Iprobe(
+        MPI_ANY_SOURCE, kNodeTag, MPI_COMM_WORLD, &has_received, &status);
+  }
+
+  CallbackOnReceiveAllNodes();
+}
+
+void HDGBFS::CallbackOnReceiveNode(int source, const unsigned char *d) {
+  static vector<int> values;
+
+  int node = GenerateNodeIfNotClosed(d);
+
+  if (node != -1) {
+    IncrementGenerated();
+    graph_->State(node, tmp_state_);
+    int h = Evaluate(tmp_state_, node, values);
+
+    if (h == -1) {
+      IncrementDeadEnds();
+
+      return;
+    }
+
+    Push(values, node);
   }
 }
 
@@ -334,8 +369,8 @@ void HDGBFS::Flush() {
     int d_size = 0;
     int source = status.MPI_SOURCE;
     MPI_Get_count(&status, MPI_BYTE, &d_size);
-    incoming_buffer_.resize(d_size);
-    MPI_Recv(incoming_buffer_.data(), d_size, MPI_BYTE, source, kNodeTag,
+    ResizeIncomingBuffer(d_size);
+    MPI_Recv(IncomingBuffer(), d_size, MPI_BYTE, source, kNodeTag,
              MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
     has_received = 0;
