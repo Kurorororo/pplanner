@@ -50,7 +50,7 @@ void PDDSGBFS::CallbackOnReceiveNode(int source, const unsigned char *d) {
       size_t h_size = n_evaluators() * sizeof(int);
       unsigned char *b = ExtendOutgoingBuffer(source, node_size() + h_size);
       memcpy(b, values.data(), h_size);
-      memcpy(b + h_size, d, node_size());
+      BufferNode(node, d, b + h_size);
     }
   }
 }

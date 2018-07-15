@@ -63,8 +63,7 @@ void HDGBFS::Init(const boost::property_tree::ptree &pt) {
 
   MPI_Comm_size(MPI_COMM_WORLD, &world_size_);
 
-  unsigned int buffer_size =
-    (node_size() + MPI_BSEND_OVERHEAD) * world_size_ * 50000;
+  unsigned int buffer_size = 1000000000;
   mpi_buffer_ = new unsigned char[buffer_size];
   MPI_Buffer_attach((void*)mpi_buffer_, buffer_size);
 
@@ -243,7 +242,7 @@ void HDGBFS::CallbackOnReceiveNode(int source, const unsigned char *d) {
 
   if (node != -1) {
     IncrementGenerated();
-    graph_->State(node, tmp_state_);
+    NodeToState(node, tmp_state_);
     int h = Evaluate(tmp_state_, node, values);
 
     if (h == -1) {

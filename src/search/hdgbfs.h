@@ -127,6 +127,10 @@ class HDGBFS : public Search {
 
   void ClearOutgoingBuffer(int i) { outgoing_buffers_[i].clear(); }
 
+  void BufferNode(int node, const unsigned char *base, unsigned char *buffer) {
+    graph_->BufferNode(node, base, buffer);
+  }
+
   void SendNodes(int tag);
 
   void ReceiveNodes();

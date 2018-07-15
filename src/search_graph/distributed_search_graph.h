@@ -43,6 +43,11 @@ class DistributedSearchGraph : public SearchGraph {
                           const std::vector<int> &parent,
                           const std::vector<int> &state, unsigned char *buffer);
 
+  virtual void BufferNode(int i, const unsigned char *base,
+                          unsigned char *buffer) {
+    memcpy(buffer, base, node_size());
+  }
+
   int n_evaluators() const { return n_evaluators_; }
 
   int rank() const { return rank_; }

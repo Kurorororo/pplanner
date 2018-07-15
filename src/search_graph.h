@@ -61,6 +61,8 @@ class SearchGraph {
 
   size_t closed_size() const { return closed_.size() * sizeof(int); }
 
+  size_t state_size() const { return packer_->block_size() * sizeof(uint32_t); }
+
   void ReserveByRAMSize(size_t ram_size) {
     size_t size = (ram_size - closed_size()) / node_size();
     Reserve(size);
@@ -76,6 +78,11 @@ class SearchGraph {
     size_t block_size = packer_->block_size();
     auto packed = states_.data() + static_cast<size_t>(i) * block_size;
     Unpack(packed, state);
+  }
+
+  const uint32_t* PackedState(int i) const {
+    size_t block_size = packer_->block_size();
+    return states_.data() + static_cast<size_t>(i) * block_size;
   }
 
   int GenerateNode(int action, int parent_node, const std::vector<int> &state) {
