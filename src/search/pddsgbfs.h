@@ -21,11 +21,14 @@ class PDDSGBFS : public HDGBFS {
       steal_better_ = true;
   }
 
-  ~PDDSGBFS() {}
+  ~PDDSGBFS() {
+    Flush(kRegainTag);
+  }
 
   int Search() override;
 
-  void CallbackOnReceiveNode(int source, const unsigned char *d) override;
+  void CallbackOnReceiveNode(int source, const unsigned char *d, bool no_node)
+    override;
 
   void CallbackOnReceiveAllNodes() override { SendNodes(kRegainTag); }
 
@@ -34,6 +37,8 @@ class PDDSGBFS : public HDGBFS {
   static constexpr int kRegainTag = 4;
 
  private:
+  void FlushRegainTag();
+
   bool steal_better_;
 };
 

@@ -14,6 +14,8 @@ class FIFOOpenListImpl : public OpenListImpl {
 
   ~FIFOOpenListImpl() {}
 
+  size_t size() const override { return size_; }
+
   void Push(const std::vector<int> &values, int node) override {
     buckets_[values].push_back(node);
     ++size_;

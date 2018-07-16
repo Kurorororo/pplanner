@@ -138,6 +138,28 @@ class SearchGraph {
         action, parent_node, hash_value, tmp_packed_.data());
   }
 
+  int GenerateAndCloseNode(int action, int parent_node, uint32_t hash_value,
+                           const uint32_t *packed);
+
+  int GenerateAndCloseNode(int action, int parent_node,
+                           const std::vector<int> &state) {
+    uint32_t hash_value = hash_->operator()(state);
+    Pack(state, tmp_packed_.data());
+
+    return GenerateAndCloseNode(
+        action, parent_node, hash_value, tmp_packed_.data());
+  }
+
+  int GenerateAndCloseNode(int action, int parent_node,
+                           const std::vector<int> &parent,
+                           const std::vector<int> &state) {
+    uint32_t hash_value = HashByDifference(action, parent_node, parent, state);
+    Pack(state, tmp_packed_.data());
+
+    return GenerateAndCloseNode(
+        action, parent_node, hash_value, tmp_packed_.data());
+  }
+
   int GetClosed(int i) const { return closed_[Find(i)]; }
 
   void Close(int i) { Close(Find(i), i); }

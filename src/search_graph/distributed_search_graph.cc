@@ -10,7 +10,8 @@ int DistributedSearchGraph::GenerateNodeIfNotClosed(int action, int parent_node,
                                                     uint32_t hash_value,
                                                     const uint32_t *packed,
                                                     int parent_rank) {
-  int node = GenerateNodeIfNotClosed(action, parent_node, hash_value, packed);
+  int node = SearchGraph::GenerateNodeIfNotClosed(
+      action, parent_node, hash_value, packed);
 
   if (node != -1) AddMoreProperties(parent_rank);
 
@@ -20,7 +21,7 @@ int DistributedSearchGraph::GenerateNodeIfNotClosed(int action, int parent_node,
 int DistributedSearchGraph::GenerateNodeIfNotClosed(int action, int parent_node,
                                                     const vector<int> &state,
                                                     int parent_rank) {
-  int node = GenerateNodeIfNotClosed(action, parent_node, state);
+  int node = SearchGraph::GenerateNodeIfNotClosed(action, parent_node, state);
 
   if (node != -1) AddMoreProperties(parent_rank);
 
@@ -31,7 +32,8 @@ int DistributedSearchGraph::GenerateNodeIfNotClosed(int action, int parent_node,
                                                     const vector<int> &parent,
                                                     const vector<int> &state,
                                                     int parent_rank) {
-  int node = GenerateNodeIfNotClosed(action, parent_node, parent, state);
+  int node = SearchGraph::GenerateNodeIfNotClosed(
+      action, parent_node, parent, state);
 
   if (node != -1) AddMoreProperties(parent_rank);
 
@@ -49,6 +51,51 @@ int DistributedSearchGraph::GenerateNodeIfNotClosed(const unsigned char *d) {
   return GenerateNodeIfNotClosed(info[0], info[1], hash_value, packed, info[2]);
 }
 
+int DistributedSearchGraph::GenerateAndCloseNode(int action, int parent_node,
+                                                 uint32_t hash_value,
+                                                 const uint32_t *packed,
+                                                 int parent_rank) {
+  int node = SearchGraph::GenerateAndCloseNode(
+      action, parent_node, hash_value, packed);
+
+  if (node != -1) AddMoreProperties(parent_rank);
+
+  return node;
+}
+
+int DistributedSearchGraph::GenerateAndCloseNode(int action, int parent_node,
+                                                 const vector<int> &state,
+                                                 int parent_rank) {
+  int node = SearchGraph::GenerateAndCloseNode(action, parent_node, state);
+
+  if (node != -1) AddMoreProperties(parent_rank);
+
+  return node;
+}
+
+int DistributedSearchGraph::GenerateAndCloseNode(int action, int parent_node,
+                                                 const vector<int> &parent,
+                                                 const vector<int> &state,
+                                                 int parent_rank) {
+  int node = SearchGraph::GenerateAndCloseNode(
+      action, parent_node, parent, state);
+
+  if (node != -1) AddMoreProperties(parent_rank);
+
+  return node;
+}
+
+int DistributedSearchGraph::GenerateAndCloseNode(const unsigned char *d) {
+  int info[3];
+  memcpy(info, d, 3 * sizeof(int));
+  uint32_t hash_value;
+  memcpy(&hash_value, d + 3 * sizeof(int), sizeof(uint32_t));
+  const uint32_t *packed = reinterpret_cast<const uint32_t*>(
+      d + 3 * sizeof(int) + sizeof(uint32_t));
+
+  return GenerateAndCloseNode(info[0], info[1], hash_value, packed, info[2]);
+}
+
 int DistributedSearchGraph::GenerateNode(const unsigned char *d,
                                          vector<int> &values) {
   size_t n_info = n_evaluators() + 3;
@@ -60,7 +107,7 @@ int DistributedSearchGraph::GenerateNode(const unsigned char *d,
     values.push_back(info[i]);
 
   int action = info[n_evaluators()];
-  int parent = info[n_evaluators() + 1];
+  int parent_node = info[n_evaluators() + 1];
   int parent_rank = info[n_evaluators() + 2];
 
   uint32_t hash_value;
@@ -68,7 +115,7 @@ int DistributedSearchGraph::GenerateNode(const unsigned char *d,
   const uint32_t *packed = reinterpret_cast<const uint32_t*>(
       d + n_info * sizeof(int) + sizeof(uint32_t));
 
-  return GenerateNode(action, parent, hash_value, packed, parent_rank);
+  return GenerateNode(action, parent_node, hash_value, packed, parent_rank);
 }
 
 void DistributedSearchGraph::BufferNode(int action, int parent_node,

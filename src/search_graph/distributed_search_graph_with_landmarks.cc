@@ -44,12 +44,27 @@ int DistributedSearchGraphWithLandmarks::GenerateNodeIfNotClosed(
   return node;
 }
 
+int DistributedSearchGraphWithLandmarks::GenerateAndCloseNode(
+    const unsigned char *d) {
+  int node = DistributedSearchGraph::GenerateAndCloseNode(d);
+
+  if (node != -1) {
+    const uint8_t *landmark = reinterpret_cast<const uint8_t*>(
+        d + DistributedSearchGraph::node_size());
+    size_t index = landmarks_.size() - n_landmarks_bytes_;
+    memcpy(landmarks_.data() + index, landmark,
+           n_landmarks_bytes_ * sizeof(uint8_t));
+  }
+
+  return node;
+}
+
 int DistributedSearchGraphWithLandmarks::GenerateNode(const unsigned char *d,
                                                       vector<int> &values) {
   int node = DistributedSearchGraph::GenerateNode(d, values);
   const uint8_t *landmark = reinterpret_cast<const uint8_t*>(
       d + n_evaluators() * sizeof(int) + DistributedSearchGraph::node_size());
-  size_t index = landmarks_.size();
+  size_t index = landmarks_.size() - n_landmarks_bytes_;
   memcpy(landmarks_.data() + index, landmark,
          n_landmarks_bytes_ * sizeof(uint8_t));
 

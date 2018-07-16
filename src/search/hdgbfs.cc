@@ -90,13 +90,19 @@ int HDGBFS::Search() {
   return -1;
 }
 
-vector<int> HDGBFS::InitialEvaluate() {
+vector<int> HDGBFS::InitialEvaluate(bool eager_dd) {
   auto state = problem_->initial();
   uint32_t world_size = static_cast<uint32_t>(world_size_);
   int initial_rank_ = z_hash_->operator()(state) % world_size;
 
   if (rank_ == initial_rank_) {
-    int node = graph_->GenerateNode(-1, -1, state, -1);
+    int node = -1;
+
+    if (eager_dd)
+      node = graph_->GenerateAndCloseNode(-1, -1, state, -1);
+    else
+      node = graph_->GenerateNode(-1, -1, state, -1);
+
     IncrementGenerated();
     int h = open_list_->EvaluateAndPush(state, node, true);
     set_best_h(h);
@@ -107,16 +113,16 @@ vector<int> HDGBFS::InitialEvaluate() {
   return state;
 }
 
-int HDGBFS::Expand(int node, vector<int> &state) {
+int HDGBFS::Expand(int node, vector<int> &state, bool eager_dd) {
   static vector<int> values;
   static vector<int> child;
   static vector<int> applicable;
   static unordered_set<int> preferred;
 
-  if (!graph_->CloseIfNot(node)) return -1;
+  if (!eager_dd && !graph_->CloseIfNot(node)) return -1;
 
   ++expanded_;
-  NodeToState(node, state);
+  graph_->State(node, state);
 
   if (problem_->IsGoal(state)) return node;
 
@@ -144,8 +150,15 @@ int HDGBFS::Expand(int node, vector<int> &state) {
     int to_rank = hash % static_cast<uint32_t>(world_size_);
 
     if (to_rank == rank_) {
-      int child_node = graph_->GenerateNodeIfNotClosed(
-          o, node, state, child, rank_);
+      int child_node = -1;
+
+      if (eager_dd) {
+        child_node = graph_->GenerateAndCloseNode(o, node, state, child, rank_);
+      } else {
+        child_node = graph_->GenerateNodeIfNotClosed(
+            o, node, state, child, rank_);
+      }
+
       if (child_node == -1) continue;
       IncrementGenerated();
       int h = Evaluate(child, child_node, values);
@@ -223,9 +236,10 @@ void HDGBFS::ReceiveNodes() {
              MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
     size_t n_nodes = d_size / unit_size;
+    bool no_node = NoNode();
 
     for (size_t i=0; i<n_nodes; ++i)
-      CallbackOnReceiveNode(source, IncomingBuffer() + i * unit_size);
+      CallbackOnReceiveNode(source, IncomingBuffer() + i * unit_size, no_node);
 
     has_received = 0;
     MPI_Iprobe(
@@ -235,14 +249,15 @@ void HDGBFS::ReceiveNodes() {
   CallbackOnReceiveAllNodes();
 }
 
-void HDGBFS::CallbackOnReceiveNode(int source, const unsigned char *d) {
+void HDGBFS::CallbackOnReceiveNode(int source, const unsigned char *d,
+                                   bool no_node) {
   static vector<int> values;
 
-  int node = GenerateNodeIfNotClosed(d);
+  int node = graph_->GenerateNodeIfNotClosed(d);
 
   if (node != -1) {
     IncrementGenerated();
-    NodeToState(node, tmp_state_);
+    graph_->State(node, tmp_state_);
     int h = Evaluate(tmp_state_, node, values);
 
     if (h == -1) {
@@ -358,23 +373,22 @@ vector<int> HDGBFS::ExtractPath(int node) {
   return vector<int>(0);
 }
 
-void HDGBFS::Flush() {
+void HDGBFS::Flush(int tag) {
   MPI_Status status;
   int has_received = 0;
 
-  MPI_Iprobe(MPI_ANY_SOURCE, kNodeTag, MPI_COMM_WORLD, &has_received, &status);
+  MPI_Iprobe(MPI_ANY_SOURCE, tag, MPI_COMM_WORLD, &has_received, &status);
 
   while (has_received) {
     int d_size = 0;
     int source = status.MPI_SOURCE;
     MPI_Get_count(&status, MPI_BYTE, &d_size);
     ResizeIncomingBuffer(d_size);
-    MPI_Recv(IncomingBuffer(), d_size, MPI_BYTE, source, kNodeTag,
-             MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    MPI_Recv(IncomingBuffer(), d_size, MPI_BYTE, source, tag, MPI_COMM_WORLD,
+             MPI_STATUS_IGNORE);
 
     has_received = 0;
-    MPI_Iprobe(MPI_ANY_SOURCE, kNodeTag, MPI_COMM_WORLD, &has_received,
-               &status);
+    MPI_Iprobe(MPI_ANY_SOURCE, tag, MPI_COMM_WORLD, &has_received, &status);
   }
 }
 

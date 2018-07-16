@@ -43,6 +43,8 @@ class DistributedSearchGraphWithLandmarks : public DistributedSearchGraph {
 
   virtual int GenerateNodeIfNotClosed(const unsigned char *d) override;
 
+  virtual int GenerateAndCloseNode(const unsigned char *d) override;
+
   virtual int GenerateNode(const unsigned char *d, std::vector<int> &values)
     override;
 
@@ -55,7 +57,7 @@ class DistributedSearchGraphWithLandmarks : public DistributedSearchGraph {
                           unsigned char *buffer) override {
     DistributedSearchGraph::BufferNode(i, base, buffer);
     memcpy(buffer + DistributedSearchGraph::node_size(), Landmark(i),
-           n_landmarks_bytes_);
+           n_landmarks_bytes_ * sizeof(uint8_t));
   }
 
   uint8_t* Landmark(int i) override {

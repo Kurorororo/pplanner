@@ -9,6 +9,8 @@ class OpenListImpl {
  public:
   virtual ~OpenListImpl() = 0;
 
+  virtual size_t size() const = 0;
+
   virtual void Push(const std::vector<int> &values, int node) = 0;
 
   virtual int Pop() = 0;

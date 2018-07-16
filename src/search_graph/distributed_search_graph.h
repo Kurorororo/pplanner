@@ -11,9 +11,6 @@ namespace pplanner {
 
 class DistributedSearchGraph : public SearchGraph {
  public:
-  using SearchGraph::GenerateNode;
-  using SearchGraph::GenerateNodeIfNotClosed;
-
   DistributedSearchGraph(std::shared_ptr<const SASPlus> problem,
                          int closed_exponent, int n_evaluators, int rank)
     : SearchGraph(problem, closed_exponent),
@@ -37,6 +34,8 @@ class DistributedSearchGraph : public SearchGraph {
 
   virtual int GenerateNodeIfNotClosed(const unsigned char *d);
 
+  virtual int GenerateAndCloseNode(const unsigned char *d);
+
   virtual int GenerateNode(const unsigned char *d, std::vector<int> &values);
 
   virtual void BufferNode(int action, int parent_node,
@@ -45,7 +44,7 @@ class DistributedSearchGraph : public SearchGraph {
 
   virtual void BufferNode(int i, const unsigned char *base,
                           unsigned char *buffer) {
-    memcpy(buffer, base, node_size());
+    memcpy(buffer, base, DistributedSearchGraph::node_size());
   }
 
   int n_evaluators() const { return n_evaluators_; }
@@ -58,21 +57,21 @@ class DistributedSearchGraph : public SearchGraph {
                    int parent_rank) {
     AddMoreProperties(parent_rank);
 
-    return GenerateNode(action, parent_node, state);
+    return SearchGraph::GenerateNode(action, parent_node, state);
   }
 
   int GenerateNode(int action, int parent_node, const std::vector<int> &parent,
                    const std::vector<int> &state, int parent_rank) {
     AddMoreProperties(parent_rank);
 
-    return GenerateNode(action, parent_node, parent, state);
+    return SearchGraph::GenerateNode(action, parent_node, parent, state);
   }
 
   int GenerateNode(int action, int parent_node, uint32_t hash_value,
                    const uint32_t *packed, int parent_rank) {
     AddMoreProperties(parent_rank);
 
-    return GenerateNode(action, parent_node, hash_value, packed);
+    return SearchGraph::GenerateNode(action, parent_node, hash_value, packed);
   }
 
   int GenerateNodeIfNotClosed(int action, int parent_node, uint32_t hash_value,
@@ -84,6 +83,16 @@ class DistributedSearchGraph : public SearchGraph {
   int GenerateNodeIfNotClosed(int action, int parent_node,
                               const std::vector<int> &parent,
                               const std::vector<int> &state, int parent_rank);
+
+  int GenerateAndCloseNode(int action, int parent_node, uint32_t hash_value,
+                           const uint32_t *packed, int parent_rank);
+
+  int GenerateAndCloseNode(int action, int parent_node,
+                           const std::vector<int> &state, int parent_rank);
+
+  int GenerateAndCloseNode(int action, int parent_node,
+                           const std::vector<int> &parent,
+                           const std::vector<int> &state, int parent_rank);
 
  private:
   int n_evaluators_;

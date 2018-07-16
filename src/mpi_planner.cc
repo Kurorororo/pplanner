@@ -39,6 +39,7 @@ bool Run(std::shared_ptr<const SASPlus> sas,
 
   if (!result.empty() && result[0] == -1) {
     std::cerr << "faild to solve instance" << std::endl;
+
     return false;
   }
 

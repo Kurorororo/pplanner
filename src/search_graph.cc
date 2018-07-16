@@ -18,14 +18,27 @@ bool SearchGraph::CloseIfNot(int node) {
   return true;
 }
 
-int SearchGraph::GenerateNodeIfNotClosed(int action, int parent_index,
+int SearchGraph::GenerateNodeIfNotClosed(int action, int parent_node,
                                          uint32_t hash_value,
                                          const uint32_t *packed) {
   size_t index = Find(hash_value, packed);
 
   if (closed_[index] != -1) return -1;
 
-  return GenerateNode(action, parent_index, hash_value, packed);
+  return GenerateNode(action, parent_node, hash_value, packed);
+}
+
+int SearchGraph::GenerateAndCloseNode(int action, int parent_node,
+                                      uint32_t hash_value,
+                                      const uint32_t *packed) {
+  size_t index = Find(hash_value, packed);
+
+  if (closed_[index] != -1) return -1;
+
+  int node = GenerateNode(action, parent_node, hash_value, packed);
+  Close(index, node);
+
+  return node;
 }
 
 void SearchGraph::Close(size_t index, int node) {

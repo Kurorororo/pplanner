@@ -51,7 +51,7 @@ class HDGBFS : public Search {
   }
 
   virtual ~HDGBFS() {
-    Flush();
+    Flush(kNodeTag);
     int detach_size;
     MPI_Buffer_detach(&mpi_buffer_, &detach_size);
     delete[] mpi_buffer_;
@@ -69,11 +69,14 @@ class HDGBFS : public Search {
 
   virtual int Search();
 
-  virtual void CallbackOnReceiveNode(int source, const unsigned char *d);
+  virtual void CallbackOnReceiveNode(int source, const unsigned char *d,
+                                     bool no_node);
 
   virtual void CallbackOnReceiveAllNodes() {}
 
   int rank() const { return rank_; }
+
+  int world_size() const { return world_size_; }
 
   int best_h() const { return best_h_; }
 
@@ -83,11 +86,13 @@ class HDGBFS : public Search {
 
   size_t node_size() const { return graph_->node_size(); }
 
-  size_t n_variables() const { return problem_->n_variables(); }
+  std::shared_ptr<const SASPlus> problem() const { return problem_; }
 
-  std::vector<int> InitialEvaluate();
+  std::shared_ptr<DistributedSearchGraph> graph() { return graph_; }
 
-  int Expand(int node, std::vector<int> &state);
+  std::vector<int> InitialEvaluate(bool eager_dd=false);
+
+  int Expand(int node, std::vector<int> &state, bool eager_dd=false);
 
   int Evaluate(const std::vector<int> &state, int node,
                std::vector<int> &values);
@@ -127,10 +132,6 @@ class HDGBFS : public Search {
 
   void ClearOutgoingBuffer(int i) { outgoing_buffers_[i].clear(); }
 
-  void BufferNode(int node, const unsigned char *base, unsigned char *buffer) {
-    graph_->BufferNode(node, base, buffer);
-  }
-
   void SendNodes(int tag);
 
   void ReceiveNodes();
@@ -139,21 +140,11 @@ class HDGBFS : public Search {
 
   bool ReceiveTermination();
 
-  int GenerateNodeIfNotClosed(const unsigned char *d) {
-    return graph_->GenerateNodeIfNotClosed(d);
-  }
-
-  int GenerateNode(const unsigned char *d, std::vector<int> &values) {
-    return graph_->GenerateNode(d, values);
-  }
-
-  void NodeToState(int node, std::vector<int> &state) const {
-    graph_->State(node, state);
-  }
-
   void IncrementGenerated() { ++generated_; }
 
   void IncrementDeadEnds() { ++dead_ends_; }
+
+  void Flush(int tag);
 
   static constexpr int kNodeTag = 0;
   static constexpr int kTerminationTag = 1;
@@ -164,8 +155,6 @@ class HDGBFS : public Search {
   void Init(const boost::property_tree::ptree &pt);
 
   std::vector<int> ExtractPath(int node);
-
-  void Flush();
 
   bool use_preferred_;
   int generated_;
