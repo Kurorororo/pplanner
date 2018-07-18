@@ -103,7 +103,7 @@ int DistributedSearchGraph::GenerateNode(const unsigned char *d,
   memcpy(info, d, n_info * sizeof(int));
   values.clear();
 
-  for (size_t i=0; i<n_evaluators(); ++i)
+  for (int i=0; i<n_evaluators(); ++i)
     values.push_back(info[i]);
 
   int action = info[n_evaluators()];

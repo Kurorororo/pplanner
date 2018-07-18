@@ -1,6 +1,8 @@
 #ifndef OPEN_LIST_H_
 #define OPEN_LIST_H_
 
+#include <cstddef>
+
 #include <vector>
 
 namespace pplanner {
