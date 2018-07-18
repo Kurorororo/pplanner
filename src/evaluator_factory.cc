@@ -7,6 +7,7 @@
 #include "heuristics/landmark_count.h"
 #include "heuristics/new_operator.h"
 #include "heuristics/width.h"
+#include "heuristics/zobrist_ip_tiebreaking.h"
 #include "search_graph/search_graph_with_landmarks.h"
 
 namespace pplanner {
@@ -103,6 +104,9 @@ std::shared_ptr<Evaluator> EvaluatorFactory(
     return std::make_shared<LandmarkCount>(
         problem, graph, unit_cost, simplify, use_rpg_table, more_helpful);
   }
+
+  if (name.get() == "zobrist_ip_tiebreaking")
+    return std::make_shared<ZobristIPTiebreaking>(problem);
 
   throw std::runtime_error("No such heuristic.");
 }

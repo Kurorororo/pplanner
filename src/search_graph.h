@@ -57,6 +57,10 @@ class SearchGraph {
 
   virtual uint8_t* ParentLandmark(int i) { return nullptr; }
 
+  virtual void Expand(int i) {}
+
+  virtual void Dump() {}
+
   size_t size() const { return hash_values_.size(); }
 
   size_t closed_size() const { return closed_.size() * sizeof(int); }

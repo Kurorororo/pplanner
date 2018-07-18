@@ -7,7 +7,7 @@
 
 #include "evaluator_factory.h"
 #include "open_list_factory.h"
-#include "search_graph/search_graph_with_landmarks.h"
+#include "search_graph_factory.h"
 
 namespace pplanner {
 
@@ -21,10 +21,13 @@ void GBFS::Init(const boost::property_tree::ptree &pt) {
   if (auto closed_exponent_opt = pt.get_optional<int>("closed_exponent"))
     closed_exponent = closed_exponent_opt.get();
 
-  if (auto use_landmark = pt.get_optional<int>("landmark"))
-    graph_ = make_shared<SearchGraphWithLandmarks>(problem_, closed_exponent);
-  else
-    graph_ = make_shared<SearchGraph>(problem_, closed_exponent);
+  bool use_landmark = false;
+  if (auto opt = pt.get_optional<int>("landmark")) use_landmark = true;
+
+  bool dump_nodes = false;
+  if (auto opt = pt.get_optional<int>("dump_nodes")) dump_nodes = true;
+
+  graph_ = SearchFactory(problem_, closed_exponent, use_landmark, dump_nodes);
 
   vector<std::shared_ptr<Evaluator> > evaluators;
 
@@ -71,6 +74,7 @@ int GBFS::Expand(int node, vector<int> &state, vector<int> &child,
   if (!graph_->CloseIfNot(node)) return -1;
 
   ++expanded_;
+  graph_->Expand(node);
   graph_->State(node, state);
 
   if (problem_->IsGoal(state)) return node;
@@ -155,6 +159,8 @@ void GBFS::DumpStatistics() const {
   double p_p_b = static_cast<double>(n_preferreds_)
     / static_cast<double>(n_branching_);
   std::cout << "Preferred ratio " << p_p_b  << std::endl;
+
+  graph_->Dump();
 }
 
 } // namespace pplanner

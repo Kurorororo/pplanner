@@ -1,11 +1,27 @@
 #ifndef ARG_SORT_H_
 #define ARG_SORT_H_
 
+#include <algorithm>
+#include <numeric>
 #include <vector>
 
 namespace pplanner {
 
-void ArgSort(const std::vector<int> &v, std::vector<int> &indices);
+template<typename T>
+void ArgSort(const std::vector<T> &v, std::vector<int> &indices) {
+  indices.resize(v.size());
+  std::iota(indices.begin(), indices.end(), 0);
+  auto compare = [&v](int l, int r) { return v[l] < v[r]; };
+  std::sort(indices.begin(), indices.end(), compare);
+}
+
+template<typename T>
+std::vector<int> ArgSort(const std::vector<T> &v) {
+  std::vector<int> indices;
+  ArgSort<T>(v, indices);
+
+  return indices;
+}
 
 } // namespace pplanner
 

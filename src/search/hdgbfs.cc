@@ -8,7 +8,7 @@
 
 #include "evaluator_factory.h"
 #include "open_list_factory.h"
-#include "search_graph/distributed_search_graph_with_landmarks.h"
+#include "search_graph_factory.h"
 
 namespace pplanner {
 
@@ -32,12 +32,16 @@ void HDGBFS::Init(const boost::property_tree::ptree &pt) {
     ++n_evaluators_;
   }
 
-  if (auto use_landmark = pt.get_optional<int>("landmark"))
-    graph_ = make_shared<DistributedSearchGraphWithLandmarks>(
-        problem_, closed_exponent, n_evaluators_, rank_);
-  else
-    graph_ = make_shared<DistributedSearchGraph>(
-        problem_, closed_exponent, n_evaluators_, rank_);
+  bool use_landmark = false;
+  if (auto opt = pt.get_optional<int>("landmark")) use_landmark = true;
+
+  bool dump_nodes = false;
+  if (auto opt = pt.get_optional<int>("dump_nodes")) dump_nodes = true;
+
+  graph_ = DistributedSearchGraphFactory(problem_, closed_exponent,
+                                         n_evaluators_, rank_, use_landmark,
+                                         dump_nodes);
+
 
   for (auto e : evaluator_names)
     evaluators_.push_back(EvaluatorFactory(problem_, graph_, e));
@@ -122,6 +126,7 @@ int HDGBFS::Expand(int node, vector<int> &state, bool eager_dd) {
   if (!eager_dd && !graph_->CloseIfNot(node)) return -1;
 
   ++expanded_;
+  graph_->Expand(node);
   graph_->State(node, state);
 
   if (problem_->IsGoal(state)) return node;
@@ -429,7 +434,10 @@ void HDGBFS::DumpStatistics() const {
     double p_p_b = static_cast<double>(n_preferreds)
       / static_cast<double>(n_branching);
     std::cout << "Preferred ratio " << p_p_b  << std::endl;
+
   }
+
+  graph_->Dump();
 }
 
 } // namespace pplanner

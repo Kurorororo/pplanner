@@ -140,12 +140,14 @@ $(BIN_DIR)/libsas_plus.a: \
 
 $(BIN_DIR)/libsearch_graph.a: \
 	$(BIN_DIR)/search_graph.o \
+	$(BIN_DIR)/search_graph_factory.o \
 	$(BIN_DIR)/search_graph/distributed_search_graph_with_landmarks.o \
 	$(BIN_DIR)/search_graph/distributed_search_graph.o \
 	$(BIN_DIR)/search_graph/state_packer.o \
 	$(BIN_DIR)/hash/zobrist_hash.o
 	ar rcs $(BIN_DIR)/libsearch_graph.a \
 		$(BIN_DIR)/search_graph.o \
+		$(BIN_DIR)/search_graph_factory.o \
 		$(BIN_DIR)/search_graph/distributed_search_graph_with_landmarks.o \
 		$(BIN_DIR)/search_graph/distributed_search_graph.o \
 		$(BIN_DIR)/search_graph/state_packer.o \
