@@ -43,16 +43,25 @@ class DistributedSearchGraphWithTimestamp : public T {
     filename += ".csv";
     std::ofstream expanded_nodes;
     expanded_nodes.open(filename, std::ios::out);
+
+    if (this->rank() == 0) {
+      expanded_nodes << "timestamp";
+
+      for (int i=0; i<n_variables_; ++i)
+        expanded_nodes << ",v" << i;
+
+      expanded_nodes << std::endl;
+    }
+
     std::vector<int> state(n_variables_);
 
     for (auto p : timestamps_) {
-      expanded_nodes << p.first << ",";
-
+      expanded_nodes << p.first;
       int node = p.second;
-      const uint32_t *packed = this->PackedState(node);
+      this->State(node, state);
 
-      for (int i=0, n=this->state_size(); i<n; ++i)
-        expanded_nodes << std::bitset<32>(packed[i]);
+      for (int i=0; i<n_variables_; ++i)
+        expanded_nodes << "," << state[i];
 
       expanded_nodes << std::endl;
     }

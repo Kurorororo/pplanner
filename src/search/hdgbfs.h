@@ -32,6 +32,7 @@ class HDGBFS : public Search {
       n_preferred_evaluated_(0),
       n_branching_(0),
       n_preferreds_(0),
+      n_received_(0),
       best_h_(-1),
       initial_rank_(0),
       world_size_(2),
@@ -164,6 +165,7 @@ class HDGBFS : public Search {
   int n_preferred_evaluated_;
   int n_branching_;
   int n_preferreds_;
+  int n_received_;
   int best_h_;
   int initial_rank_;
   int world_size_;

@@ -232,6 +232,8 @@ void HDGBFS::ReceiveNodes() {
   MPI_Status status;
   MPI_Iprobe(MPI_ANY_SOURCE, kNodeTag, MPI_COMM_WORLD, &has_received, &status);
 
+  if (has_received) ++n_received_;
+
   while (has_received) {
     int d_size = 0;
     int source = status.MPI_SOURCE;
@@ -405,6 +407,7 @@ void HDGBFS::DumpStatistics() const {
   int n_preferreds = 0;
   int n_preferred_evaluated = 0;
   int n_branching = 0;
+  int n_received = 0;
   MPI_Allreduce(&expanded_, &expanded, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
   MPI_Allreduce(&evaluated_, &evaluated, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
   MPI_Allreduce(&generated_, &generated, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
@@ -415,6 +418,8 @@ void HDGBFS::DumpStatistics() const {
                 MPI_SUM, MPI_COMM_WORLD);
   MPI_Allreduce(
       &n_branching_, &n_branching, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(
+      &n_received_, &n_received, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 
   if (rank_ == initial_rank_) {
     std::cout << "Expanded " << expanded << " state(s)" << std::endl;
@@ -435,6 +440,12 @@ void HDGBFS::DumpStatistics() const {
       / static_cast<double>(n_branching);
     std::cout << "Preferred ratio " << p_p_b  << std::endl;
 
+    double delay = 1.0;
+
+    if (n_received_ > 0)
+      delay = static_cast<double>(expanded_) / static_cast<double>(n_received_);
+
+    std::cout << "Delay " << delay << std::endl;
   }
 
   graph_->Dump();
