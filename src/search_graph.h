@@ -57,7 +57,7 @@ class SearchGraph {
 
   virtual uint8_t* ParentLandmark(int i) { return nullptr; }
 
-  virtual void Expand(int i) {}
+  virtual void Expand(int i, std::vector<int> &state) { State(i, state); }
 
   virtual void Dump() {}
 

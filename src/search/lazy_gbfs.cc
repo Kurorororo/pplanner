@@ -69,7 +69,7 @@ int LazyGBFS::Search() {
     if (best_h != -1) node = open_list_->Pop();
     if (!graph_->CloseIfNot(node)) continue;
     ++expanded_;
-    graph_->State(node, state);
+    graph_->Expand(node, state);
 
     generator_->Generate(state, applicable);
 

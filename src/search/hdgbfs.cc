@@ -126,8 +126,7 @@ int HDGBFS::Expand(int node, vector<int> &state, bool eager_dd) {
   if (!eager_dd && !graph_->CloseIfNot(node)) return -1;
 
   ++expanded_;
-  graph_->Expand(node);
-  graph_->State(node, state);
+  graph_->Expand(node, state);
 
   if (problem_->IsGoal(state)) return node;
 

@@ -24,7 +24,8 @@ class SearchGraphWithTimestamp : public T {
 
   ~SearchGraphWithTimestamp() {}
 
-  void Expand(int i) override {
+  void Expand(int i, std::vector<int> &state) override {
+    T::Expand(i, state);
     auto now = std::chrono::system_clock::now();
     auto ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
         now - start_).count();

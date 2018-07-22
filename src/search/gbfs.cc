@@ -74,8 +74,7 @@ int GBFS::Expand(int node, vector<int> &state, vector<int> &child,
   if (!graph_->CloseIfNot(node)) return -1;
 
   ++expanded_;
-  graph_->Expand(node);
-  graph_->State(node, state);
+  graph_->Expand(node, state);
 
   if (problem_->IsGoal(state)) return node;
 
