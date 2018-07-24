@@ -216,6 +216,116 @@ void HDGBFS::Push(std::vector<int> &values, int node) {
   }
 }
 
+int HDGBFS::IndependentExpand(int node, vector<int> &state, bool eager_dd) {
+  static vector<int> values;
+  static vector<int> child;
+  static vector<int> applicable;
+  static unordered_set<int> preferred;
+
+  if (!eager_dd && !graph_->CloseIfNot(node)) return -1;
+
+  ++expanded_;
+  graph_->Expand(node, state);
+
+  if (problem_->IsGoal(state)) return node;
+
+  generator_->Generate(state, applicable);
+
+  if (applicable.empty()) {
+    IncrementDeadEnds();
+
+    return -1;
+  }
+
+  if (use_preferred_)
+    preferring_->Evaluate(state, node, applicable, preferred);
+
+  ++n_preferred_evaluated_;
+  n_branching_ += applicable.size();
+
+  for (auto o : applicable) {
+    child = state;
+    problem_->ApplyEffect(o, child);
+
+    bool is_preferred = use_preferred_ && preferred.find(o) != preferred.end();
+    if (is_preferred) ++n_preferreds_;
+
+    int child_node = -1;
+
+    if (eager_dd) {
+      child_node = graph_->GenerateAndCloseNode(o, node, state, child, rank_);
+    } else {
+      child_node = graph_->GenerateNodeIfNotClosed(
+          o, node, state, child, rank_);
+    }
+
+    if (child_node == -1) continue;
+    IncrementGenerated();
+    int h = Evaluate(child, child_node, values);
+    if (h != -1) Push(values, child_node);
+  }
+
+  return -1;
+}
+
+int HDGBFS::Distribute(bool eager_dd) {
+  static vector<int> state(problem_->n_variables());
+  static vector<int> values;
+  static vector<int> child;
+  static vector<int> applicable;
+  static unordered_set<int> preferred;
+
+  int to_rank = 0;
+  int i = 1;
+
+  while (i < world_size_ && !NoNode()) {
+    int node = Pop();
+    if (!eager_dd && !graph_->CloseIfNot(node)) continue;
+
+    ++expanded_;
+    graph_->Expand(node, state);
+
+    if (problem_->IsGoal(state)) {
+      SendTermination();
+
+      return node;
+    }
+
+    generator_->Generate(state, applicable);
+
+    if (applicable.empty()) {
+      IncrementDeadEnds();
+      continue;
+    }
+
+    if (use_preferred_)
+      preferring_->Evaluate(state, node, applicable, preferred);
+
+    ++n_preferred_evaluated_;
+    n_branching_ += applicable.size();
+
+    for (auto o : applicable) {
+      child = state;
+      problem_->ApplyEffect(o, child);
+
+      bool is_preferred = use_preferred_
+        && preferred.find(o) != preferred.end();
+      if (is_preferred) ++n_preferreds_;
+
+      if (to_rank == rank()) to_rank = (to_rank + 1) % world_size_;
+
+      unsigned char *buffer = ExtendOutgoingBuffer(to_rank, node_size());
+      graph_->BufferNode(o, node, state, child, buffer);
+      ++i;
+      to_rank = (to_rank + 1) % world_size_;
+    }
+  }
+
+  SendNodes(kNodeTag);
+
+  return -1;
+}
+
 void HDGBFS::SendNodes(int tag) {
   for (int i=0; i<world_size_; ++i) {
     if (i == rank_ || IsOutgoingBufferEmpty(i)) continue;

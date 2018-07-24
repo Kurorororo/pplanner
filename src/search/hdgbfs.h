@@ -75,15 +75,17 @@ class HDGBFS : public Search {
 
   virtual void CallbackOnReceiveAllNodes() {}
 
-  int rank() const { return rank_; }
-
-  int world_size() const { return world_size_; }
-
   int best_h() const { return best_h_; }
 
   void set_best_h(int h) { best_h_ = h; }
 
+  int initial_rank() const { return initial_rank_; }
+
+  int world_size() const { return world_size_; }
+
   size_t n_evaluators() const { return n_evaluators_; }
+
+  int rank() const { return rank_; }
 
   size_t node_size() const { return graph_->node_size(); }
 
@@ -103,6 +105,12 @@ class HDGBFS : public Search {
   int Pop() { return open_list_->Pop(); }
 
   bool NoNode() const { return open_list_->IsEmpty(); }
+
+  size_t n_open_nodes() const { return open_list_->size(); }
+
+  int IndependentExpand(int node, std::vector<int> &state, bool eager_dd=false);
+
+  int Distribute(bool eager_dd=false);
 
   unsigned char* IncomingBuffer() {
     return incoming_buffer_.data();

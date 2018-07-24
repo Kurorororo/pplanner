@@ -2,6 +2,7 @@
 
 #include "search/hdgbfs.h"
 #include "search/pddsgbfs.h"
+#include "search/pigbfs.h"
 
 namespace pplanner {
 
@@ -19,6 +20,9 @@ std::unique_ptr<Search> MpiSearchFactory(
 
   if (search.get() == "pddsgbfs")
     return std::unique_ptr<PDDSGBFS>(new PDDSGBFS(problem, option.get()));
+
+  if (search.get() == "pigbfs")
+    return std::unique_ptr<PIGBFS>(new PIGBFS(problem, option.get()));
 
   throw std::runtime_error("No such search algorithm.");
 }
