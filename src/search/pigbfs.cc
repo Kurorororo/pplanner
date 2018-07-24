@@ -8,7 +8,7 @@ int PIGBFS::Search() {
   if (rank() == initial_rank()) {
     while (n_open_nodes() < world_size() && !NoNode()) {
       int node = Pop();
-      int goal = IndependentExpand(node, state, false);
+      int goal = IndependentExpand(node, state);
 
       if (goal != -1) {
         SendTermination();
@@ -25,7 +25,7 @@ int PIGBFS::Search() {
     if (NoNode()) continue;
 
     int node = Pop();
-    int goal = IndependentExpand(node, state, false);
+    int goal = IndependentExpand(node, state);
 
     if (goal != -1) {
       SendTermination();

@@ -19,6 +19,8 @@ using std::vector;
 void HDGBFS::Init(const boost::property_tree::ptree &pt) {
   MPI_Comm_rank(MPI_COMM_WORLD, &rank_);
 
+  if (auto opt = pt.get_optional<int>("runup")) runup_ = true;
+
   int closed_exponent = 22;
 
   if (auto closed_exponent_opt = pt.get_optional<int>("closed_exponent"))
@@ -76,6 +78,21 @@ void HDGBFS::Init(const boost::property_tree::ptree &pt) {
 
 int HDGBFS::Search() {
   auto state = InitialEvaluate();
+
+  if (runup() && rank() == initial_rank()) {
+    while (n_open_nodes() < world_size() && !NoNode()) {
+      int node = Pop();
+      int goal = IndependentExpand(node, state);
+
+      if (goal != -1) {
+        SendTermination();
+
+        return goal;
+      }
+    }
+
+    Distribute();
+  }
 
   while (!ReceiveTermination()) {
     ReceiveNodes();

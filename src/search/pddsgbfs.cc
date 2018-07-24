@@ -9,6 +9,21 @@ using std::vector;
 int PDDSGBFS::Search() {
   auto state = InitialEvaluate(true);
 
+  if (runup() && rank() == initial_rank()) {
+    while (n_open_nodes() < world_size() && !NoNode()) {
+      int node = Pop();
+      int goal = IndependentExpand(node, state, true);
+
+      if (goal != -1) {
+        SendTermination();
+
+        return goal;
+      }
+    }
+
+    Distribute(true);
+  }
+
   while (!ReceiveTermination()) {
     ReceiveNodes();
     RegainNodes();

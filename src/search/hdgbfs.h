@@ -25,6 +25,7 @@ class HDGBFS : public Search {
   HDGBFS(std::shared_ptr<const SASPlus> problem,
          const boost::property_tree::ptree &pt)
     : use_preferred_(false),
+      runup_(false),
       generated_(0),
       expanded_(0),
       evaluated_(0),
@@ -74,6 +75,8 @@ class HDGBFS : public Search {
                                      bool no_node);
 
   virtual void CallbackOnReceiveAllNodes() {}
+
+  bool runup() const { return runup_; }
 
   int best_h() const { return best_h_; }
 
@@ -166,6 +169,7 @@ class HDGBFS : public Search {
   std::vector<int> ExtractPath(int node);
 
   bool use_preferred_;
+  bool runup_;
   int generated_;
   int expanded_;
   int evaluated_;
