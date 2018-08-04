@@ -53,6 +53,107 @@ bool DTG::IsConnected(int start, int goal, int ignore) {
   return RecursiveIsConnected(start, goal);
 }
 
+float DTG::SparsestCut(vector<int> &cut) const {
+  cut.resize(adjacent_matrix_.size());
+  std::fill(cut.begin(), cut.end(), -1);
+
+  return RecursiveSparsestCut(0, 0.0, cut);
+}
+
+float DTG::RecursiveSparsestCut(int value, float answer,
+                                vector<int> &cut) const {
+  if (value == adjacent_matrix_.size())
+    return CalculateSparisty(cut);
+
+  float ub = CalculateUpperBound(cut);
+
+  if (ub < answer) return answer;
+
+  auto zero_cut = cut;
+  zero_cut[value] = 0;
+  float zero_answer = RecursiveSparsestCut(value + 1, answer, zero_cut);
+
+  if (zero_answer > answer) {
+    answer = zero_answer;
+    cut = zero_cut;
+  }
+
+  auto one_cut = cut;
+  one_cut[value] = 1;
+  float one_answer = RecursiveSparsestCut(value + 1, answer, one_cut);
+
+  if (one_answer > answer) {
+    answer = one_answer;
+    cut = one_cut;
+  }
+
+  return answer;
+}
+
+float DTG::CalculateSparisty(const vector<int> &cut) const {
+  int n_zero_nodes = 0.0;
+  int n_one_nodes = 0.0;
+  int cut_edge_weight = 0.0;
+  float total_weight = 0.0;
+
+  for (int i=0, n=cut.size(); i<n; ++i) {
+    if (cut[i] == 0) ++n_zero_nodes;
+    if (cut[i] == 1) ++n_one_nodes;
+
+    for (auto j : adjacent_lists_[i]) {
+      total_weight += static_cast<float>(adjacent_matrix_[i][j]);
+
+      if (cut[i] != cut[j])
+        cut_edge_weight += adjacent_matrix_[i][j];
+    }
+  }
+
+  float n_total_nodes = static_cast<float>(cut.size());
+  float s_0 = static_cast<float>(n_zero_nodes) / n_total_nodes;
+  float s_1 = static_cast<float>(n_one_nodes) / n_total_nodes;
+
+  if (cut_edge_weight == 0) return 0.0;
+
+  float e = static_cast<float>(cut_edge_weight) / total_weight;
+
+  return s_0 * s_1 / e;
+}
+
+float DTG::CalculateUpperBound(const vector<int> &cut) const {
+  int n_zero_nodes = 0.0;
+  int n_one_nodes = 0.0;
+  int n_yet_nodes = 0.0;
+  float cut_edge_weight = 0.0;
+  float total_weight = 0.0;
+
+  for (int i=0, n=cut.size(); i<n; ++i) {
+    if (cut[i] == 0) ++n_zero_nodes;
+    if (cut[i] == 1) ++n_one_nodes;
+    if (cut[i] == -1) ++n_yet_nodes;
+
+    for (auto j : adjacent_lists_[i]) {
+      total_weight += static_cast<float>(adjacent_matrix_[i][j]);
+
+      if (cut[i] != cut[j] && cut[i] != -1 && cut[j] != -1)
+        cut_edge_weight += static_cast<float>(adjacent_matrix_[i][j]);
+    }
+  }
+
+  for (int i=n_yet_nodes; i>0; --i) {
+    if (n_zero_nodes < n_one_nodes)
+      ++n_zero_nodes;
+    else
+      ++n_one_nodes;
+  }
+
+  float n_total_nodes = static_cast<float>(cut.size());
+  float s_0 = static_cast<float>(n_zero_nodes) / n_total_nodes;
+  float s_1 = static_cast<float>(n_one_nodes) / n_total_nodes;
+  float e = cut_edge_weight / total_weight;
+
+  return s_0 * s_1 / e;
+}
+
 void DTG::Dump() const {
   int i = 0;
 
@@ -65,6 +166,15 @@ void DTG::Dump() const {
     std::cout << std::endl;
     ++i;
   }
+
+  std::vector<int> cut;
+  float sparsity = SparsestCut(cut);
+  std::cout << "sparsest cut: ";
+
+  for (int i=0, n=cut.size(); i<n; ++i)
+    std::cout << i << ":" << cut[i] << " ";
+
+  std::cout << "sparsity:" << sparsity << std::endl;
 }
 
 vector<DTG> InitializeDTGs(shared_ptr<const SASPlus> problem) {

@@ -9,6 +9,7 @@
 #include "evaluator_factory.h"
 #include "open_list_factory.h"
 #include "search_graph_factory.h"
+#include "hash/distribution_hash_factory.h"
 
 namespace pplanner {
 
@@ -44,7 +45,6 @@ void HDGBFS::Init(const boost::property_tree::ptree &pt) {
                                          n_evaluators_, rank_, use_landmark,
                                          dump_nodes);
 
-
   for (auto e : evaluator_names)
     evaluators_.push_back(EvaluatorFactory(problem_, graph_, e));
 
@@ -66,6 +66,13 @@ void HDGBFS::Init(const boost::property_tree::ptree &pt) {
     graph_->ReserveByRAMSize(ram.get());
   else
     graph_->ReserveByRAMSize(5000000000);
+
+  std::string abstraction = "none";
+
+  if (auto opt = pt.get_optional<std::string>("abstraction"))
+    abstraction = opt.get();
+
+  z_hash_ = DistributionHashFactory(problem_, 2886379259, abstraction);
 
   MPI_Comm_size(MPI_COMM_WORLD, &world_size_);
 

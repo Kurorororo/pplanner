@@ -16,7 +16,7 @@
 #include "search_graph/distributed_search_graph.h"
 #include "successor_generator.h"
 #include "open_list.h"
-#include "hash/zobrist_hash.h"
+#include "hash/distribution_hash.h"
 
 namespace pplanner {
 
@@ -47,8 +47,7 @@ class HDGBFS : public Search {
             new SuccessorGenerator(problem))),
       graph_(nullptr),
       open_list_(nullptr),
-      z_hash_(std::unique_ptr<ZobristHash>(
-            new ZobristHash(problem, 2886379259))) {
+      z_hash_(nullptr) {
     Init(pt);
   }
 
@@ -193,7 +192,7 @@ class HDGBFS : public Search {
   std::unique_ptr<SuccessorGenerator> generator_;
   std::shared_ptr<DistributedSearchGraph> graph_;
   std::unique_ptr<OpenList> open_list_;
-  std::unique_ptr<ZobristHash> z_hash_;
+  std::shared_ptr<DistributionHash> z_hash_;
 };
 
 } // namespace pplanner

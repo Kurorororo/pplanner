@@ -39,6 +39,8 @@ class DTG {
 
   bool IsConnected(int start, int goal, int ignore=-1);
 
+  float SparsestCut(std::vector<int> &cut) const;
+
   void Dump() const;
 
  private:
@@ -46,6 +48,13 @@ class DTG {
       const std::vector<std::vector<int> > &adjacent_matrix);
 
   bool RecursiveIsConnected(int i, int goal);
+
+  float RecursiveSparsestCut(int value, float answer,
+                             std::vector<int> &cut) const;
+
+  float CalculateSparisty(const std::vector<int> &cut) const;
+
+  float CalculateUpperBound(const std::vector<int> &cut) const;
 
   std::vector<std::vector<int> > adjacent_matrix_;
   std::vector<std::vector<int> > adjacent_lists_;

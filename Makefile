@@ -44,7 +44,6 @@ mpi_planner: \
 	$(SRC_DIR)/search/hdgbfs.cc \
 	$(BIN_DIR)/successor_generator.o \
 	$(BIN_DIR)/postprocess/action_elimination.o \
-	$(BIN_DIR)/hash/zobrist_hash.o \
 	$(BIN_DIR)/utils/file_utils.o \
 	$(BIN_DIR)/libsearch.a \
 	$(BIN_DIR)/libopen_lists.a \
@@ -61,7 +60,6 @@ mpi_planner: \
 		$(SRC_DIR)/search/hdgbfs.cc \
 		$(BIN_DIR)/successor_generator.o \
 		$(BIN_DIR)/postprocess/action_elimination.o \
-		$(BIN_DIR)/hash/zobrist_hash.o \
 		$(BIN_DIR)/utils/file_utils.o \
 		$(BIN_DIR)/libsearch.a \
 		$(BIN_DIR)/libopen_lists.a \
@@ -147,6 +145,8 @@ $(BIN_DIR)/libsearch_graph.a: \
 	$(BIN_DIR)/search_graph/distributed_search_graph.o \
 	$(BIN_DIR)/search_graph/state_packer.o \
 	$(BIN_DIR)/hash/distribution_hash.o \
+	$(BIN_DIR)/hash/distribution_hash_factory.o \
+	$(BIN_DIR)/hash/gra_zobrist_hash.o \
 	$(BIN_DIR)/hash/zobrist_hash.o
 	ar rcs $(BIN_DIR)/libsearch_graph.a \
 		$(BIN_DIR)/search_graph.o \
@@ -155,6 +155,8 @@ $(BIN_DIR)/libsearch_graph.a: \
 		$(BIN_DIR)/search_graph/distributed_search_graph.o \
 		$(BIN_DIR)/search_graph/state_packer.o \
 		$(BIN_DIR)/hash/distribution_hash.o \
+		$(BIN_DIR)/hash/distribution_hash_factory.o \
+		$(BIN_DIR)/hash/gra_zobrist_hash.o \
 		$(BIN_DIR)/hash/zobrist_hash.o
 
 $(BIN_DIR)/libevaluators.a: \
