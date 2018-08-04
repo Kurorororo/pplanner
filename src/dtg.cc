@@ -62,7 +62,7 @@ float DTG::SparsestCut(vector<int> &cut) const {
 
 float DTG::RecursiveSparsestCut(int value, float answer,
                                 vector<int> &cut) const {
-  if (value == adjacent_matrix_.size())
+  if (value == static_cast<int>(adjacent_matrix_.size()))
     return CalculateSparisty(cut);
 
   float ub = CalculateUpperBound(cut);

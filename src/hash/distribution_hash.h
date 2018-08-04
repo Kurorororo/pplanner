@@ -1,6 +1,8 @@
 #ifndef DISTRIBUTION_HASH_H_
 #define DISTRIBUTION_HASH_H_
 
+#include <cstdint>
+
 #include <vector>
 
 namespace pplanner {
