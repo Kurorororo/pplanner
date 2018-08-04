@@ -10,11 +10,25 @@ using std::pair;
 using std::shared_ptr;
 using std::vector;
 
+void DTG::InitTransitionLists(const vector<vector<int> > &adjacent_matrix) {
+  adjacent_lists_.resize(adjacent_matrix.size());
+
+  for (int i=0, n=adjacent_matrix.size(); i<n; ++i)
+    for (int j=0; j<n; ++j)
+      if (adjacent_matrix[i][j] > 0)
+        adjacent_lists_[i].push_back(j);
+}
+
 void DTG::RemoveNode(int value) {
   adjacent_lists_[value].clear();
 
   for (auto &list : adjacent_lists_)
     list.erase(std::remove(list.begin(), list.end(), value), list.end());
+
+  adjacent_matrix_[value].clear();
+
+  for (auto &row : adjacent_matrix_)
+    row[value] = 0;
 }
 
 bool DTG::RecursiveIsConnected(int i, int goal) {
@@ -46,7 +60,7 @@ void DTG::Dump() const {
     std::cout << i << " ->";
 
     for (auto value : list)
-      std::cout << " " << value;
+      std::cout << " " << value << "(" << adjacent_matrix_[i][value] << ")";
 
     std::cout << std::endl;
     ++i;
@@ -55,10 +69,15 @@ void DTG::Dump() const {
 
 vector<DTG> InitializeDTGs(shared_ptr<const SASPlus> problem) {
   int variables_size = problem->n_variables();
-  vector<vector<vector<int> > > lists_lists(variables_size);
+  vector<vector<vector<int> > > adjacent_matrixes(variables_size);
 
-  for (int i=0; i<variables_size; ++i)
-    lists_lists[i].resize(problem->VarRange(i));
+  for (int i=0; i<variables_size; ++i) {
+    int var_range = problem->VarRange(i);
+    adjacent_matrixes[i].resize(var_range);
+
+    for (int j=0; j<var_range; ++j)
+      adjacent_matrixes[i][j].resize(var_range, 0);
+  }
 
   vector<int> precondition_table(variables_size);
   vector<int> effect_table(variables_size);
@@ -87,24 +106,18 @@ vector<DTG> InitializeDTGs(shared_ptr<const SASPlus> problem) {
       if (precondition_value == -1) {
         for (int k=0; k<problem->VarRange(j); ++k) {
           if (k == effect_value) continue;
-          auto &list = lists_lists[j][k];
-
-          if (std::find(list.begin(), list.end(), effect_value) == list.end())
-            list.push_back(effect_value);
+          ++adjacent_matrixes[j][k][effect_value];
         }
       } else {
-        auto &list = lists_lists[j][precondition_value];
-
-        if (std::find(list.begin(), list.end(), effect_value) == list.end())
-          list.push_back(effect_value);
+        ++adjacent_matrixes[j][precondition_value][effect_value];
       }
     }
   }
 
   vector<DTG> dtgs;
 
-  for (auto &list : lists_lists)
-    dtgs.push_back(DTG(list));
+  for (auto &matrix : adjacent_matrixes)
+    dtgs.push_back(DTG(matrix));
 
   return dtgs;
 }

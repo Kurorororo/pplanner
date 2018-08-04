@@ -15,12 +15,12 @@ class DTGTest : public ::testing::Test {
      |    |
      -->2--
     */
-    std::vector< std::vector<int> > adjacent_lists(4);
-    adjacent_lists[0].push_back(1);
-    adjacent_lists[0].push_back(2);
-    adjacent_lists[1].push_back(3);
-    adjacent_lists[2].push_back(3);
-    dtg_ = std::make_shared<DTG>(adjacent_lists);
+    std::vector< std::vector<int> > adjacent_matrix(4, std::vector<int>(4, 0));
+    adjacent_matrix[0][1] = 1;
+    adjacent_matrix[0][2] = 1;
+    adjacent_matrix[1][3] = 1;
+    adjacent_matrix[2][3] = 1;
+    dtg_ = std::make_shared<DTG>(adjacent_matrix);
   }
 
   std::shared_ptr<DTG> dtg_;

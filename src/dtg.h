@@ -13,17 +13,19 @@ class DTG {
  public:
   DTG() {}
 
-  explicit DTG(const DTG &dtg) {
-    adjacent_lists_ = dtg.adjacent_lists_;
-  }
+  explicit DTG(const DTG &dtg)
+    : adjacent_matrix_(dtg.adjacent_matrix_),
+      adjacent_lists_(dtg.adjacent_lists_) {}
 
-  explicit DTG(const std::vector<std::vector<int> > &adjacent_lists) {
-    adjacent_lists_ = adjacent_lists;
+  explicit DTG(const std::vector<std::vector<int> > &adjacent_matrix)
+    : adjacent_matrix_(adjacent_matrix) {
+    InitTransitionLists(adjacent_matrix);
   }
 
   ~DTG() {}
 
   DTG &operator=(const DTG &dtg) {
+    adjacent_matrix_ = dtg.adjacent_matrix_;
     adjacent_lists_ = dtg.adjacent_lists_;
 
     return *this;
@@ -40,8 +42,12 @@ class DTG {
   void Dump() const;
 
  private:
+  void InitTransitionLists(
+      const std::vector<std::vector<int> > &adjacent_matrix);
+
   bool RecursiveIsConnected(int i, int goal);
 
+  std::vector<std::vector<int> > adjacent_matrix_;
   std::vector<std::vector<int> > adjacent_lists_;
   std::unordered_set<int> closed_;
   std::unordered_set<int> deleted_;

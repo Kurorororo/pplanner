@@ -146,6 +146,7 @@ $(BIN_DIR)/libsearch_graph.a: \
 	$(BIN_DIR)/search_graph/distributed_search_graph_with_landmarks.o \
 	$(BIN_DIR)/search_graph/distributed_search_graph.o \
 	$(BIN_DIR)/search_graph/state_packer.o \
+	$(BIN_DIR)/hash/distribution_hash.o \
 	$(BIN_DIR)/hash/zobrist_hash.o
 	ar rcs $(BIN_DIR)/libsearch_graph.a \
 		$(BIN_DIR)/search_graph.o \
@@ -153,6 +154,7 @@ $(BIN_DIR)/libsearch_graph.a: \
 		$(BIN_DIR)/search_graph/distributed_search_graph_with_landmarks.o \
 		$(BIN_DIR)/search_graph/distributed_search_graph.o \
 		$(BIN_DIR)/search_graph/state_packer.o \
+		$(BIN_DIR)/hash/distribution_hash.o \
 		$(BIN_DIR)/hash/zobrist_hash.o
 
 $(BIN_DIR)/libevaluators.a: \
@@ -283,10 +285,12 @@ $(BIN_DIR)/test_successor_generator: \
 
 $(BIN_DIR)/hash/test_zobrist_hash: \
 	$(TEST_DIR)/hash/test_zobrist_hash.cc \
+	$(BIN_DIR)/hash/distribution_hash.o \
 	$(BIN_DIR)/hash/zobrist_hash.o \
 	$(BIN_DIR)/libsas_plus.a
 	$(CXX) $(INCS) $(TEST_FLAG) -o $(BIN_DIR)/hash/test_zobrist_hash \
 		$(TEST_DIR)/hash/test_zobrist_hash.cc \
+		$(BIN_DIR)/hash/distribution_hash.o \
 		$(BIN_DIR)/hash/zobrist_hash.o \
 		$(BIN_DIR)/libsas_plus.a
 
