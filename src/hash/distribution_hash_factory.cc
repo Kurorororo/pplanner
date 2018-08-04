@@ -12,6 +12,9 @@ std::shared_ptr<DistributionHash> DistributionHashFactory(
   if (abstraction == "gra")
     return std::make_shared<GRAZobristHash>(problem, seed);
 
+  if (abstraction == "ga")
+    return std::make_shared<GRAZobristHash>(problem, seed, true);
+
   return std::make_shared<ZobristHash>(problem, seed);
 }
 

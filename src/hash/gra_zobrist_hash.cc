@@ -9,13 +9,17 @@ namespace pplanner {
 using std::vector;
 
 GRAZobristHash::GRAZobristHash(std::shared_ptr<const SASPlus> problem,
-                               uint32_t seed)
+                               uint32_t seed, bool greedy)
   : problem_(problem), array_(problem->n_variables()) {
   auto dtgs = InitializeDTGs(problem);
   std::vector<int> cut;
 
   for (auto &dtg : dtgs) {
-    dtg.SparsestCut(cut);
+    if (greedy)
+      dtg.GreedyCut(cut);
+    else
+      dtg.SparsestCut(cut);
+
     cuts_.push_back(cut);
   }
 

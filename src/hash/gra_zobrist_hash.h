@@ -12,7 +12,8 @@ namespace pplanner {
 
 class GRAZobristHash : public DistributionHash {
  public:
-  GRAZobristHash(std::shared_ptr<const SASPlus> problem, uint32_t seed);
+  GRAZobristHash(std::shared_ptr<const SASPlus> problem, uint32_t seed,
+                 bool greedy=true);
 
   ~GRAZobristHash() {}
 
