@@ -10,7 +10,7 @@ std::shared_ptr<DistributionHash> DistributionHashFactory(
     uint32_t seed,
     const std::string &abstraction) {
   if (abstraction == "gra")
-    return std::make_shared<GRAZobristHash>(problem, seed);
+    return std::make_shared<GRAZobristHash>(problem, seed, false);
 
   if (abstraction == "ga")
     return std::make_shared<GRAZobristHash>(problem, seed, true);

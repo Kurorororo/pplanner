@@ -31,6 +31,8 @@ class DTG {
     return *this;
   }
 
+  size_t n_nodes() const { return adjacent_matrix_.size(); }
+
   void RemoveNode(int value);
 
   void SoftRemoveNode(int value) { deleted_.insert(value); }
