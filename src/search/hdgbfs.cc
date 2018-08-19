@@ -8,7 +8,7 @@
 
 #include "evaluator_factory.h"
 #include "open_list_factory.h"
-#include "search_graph_factory.h"
+#include "distributed_search_graph_factory.h"
 #include "hash/distribution_hash_factory.h"
 
 namespace pplanner {
@@ -133,6 +133,7 @@ vector<int> HDGBFS::InitialEvaluate(bool eager_dd) {
 
     IncrementGenerated();
     int h = open_list_->EvaluateAndPush(state, node, true);
+    graph_->SetH(node, h);
     set_best_h(h);
     std::cout << "Initial heuristic value: " << best_h() << std::endl;
     ++evaluated_;
@@ -212,12 +213,15 @@ int HDGBFS::Evaluate(const vector<int> &state, int node, vector<int> &values) {
 
     if (value == -1) {
       IncrementDeadEnds();
+      graph_->SetH(node , value);
 
       return value;
     }
 
     values.push_back(value);
   }
+
+  graph_->SetH(node, values[0]);
 
   return values[0];
 }

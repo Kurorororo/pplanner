@@ -59,6 +59,8 @@ class SearchGraph {
 
   virtual void Expand(int i, std::vector<int> &state) { State(i, state); }
 
+  virtual void SetH(int i, int h) {}
+
   virtual void Dump() {}
 
   size_t size() const { return hash_values_.size(); }

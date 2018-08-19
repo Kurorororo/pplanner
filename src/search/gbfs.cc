@@ -63,6 +63,7 @@ vector<int> GBFS::InitialExpand() {
   ++generated_;
 
   best_h_ = open_list_->EvaluateAndPush(state, node, true);
+  graph_->SetH(node, best_h_);
   std::cout << "Initial heuristic value: " << best_h_ << std::endl;
   ++evaluated_;
 
@@ -103,6 +104,7 @@ int GBFS::Expand(int node, vector<int> &state, vector<int> &child,
     ++generated_;
 
     int h = open_list_->EvaluateAndPush(child, child_node, is_preferred);
+    graph_->SetH(child_node, h);
     ++evaluated_;
 
     if (h == -1) {

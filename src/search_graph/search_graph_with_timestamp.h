@@ -1,11 +1,9 @@
 #ifndef SEARCH_GRAPH_WITH_TIMESTAMP_H_
 #define SEARCH_GRAPH_WITH_TIMESTAMP_H_
 
-#include <bitset>
 #include <chrono>
 #include <fstream>
 #include <memory>
-#include <utility>
 #include <vector>
 
 #include "sas_plus.h"
@@ -26,11 +24,19 @@ class SearchGraphWithTimestamp : public T {
 
   void Expand(int i, std::vector<int> &state) override {
     T::Expand(i, state);
+    ids_.push_back(i);
     auto now = std::chrono::system_clock::now();
     auto ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
         now - start_).count();
     long long int timestamp = static_cast<long long int>(ns);
-    timestamps_.push_back(std::make_pair(timestamp, i));
+    timestamps_.push_back(timestamp);
+  }
+
+  void SetH(int i, int h) override {
+    if (hs_.size() <= i)
+      hs_.resize(i + 1);
+
+    hs_[i] = h;
   }
 
   void Dump() override {
@@ -39,7 +45,7 @@ class SearchGraphWithTimestamp : public T {
     std::ofstream expanded_nodes;
     expanded_nodes.open("expanded_nodes.csv", std::ios::out);
 
-    expanded_nodes << "timestamp";
+    expanded_nodes << "node_id,parent_node_id,h,timestamp";
 
     for (int i=0; i<n_variables_; ++i)
       expanded_nodes << ",v" << i;
@@ -48,9 +54,10 @@ class SearchGraphWithTimestamp : public T {
 
     std::vector<int> state(n_variables_);
 
-    for (auto p : timestamps_) {
-      expanded_nodes << p.first;
-      int node = p.second;
+    for (int i=0, n=ids_.size(); i<n; ++i) {
+      int node = ids_[i];
+      expanded_nodes << node << "," << this->Parent(node) << ",";
+      expanded_nodes << hs_[node] << "," << timestamps_[i];
       this->State(node, state);
 
       for (int i=0; i<n_variables_; ++i)
@@ -63,7 +70,9 @@ class SearchGraphWithTimestamp : public T {
  private:
   int n_variables_;
   std::chrono::system_clock::time_point start_;
-  std::vector<std::pair<long long int, int> > timestamps_;
+  std::vector<int> ids_;
+  std::vector<int> hs_;
+  std::vector<long long int> timestamps_;
 };
 
 } // namespace pplanner
