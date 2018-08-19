@@ -20,7 +20,6 @@ class DistributedSearchGraphWithTimestamp : public T {
                                       int rank)
     : T(problem, closed_exponent, n_evaluators, rank),
       n_variables_(problem->n_variables()) {
-    start_ = std::chrono::system_clock::now();
   }
 
   ~DistributedSearchGraphWithTimestamp() {}
@@ -29,9 +28,8 @@ class DistributedSearchGraphWithTimestamp : public T {
     T::Expand(i, state);
     ids_.push_back(i);
     auto now = std::chrono::system_clock::now();
-    auto ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
-        now - start_).count();
-    long long int timestamp = static_cast<long long int>(ns);
+    long long int timestamp = std::chrono::duration_cast<
+      std::chrono::nanoseconds>(now.time_since_epoch()).count();
     timestamps_.push_back(timestamp);
   }
 
@@ -78,7 +76,6 @@ class DistributedSearchGraphWithTimestamp : public T {
 
  private:
   int n_variables_;
-  std::chrono::system_clock::time_point start_;
   std::vector<int> ids_;
   std::vector<int> hs_;
   std::vector<long long int> timestamps_;
