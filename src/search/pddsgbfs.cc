@@ -32,7 +32,7 @@ int PDDSGBFS::Search() {
     int node = Pop();
     int goal = Expand(node, state, true);
 
-    if (goal != -1) {
+    if (goal != -1 || (limit_expansion() && expanded() > max_expansion())) {
       SendTermination();
 
       return goal;

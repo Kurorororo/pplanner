@@ -18,6 +18,11 @@ using std::vector;
 void GBFS::Init(const boost::property_tree::ptree &pt) {
   int closed_exponent = 22;
 
+  if (auto opt = pt.get_optional<int>("max_expansion")) {
+    limit_expansion_ = true;
+    max_expansion_ = opt.get();
+  }
+
   if (auto closed_exponent_opt = pt.get_optional<int>("closed_exponent"))
     closed_exponent = closed_exponent_opt.get();
 
@@ -134,6 +139,8 @@ int GBFS::Search() {
   while (!NoNode()) {
     int node = NodeToExpand();
     int goal = Expand(node, state, child, applicable, preferred);
+
+    if (limit_expansion_ && expanded_ > max_expansion_) return -1;
 
     if (goal != -1) return goal;
   }

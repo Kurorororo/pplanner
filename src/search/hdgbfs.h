@@ -26,6 +26,8 @@ class HDGBFS : public Search {
          const boost::property_tree::ptree &pt)
     : use_preferred_(false),
       runup_(false),
+      limit_expansion_(false),
+      max_expansion_(0),
       generated_(0),
       expanded_(0),
       evaluated_(0),
@@ -76,6 +78,12 @@ class HDGBFS : public Search {
   virtual void CallbackOnReceiveAllNodes() {}
 
   bool runup() const { return runup_; }
+
+  bool limit_expansion() const { return limit_expansion_; }
+
+  int max_expansion() const { return max_expansion_; }
+
+  int expanded() const { return expanded_; }
 
   int best_h() const { return best_h_; }
 
@@ -169,6 +177,8 @@ class HDGBFS : public Search {
 
   bool use_preferred_;
   bool runup_;
+  bool limit_expansion_;
+  int max_expansion_;
   int generated_;
   int expanded_;
   int evaluated_;

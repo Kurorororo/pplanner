@@ -20,6 +20,11 @@ using std::vector;
 void HDGBFS::Init(const boost::property_tree::ptree &pt) {
   MPI_Comm_rank(MPI_COMM_WORLD, &rank_);
 
+  if (auto opt = pt.get_optional<int>("max_expansion")) {
+    limit_expansion_ = true;
+    max_expansion_ = opt.get();
+  }
+
   if (auto opt = pt.get_optional<int>("runup")) runup_ = true;
 
   int closed_exponent = 22;
@@ -108,7 +113,7 @@ int HDGBFS::Search() {
     int node = Pop();
     int goal = Expand(node, state);
 
-    if (goal != -1) {
+    if (goal != -1 || (limit_expansion() && expanded() > max_expansion())) {
       SendTermination();
 
       return goal;
@@ -433,7 +438,7 @@ vector<int> HDGBFS::ExtractPath(int node) {
   vector<int> rec_buffer(world_size_);
   MPI_Gather(
       &node, 1, MPI_INT, rec_buffer.data(), 1, MPI_INT, 0, MPI_COMM_WORLD);
-  int goal_process = 0;
+  int goal_process = -1;
 
   if (rank_ == initial_rank_) {
     for (int i=0; i<world_size_; ++i) {
@@ -445,6 +450,8 @@ vector<int> HDGBFS::ExtractPath(int node) {
   }
 
   MPI_Bcast(&goal_process, 1, MPI_INT, 0, MPI_COMM_WORLD);
+
+  if (goal_process == -1) return vector<int>{-1};
 
   if (goal_process == rank_) {
     //std::cout << "rank " << rank_ << " has goal node" << std::endl;

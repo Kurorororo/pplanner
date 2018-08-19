@@ -47,8 +47,8 @@ class SearchGraphWithTimestamp : public T {
 
     expanded_nodes << "node_id,parent_node_id,h,timestamp";
 
-    for (int i=0; i<n_variables_; ++i)
-      expanded_nodes << ",v" << i;
+    //for (int i=0; i<n_variables_; ++i)
+    //  expanded_nodes << ",v" << i;
 
     expanded_nodes << std::endl;
 
@@ -60,8 +60,8 @@ class SearchGraphWithTimestamp : public T {
       expanded_nodes << hs_[node] << "," << timestamps_[i];
       this->State(node, state);
 
-      for (int i=0; i<n_variables_; ++i)
-        expanded_nodes << "," << state[i];
+      //for (int i=0; i<n_variables_; ++i)
+      //  expanded_nodes << "," << state[i];
 
       expanded_nodes << std::endl;
     }
