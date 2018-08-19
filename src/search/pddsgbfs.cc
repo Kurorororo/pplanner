@@ -95,6 +95,7 @@ void PDDSGBFS::RegainNodes() {
     for (size_t i=0; i<n_nodes; ++i) {
       int node = g->GenerateNode(IncomingBuffer() + i * unit_size, values);
       IncrementGenerated();
+      g->SetH(node, values[0]);
       Push(values, node);
     }
 
