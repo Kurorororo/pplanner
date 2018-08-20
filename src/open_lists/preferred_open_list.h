@@ -43,6 +43,8 @@ class PreferredOpenList : public OpenList {
     return lists_[0]->IsEmpty() && lists_[1]->IsEmpty();
   }
 
+  int MinimumValue(int i) const override { return lists_[0]->MinimumValue(i); }
+
   void Boost() override { priorities_[1] += boost_; }
 
  private:

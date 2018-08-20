@@ -116,6 +116,8 @@ class HDGBFS : public Search {
 
   bool NoNode() const { return open_list_->IsEmpty(); }
 
+  int MinimumValue(int i) const { return open_list_->MinimumValue(i); }
+
   size_t n_open_nodes() const { return open_list_->size(); }
 
   int IndependentExpand(int node, std::vector<int> &state, bool eager_dd=false);

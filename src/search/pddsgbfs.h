@@ -16,7 +16,11 @@ class PDDSGBFS : public HDGBFS {
   PDDSGBFS(std::shared_ptr<const SASPlus> problem,
            const boost::property_tree::ptree &pt)
     : HDGBFS(problem, pt),
+      steal_best_(false),
       steal_better_(false) {
+    if (auto opt = pt.get_optional<int>("steal_best"))
+      steal_best_ = true;
+
     if (auto opt = pt.get_optional<int>("steal_better"))
       steal_better_ = true;
   }
@@ -39,6 +43,7 @@ class PDDSGBFS : public HDGBFS {
  private:
   void FlushRegainTag();
 
+  bool steal_best_;
   bool steal_better_;
 };
 

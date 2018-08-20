@@ -22,6 +22,8 @@ class OpenList {
 
   virtual bool IsEmpty() const = 0;
 
+  virtual int MinimumValue(int i) const = 0;
+
   virtual void Boost() = 0;
 };
 

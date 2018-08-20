@@ -34,6 +34,8 @@ class FIFOOpenListImpl : public OpenListImpl {
 
   bool IsEmpty() const override { return size_ == 0; }
 
+  int MinimumValue(int i) const override { return buckets_.begin()->first[i]; }
+
  private:
   size_t size_;
   std::map<std::vector<int>, std::deque<int> > buckets_;

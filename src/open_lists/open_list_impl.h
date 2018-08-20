@@ -18,6 +18,8 @@ class OpenListImpl {
   virtual int Pop() = 0;
 
   virtual bool IsEmpty() const = 0;
+
+  virtual int MinimumValue(int i) const = 0;
 };
 
 } // namespace pplanner

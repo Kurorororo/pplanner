@@ -47,21 +47,39 @@ class SearchGraphWithTimestamp : public T {
 
     expanded_nodes << "node_id,parent_node_id,h,timestamp";
 
-    //for (int i=0; i<n_variables_; ++i)
-    //  expanded_nodes << ",v" << i;
+    for (int i=0; i<n_variables_; ++i)
+      expanded_nodes << ",v" << i;
 
     expanded_nodes << std::endl;
 
     std::vector<int> state(n_variables_);
+    std::vector<bool> expanded_table(this->size(), false);
 
     for (int i=0, n=ids_.size(); i<n; ++i) {
       int node = ids_[i];
+      expanded_table[node] = true;
       expanded_nodes << node << "," << this->Parent(node) << ",";
       expanded_nodes << hs_[node] << "," << timestamps_[i];
+
       this->State(node, state);
 
-      //for (int i=0; i<n_variables_; ++i)
-      //  expanded_nodes << "," << state[i];
+      for (int i=0; i<n_variables_; ++i)
+        expanded_nodes << "," << state[i];
+
+      expanded_nodes << std::endl;
+    }
+
+    for (int i=0, n=this->size(); i<n; ++i) {
+      if (expanded_table[i] || !expanded_table[this->Parent(i)]) continue;
+
+      expanded_nodes << i << "," << this->Parent(i) << ",";
+      expanded_nodes << hs_[i] << ",9999999999999999999";
+
+      this->State(i, state);
+
+      for (int i=0; i<n_variables_; ++i)
+        expanded_nodes << "," << state[i];
+
 
       expanded_nodes << std::endl;
     }

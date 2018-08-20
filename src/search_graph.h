@@ -63,6 +63,8 @@ class SearchGraph {
 
   virtual void Dump() {}
 
+  size_t capacity() const { return capacity_; }
+
   size_t size() const { return hash_values_.size(); }
 
   size_t closed_size() const { return closed_.size() * sizeof(int); }

@@ -61,7 +61,9 @@ void PDDSGBFS::CallbackOnReceiveNode(int source, const unsigned char *d,
       return;
     }
 
-    if (no_node || (steal_better_ && h < best_h())) {
+    if (no_node
+        || (steal_best_ && h < best_h())
+        || (steal_better_ && h < MinimumValue(0))) {
       Push(values, node);
     } else {
       size_t h_size = values.size() * sizeof(int);
