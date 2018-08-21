@@ -23,6 +23,7 @@ class GBFS : public Search {
   GBFS(std::shared_ptr<const SASPlus> problem,
        const boost::property_tree::ptree &pt)
     : use_preferred_(false),
+      exhaust_(false),
       limit_expansion_(false),
       max_expansion_(0),
       generated_(0),
@@ -64,6 +65,7 @@ class GBFS : public Search {
   void Init(const boost::property_tree::ptree &pt);
 
   bool use_preferred_;
+  bool exhaust_;
   bool limit_expansion_;
   int max_expansion_;
   int generated_;

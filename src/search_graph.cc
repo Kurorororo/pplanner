@@ -84,7 +84,7 @@ size_t SearchGraph::Find(uint32_t hash_value, const uint32_t *packed) const {
   while (closed_[i] != -1) {
     auto found = states_.data() + static_cast<size_t>(closed_[i]) * b_size;
     if (BytesEqual(b_size, packed, found)) break;
-    i= (i== closed_.size() - 1) ? 0 : i + 1;
+    i = (i == closed_.size() - 1) ? 0 : i + 1;
   }
 
   return i;

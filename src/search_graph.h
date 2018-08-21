@@ -59,6 +59,12 @@ class SearchGraph {
 
   virtual void Expand(int i, std::vector<int> &state) { State(i, state); }
 
+  virtual int GenerateNodeIfNotClosed(int action, int parent_node,
+                                      uint32_t hash_value,
+                                      const uint32_t *packed);
+
+  virtual bool CloseIfNot(int node);
+
   virtual void SetH(int i, int h) {}
 
   virtual void Dump() {}
@@ -124,9 +130,6 @@ class SearchGraph {
     return size() - 1;
   }
 
-  int GenerateNodeIfNotClosed(int action, int parent_node, uint32_t hash_value,
-                              const uint32_t *packed);
-
   int GenerateNodeIfNotClosed(int action, int parent_node,
                               const std::vector<int> &state) {
     uint32_t hash_value = hash_->operator()(state);
@@ -172,8 +175,6 @@ class SearchGraph {
 
   void Close(int i) { Close(Find(i), i); }
 
-  bool CloseIfNot(int node);
-
   uint32_t HashByDifference(int action, int parent_node,
                             const std::vector<int> &parent,
                             const std::vector<int> &state) const{
@@ -190,7 +191,19 @@ class SearchGraph {
     packer_->Unpack(packed, state);
   }
 
-  private:
+  size_t Find(int i) const {
+    uint32_t hash_value = HashValue(i);
+    size_t block_size = packer_->block_size();
+    auto packed = states_.data() + static_cast<size_t>(i) * block_size;
+
+    return Find(hash_value, packed);
+  }
+
+  size_t Find(uint32_t hash_value, const uint32_t *packed) const;
+
+  int ClosedEntryAt(size_t i) const { return closed_[i]; }
+
+ private:
   void ReserveIfFull() {
     if (actions_.size() == capacity_)
       Reserve(capacity_ * resize_factor_);
@@ -212,16 +225,6 @@ class SearchGraph {
   void Close(size_t index, int node);
 
   void ResizeClosed();
-
-  size_t Find(int i) const {
-    uint32_t hash_value = HashValue(i);
-    size_t block_size = packer_->block_size();
-    auto packed = states_.data() + static_cast<size_t>(i) * block_size;
-
-    return Find(hash_value, packed);
-  }
-
-  size_t Find(uint32_t hash_value, const uint32_t *packed) const;
 
   size_t capacity_;
   float resize_factor_;

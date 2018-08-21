@@ -32,6 +32,31 @@ class SearchGraphWithTimestamp : public T {
     timestamps_.push_back(timestamp);
   }
 
+  int GenerateNodeIfNotClosed(int action, int parent_node, uint32_t hash_value,
+                              const uint32_t *packed) override {
+    int node = T::GenerateNodeIfNotClosed(
+        action, parent_node, hash_value, packed);
+
+    if (node == -1) {
+      size_t index = T::Find(hash_value, packed);
+      int child = T::ClosedEntryAt(index);
+      closed_parent_.push_back(std::make_pair(child, parent_node));
+    }
+
+    return node;
+  }
+
+  virtual bool CloseIfNot(int node) override {
+    bool result = T::CloseIfNot(node);
+
+    if (!result) {
+      int child = T::GetClosed(node);
+      closed_parent_.push_back(std::make_pair(child, T::Parent(node)));
+    }
+
+    return result;
+  }
+
   void SetH(int i, int h) override {
     if (hs_.size() <= i)
       hs_.resize(i + 1);
@@ -63,23 +88,21 @@ class SearchGraphWithTimestamp : public T {
 
       this->State(node, state);
 
-      for (int i=0; i<n_variables_; ++i)
-        expanded_nodes << "," << state[i];
+      for (int j=0; j<n_variables_; ++j)
+        expanded_nodes << "," << state[j];
 
       expanded_nodes << std::endl;
     }
 
-    for (int i=0, n=this->size(); i<n; ++i) {
-      if (expanded_table[i] || !expanded_table[this->Parent(i)]) continue;
+    for (auto p : closed_parent_) {
+      int node = p.first;
+      expanded_nodes << node  << "," << p.second << "," << hs_[node];
+      expanded_nodes << ",9999999999999999999";
 
-      expanded_nodes << i << "," << this->Parent(i) << ",";
-      expanded_nodes << hs_[i] << ",9999999999999999999";
-
-      this->State(i, state);
+      this->State(node, state);
 
       for (int i=0; i<n_variables_; ++i)
         expanded_nodes << "," << state[i];
-
 
       expanded_nodes << std::endl;
     }
@@ -91,6 +114,7 @@ class SearchGraphWithTimestamp : public T {
   std::vector<int> ids_;
   std::vector<int> hs_;
   std::vector<long long int> timestamps_;
+  std::vector<std::pair<int, int> > closed_parent_;
 };
 
 } // namespace pplanner

@@ -10,6 +10,8 @@
 namespace pplanner {
 
 class DistributedSearchGraph : public SearchGraph {
+  using SearchGraph::GenerateNodeIfNotClosed;
+
  public:
   DistributedSearchGraph(std::shared_ptr<const SASPlus> problem,
                          int closed_exponent, int n_evaluators, int rank)
