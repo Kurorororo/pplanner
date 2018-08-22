@@ -36,8 +36,9 @@ class DistributedSearchGraphWithLandmarks : public DistributedSearchGraph {
     landmarks_.reserve(n_landmarks_bytes_ * size);
   }
 
-  virtual void AddMoreProperties(int parent_rank) override {
-    DistributedSearchGraph::AddMoreProperties(parent_rank);
+  virtual void AddMoreProperties(int action, int parent_node, int parent_rank)
+    override {
+    DistributedSearchGraph::AddMoreProperties(action, parent_rank, parent_rank);
     landmarks_.resize(landmarks_.size() + n_landmarks_bytes_, 0);
   }
 

@@ -12,6 +12,7 @@ std::shared_ptr<DistributedSearchGraph> DistributedSearchGraphFactory(
     int closed_exponent,
     int n_evaluators,
     int rank,
+    bool keep_cost,
     bool use_landmark,
     bool dump_nodes);
 

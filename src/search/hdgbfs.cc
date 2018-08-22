@@ -40,6 +40,9 @@ void HDGBFS::Init(const boost::property_tree::ptree &pt) {
     ++n_evaluators_;
   }
 
+  bool keep_cost = false;
+  if (auto opt = pt.get_optional<int>("keep_cost")) keep_cost = true;
+
   bool use_landmark = false;
   if (auto opt = pt.get_optional<int>("landmark")) use_landmark = true;
 
@@ -47,8 +50,8 @@ void HDGBFS::Init(const boost::property_tree::ptree &pt) {
   if (auto opt = pt.get_optional<int>("dump_nodes")) dump_nodes = true;
 
   graph_ = DistributedSearchGraphFactory(problem_, closed_exponent,
-                                         n_evaluators_, rank_, use_landmark,
-                                         dump_nodes);
+                                         n_evaluators_, rank_, keep_cost,
+                                         use_landmark, dump_nodes);
 
   std::shared_ptr<Evaluator> friend_evaluator = nullptr;
 

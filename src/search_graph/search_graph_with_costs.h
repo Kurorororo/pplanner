@@ -1,8 +1,7 @@
 #ifndef SEARCH_GRAPH_WITH_COSTS_H_
 #define SEARCH_GRAPH_WITH_COSTS_H_
 
-#include <cstdint>
-
+#include <memory>
 #include <vector>
 
 #include "sas_plus.h"
@@ -30,8 +29,8 @@ class SearchGraphWithCosts : public T {
 
   void AddProperties(int action, int parent, uint32_t hash_value) override {
     T::AddProperties(action, parent, hash_value);
-    int parent_cost = parent == -1 ? 0 : Cost(parent);
-    costs_.push_back(parent_cost + problem_->ActionCost(action));
+    int cost = parent == -1 ? 0 : Cost(parent) + problem_->ActionCost(action);
+    costs_.push_back(cost);
   }
 
   int Cost(int i) const override { return costs_[i]; }

@@ -30,7 +30,7 @@ class DistributedSearchGraph : public SearchGraph {
     parent_ranks_.reserve(size);
   }
 
-  virtual void AddMoreProperties(int parent_rank) {
+  virtual void AddMoreProperties(int action, int parent_node, int parent_rank) {
     parent_ranks_.push_back(parent_rank);
   }
 
@@ -57,21 +57,21 @@ class DistributedSearchGraph : public SearchGraph {
 
   int GenerateNode(int action, int parent_node, const std::vector<int> &state,
                    int parent_rank) {
-    AddMoreProperties(parent_rank);
+    AddMoreProperties(action, parent_node, parent_rank);
 
     return SearchGraph::GenerateNode(action, parent_node, state);
   }
 
   int GenerateNode(int action, int parent_node, const std::vector<int> &parent,
                    const std::vector<int> &state, int parent_rank) {
-    AddMoreProperties(parent_rank);
+    AddMoreProperties(action, parent_node, parent_rank);
 
     return SearchGraph::GenerateNode(action, parent_node, parent, state);
   }
 
   int GenerateNode(int action, int parent_node, uint32_t hash_value,
                    const uint32_t *packed, int parent_rank) {
-    AddMoreProperties(parent_rank);
+    AddMoreProperties(action, parent_node, parent_rank);
 
     return SearchGraph::GenerateNode(action, parent_node, hash_value, packed);
   }

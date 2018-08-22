@@ -13,7 +13,7 @@ int DistributedSearchGraph::GenerateNodeIfNotClosed(int action, int parent_node,
   int node = SearchGraph::GenerateNodeIfNotClosed(
       action, parent_node, hash_value, packed);
 
-  if (node != -1) AddMoreProperties(parent_rank);
+  if (node != -1) AddMoreProperties(action, parent_node, parent_rank);
 
   return node;
 }
@@ -23,7 +23,7 @@ int DistributedSearchGraph::GenerateNodeIfNotClosed(int action, int parent_node,
                                                     int parent_rank) {
   int node = SearchGraph::GenerateNodeIfNotClosed(action, parent_node, state);
 
-  if (node != -1) AddMoreProperties(parent_rank);
+  if (node != -1) AddMoreProperties(action, parent_node, parent_rank);
 
   return node;
 }
@@ -35,7 +35,7 @@ int DistributedSearchGraph::GenerateNodeIfNotClosed(int action, int parent_node,
   int node = SearchGraph::GenerateNodeIfNotClosed(
       action, parent_node, parent, state);
 
-  if (node != -1) AddMoreProperties(parent_rank);
+  if (node != -1) AddMoreProperties(action, parent_node, parent_rank);
 
   return node;
 }
@@ -58,7 +58,7 @@ int DistributedSearchGraph::GenerateAndCloseNode(int action, int parent_node,
   int node = SearchGraph::GenerateAndCloseNode(
       action, parent_node, hash_value, packed);
 
-  if (node != -1) AddMoreProperties(parent_rank);
+  if (node != -1) AddMoreProperties(action, parent_node, parent_rank);
 
   return node;
 }
@@ -68,7 +68,7 @@ int DistributedSearchGraph::GenerateAndCloseNode(int action, int parent_node,
                                                  int parent_rank) {
   int node = SearchGraph::GenerateAndCloseNode(action, parent_node, state);
 
-  if (node != -1) AddMoreProperties(parent_rank);
+  if (node != -1) AddMoreProperties(action, parent_node, parent_rank);
 
   return node;
 }
@@ -80,7 +80,7 @@ int DistributedSearchGraph::GenerateAndCloseNode(int action, int parent_node,
   int node = SearchGraph::GenerateAndCloseNode(
       action, parent_node, parent, state);
 
-  if (node != -1) AddMoreProperties(parent_rank);
+  if (node != -1) AddMoreProperties(action, parent_node, parent_rank);
 
   return node;
 }
