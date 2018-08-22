@@ -50,17 +50,24 @@ void HDGBFS::Init(const boost::property_tree::ptree &pt) {
                                          n_evaluators_, rank_, use_landmark,
                                          dump_nodes);
 
-  for (auto e : evaluator_names)
-    evaluators_.push_back(EvaluatorFactory(problem_, graph_, e));
+  std::shared_ptr<Evaluator> friend_evaluator = nullptr;
+
+  for (auto e : evaluator_names) {
+    auto evaluator = EvaluatorFactory(problem_, graph_, friend_evaluator,  e);
+    evaluators_.push_back(evaluator);
+    friend_evaluator = evaluator;
+  }
 
   if (auto preferring = pt.get_child_optional("preferring")) {
     use_preferred_ = true;
 
     if (auto name = preferring.get().get_optional<std::string>("name")) {
-      if (name.get() == "same")
+      if (name.get() == "same") {
         preferring_ = evaluators_[0];
-      else
-        preferring_ = EvaluatorFactory(problem_, graph_, preferring.get());
+      } else {
+        preferring_ = EvaluatorFactory(
+            problem_, graph_, nullptr, preferring.get());
+      }
     }
   }
 

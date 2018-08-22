@@ -28,30 +28,39 @@ void GBFS::Init(const boost::property_tree::ptree &pt) {
   if (auto closed_exponent_opt = pt.get_optional<int>("closed_exponent"))
     closed_exponent = closed_exponent_opt.get();
 
+  bool keep_cost = false;
+  if (auto opt = pt.get_optional<int>("keep_cost")) keep_cost = true;
+
   bool use_landmark = false;
   if (auto opt = pt.get_optional<int>("landmark")) use_landmark = true;
 
   bool dump_nodes = false;
   if (auto opt = pt.get_optional<int>("dump_nodes")) dump_nodes = true;
 
-  graph_ = SearchFactory(problem_, closed_exponent, use_landmark, dump_nodes);
+  graph_ = SearchGraphFactory(
+      problem_, closed_exponent, keep_cost, use_landmark, dump_nodes);
 
   vector<std::shared_ptr<Evaluator> > evaluators;
+  std::shared_ptr<Evaluator> friend_evaluator = nullptr;
 
   BOOST_FOREACH (const boost::property_tree::ptree::value_type& child,
                  pt.get_child("evaluators")) {
     auto e = child.second;
-    evaluators.push_back(EvaluatorFactory(problem_, graph_, e));
+    auto evaluator = EvaluatorFactory(problem_, graph_, friend_evaluator, e);
+    evaluators.push_back(evaluator);
+    friend_evaluator = evaluator;
   }
 
   if (auto preferring = pt.get_child_optional("preferring")) {
     use_preferred_ = true;
 
     if (auto name = preferring.get().get_optional<std::string>("name")) {
-      if (name.get() == "same")
+      if (name.get() == "same") {
         preferring_ = evaluators[0];
-      else
-        preferring_ = EvaluatorFactory(problem_, graph_, preferring.get());
+      } else {
+        preferring_ = EvaluatorFactory(problem_, graph_, nullptr,
+                                       preferring.get());
+      }
     }
   }
 

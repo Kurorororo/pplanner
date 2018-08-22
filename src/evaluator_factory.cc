@@ -4,9 +4,11 @@
 #include "heuristics/blind.h"
 #include "heuristics/ff.h"
 #include "heuristics/ff_add.h"
+#include "heuristics/hmax.h"
 #include "heuristics/landmark_count.h"
 #include "heuristics/new_operator.h"
 #include "heuristics/width.h"
+#include "heuristics/weighted_evaluator.h"
 #include "heuristics/zobrist_ip_tiebreaking.h"
 #include "search_graph/search_graph_with_landmarks.h"
 
@@ -15,6 +17,7 @@ namespace pplanner {
 std::shared_ptr<Evaluator> EvaluatorFactory(
     std::shared_ptr<const SASPlus> problem,
     std::shared_ptr<SearchGraph> graph,
+    std::shared_ptr<Evaluator> friend_evaluator,
     const boost::property_tree::ptree &pt) {
 
   auto name = pt.get_optional<std::string>("name");
@@ -36,6 +39,20 @@ std::shared_ptr<Evaluator> EvaluatorFactory(
     if (option && !unit_cost) unit_cost = option.get() == 1;
 
     return std::make_shared<Additive>(problem, simplify, unit_cost);
+  }
+
+  if (name.get() == "hmax") {
+    bool simplify = false;
+
+    auto option = pt.get_optional<int>("option.simplify");
+    if (option) simplify = option.get() == 1;
+
+    bool unit_cost = problem->metric() == 0;
+
+    option = pt.get_optional<int>("option.unit_cost");
+    if (option && !unit_cost) unit_cost = option.get() == 1;
+
+    return std::make_shared<Hmax>(problem, simplify, unit_cost);
   }
 
   if (name.get() == "fa") {
@@ -107,6 +124,27 @@ std::shared_ptr<Evaluator> EvaluatorFactory(
 
   if (name.get() == "zobrist_ip_tiebreaking")
     return std::make_shared<ZobristIPTiebreaking>(problem);
+
+  if (name.get() == "weighted") {
+    auto child = pt.get_child_optional("heuristic");
+    if (!child) throw std::runtime_error("weighted need heuristic.");
+
+    int weight = 1;
+    if (auto option = pt.get_optional<int>("weight"))
+      weight = option.get();
+
+    return std::make_shared<WeightedEvaluator>(
+        weight, problem, graph, friend_evaluator, child.get());
+  }
+
+  if (name.get() == "weighted_cache") {
+    auto e = std::dynamic_pointer_cast<WeightedEvaluator>( friend_evaluator);
+
+    if (e == nullptr)
+      throw std::runtime_error("weighted_cache need weighted.");
+
+    return std::make_shared<WeightedHeuristicCache>(e);
+  }
 
   throw std::runtime_error("No such heuristic.");
 }

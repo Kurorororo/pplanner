@@ -56,10 +56,12 @@ class RPGTable : public RPG {
 
   int AdditiveCost(const std::vector<int> &state, bool unit_cost=false);
 
+  int HmaxCost(const std::vector<int> &state, bool unit_cost=false);
+
  private:
   void SetPlan(int g, std::unordered_set<int> &helpful);
 
-  void GeneralizedDijkstra(const std::vector<int> &state);
+  void GeneralizedDijkstra(const std::vector<int> &state, bool hmax=false);
 
   void SetUp(const std::vector<int> &state, bool unit_cost);
 

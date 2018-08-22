@@ -46,6 +46,21 @@ int RPGTable::AdditiveCost(const vector<int> &state, bool unit_cost) {
   return h;
 }
 
+int RPGTable::HmaxCost(const vector<int> &state, bool unit_cost) {
+  SetUp(state, unit_cost);
+  GeneralizedDijkstra(state, true);
+
+  int h = 0;
+
+  for (auto g : r_problem_->goal()) {
+    int cost = prop_cost_[g];
+    if (cost == -1) return cost;
+    h += cost;
+  }
+
+  return h;
+}
+
 void RPGTable::SetPlan(int g, unordered_set<int> &helpful) {
   if (marked_[g]) return;
 
@@ -67,7 +82,7 @@ void RPGTable::SetPlan(int g, unordered_set<int> &helpful) {
     SetPlan(p, helpful);
 }
 
-void RPGTable::GeneralizedDijkstra(const vector<int> &state) {
+void RPGTable::GeneralizedDijkstra(const vector<int> &state, bool hmax) {
   for (int i=0, n=r_problem_->n_actions(); i<n; ++i) {
     if (precondition_counter_[i] == 0) {
       is_applicable_[r_problem_->ActionId(i)] = true;
@@ -93,7 +108,10 @@ void RPGTable::GeneralizedDijkstra(const vector<int> &state) {
     if (r_problem_->IsGoal(f) && --goal_counter_ == 0) return;
 
     for (auto a : r_problem_->PreconditionMap(f)) {
-      op_cost_[a] += c;
+      if (hmax)
+        op_cost_[a] = std::max(r_problem_->ActionCost(a) + c, op_cost_[a]);
+      else
+        op_cost_[a] += c;
 
       if (--precondition_counter_[a] == 0) {
         is_applicable_[r_problem_->ActionId(a)] = true;

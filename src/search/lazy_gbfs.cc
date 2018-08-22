@@ -28,20 +28,26 @@ void LazyGBFS::Init(const boost::property_tree::ptree &pt) {
   else
     graph_ = make_shared<SearchGraph>(problem_, closed_exponent);
 
+  std::shared_ptr<Evaluator> friend_evaluator = nullptr;
+
   BOOST_FOREACH (const boost::property_tree::ptree::value_type& child,
                  pt.get_child("evaluators")) {
     auto e = child.second;
-    evaluators_.push_back(EvaluatorFactory(problem_, graph_, e));
+    auto evaluator = EvaluatorFactory(problem_, graph_, friend_evaluator, e);
+    evaluators_.push_back(evaluator);
+    friend_evaluator = evaluator;
   }
 
   if (auto preferring = pt.get_child_optional("preferring")) {
     use_preferred_ = true;
 
     if (auto name = preferring.get().get_optional<std::string>("name")) {
-      if (name.get() == "same")
+      if (name.get() == "same") {
         same_ = true;
-      else
-        preferring_ = EvaluatorFactory(problem_, graph_, preferring.get());
+      } else {
+        preferring_ = EvaluatorFactory(
+            problem_, graph_, nullptr, preferring.get());
+      }
     }
   }
 

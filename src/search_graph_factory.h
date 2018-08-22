@@ -7,9 +7,10 @@
 
 namespace pplanner {
 
-std::shared_ptr<SearchGraph> SearchFactory(
+std::shared_ptr<SearchGraph> SearchGraphFactory(
     std::shared_ptr<const SASPlus> problem,
     int closed_exponent,
+    bool keep_cost,
     bool use_landmark,
     bool dump_nodes);
 

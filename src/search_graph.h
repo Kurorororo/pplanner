@@ -67,6 +67,8 @@ class SearchGraph {
 
   virtual void SetH(int i, int h) {}
 
+  virtual int Cost(int i) const { return -1; }
+
   virtual void Dump() {}
 
   size_t capacity() const { return capacity_; }

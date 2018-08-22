@@ -15,6 +15,7 @@ namespace pplanner {
 std::shared_ptr<Evaluator> EvaluatorFactory(
     std::shared_ptr<const SASPlus> problem,
     std::shared_ptr<SearchGraph> graph,
+    std::shared_ptr<Evaluator> friend_evaluator,
     const boost::property_tree::ptree &pt);
 
 
