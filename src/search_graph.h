@@ -26,7 +26,6 @@ class SearchGraph {
       closed_(1 << closed_exponent, -1),
       packer_(std::make_shared<StatePacker>(problem)) {
     hash_ = std::make_shared<ZobristHash>(problem, 4166245435);
-    tmp_packed_.resize(packer_->block_size(), 0);
   }
 
   virtual ~SearchGraph() {}
@@ -63,7 +62,11 @@ class SearchGraph {
                                       uint32_t hash_value,
                                       const uint32_t *packed);
 
-  virtual bool CloseIfNot(int node);
+  virtual int GenerateAndCloseNode(int action, int parent_node,
+                                   uint32_t hash_value,
+                                   const uint32_t *packed);
+
+  virtual bool CloseIfNot(int node) { return CloseIfNotInner(node, false); }
 
   virtual void SetH(int i, int h) {}
 
@@ -134,48 +137,63 @@ class SearchGraph {
 
   int GenerateNodeIfNotClosed(int action, int parent_node,
                               const std::vector<int> &state) {
+    static std::vector<uint32_t> tmp_packed(state_size() / sizeof(uint32_t));
+
     uint32_t hash_value = hash_->operator()(state);
-    Pack(state, tmp_packed_.data());
+    Pack(state, tmp_packed.data());
 
     return GenerateNodeIfNotClosed(
-        action, parent_node, hash_value, tmp_packed_.data());
+        action, parent_node, hash_value, tmp_packed.data());
   }
 
   int GenerateNodeIfNotClosed(int action, int parent_node,
                               const std::vector<int> &parent,
                               const std::vector<int> &state) {
+    static std::vector<uint32_t> tmp_packed(state_size() / sizeof(uint32_t));
+
     uint32_t hash_value = HashByDifference(action, parent_node, parent, state);
-    Pack(state, tmp_packed_.data());
+    Pack(state, tmp_packed.data());
 
     return GenerateNodeIfNotClosed(
-        action, parent_node, hash_value, tmp_packed_.data());
+        action, parent_node, hash_value, tmp_packed.data());
   }
-
-  int GenerateAndCloseNode(int action, int parent_node, uint32_t hash_value,
-                           const uint32_t *packed);
 
   int GenerateAndCloseNode(int action, int parent_node,
                            const std::vector<int> &state) {
+    static std::vector<uint32_t> tmp_packed(state_size() / sizeof(uint32_t));
+
     uint32_t hash_value = hash_->operator()(state);
-    Pack(state, tmp_packed_.data());
+    Pack(state, tmp_packed.data());
 
     return GenerateAndCloseNode(
-        action, parent_node, hash_value, tmp_packed_.data());
+        action, parent_node, hash_value, tmp_packed.data());
   }
 
   int GenerateAndCloseNode(int action, int parent_node,
                            const std::vector<int> &parent,
                            const std::vector<int> &state) {
+    static std::vector<uint32_t> tmp_packed(state_size() / sizeof(uint32_t));
+
     uint32_t hash_value = HashByDifference(action, parent_node, parent, state);
-    Pack(state, tmp_packed_.data());
+    Pack(state, tmp_packed.data());
 
     return GenerateAndCloseNode(
-        action, parent_node, hash_value, tmp_packed_.data());
+        action, parent_node, hash_value, tmp_packed.data());
   }
 
   int GetClosed(int i) const { return closed_[Find(i)]; }
 
+  int GetClosed(uint32_t hash_value, const uint32_t *packed) const {
+    return closed_[Find(hash_value, packed)];
+  }
+
+  bool CloseIfNotInner(int node, bool reopen_closed);
+
   void Close(int i) { Close(Find(i), i); }
+
+  uint32_t Hash(const std::vector<int> &state) const {
+    return hash_->operator()(state);
+  }
 
   uint32_t HashByDifference(int action, int parent_node,
                             const std::vector<int> &parent,
@@ -203,7 +221,11 @@ class SearchGraph {
 
   size_t Find(uint32_t hash_value, const uint32_t *packed) const;
 
+  void Close(size_t index, int node);
+
   int ClosedEntryAt(size_t i) const { return closed_[i]; }
+
+  void OpenClosedEntryAt(size_t i) { closed_[i] = -1; }
 
  private:
   void ReserveIfFull() {
@@ -224,8 +246,6 @@ class SearchGraph {
     memcpy(states_.data() + old_size, packed, block_size * sizeof(uint32_t));
   }
 
-  void Close(size_t index, int node);
-
   void ResizeClosed();
 
   size_t capacity_;
@@ -240,7 +260,6 @@ class SearchGraph {
   std::vector<uint32_t> hash_values_;
   std::shared_ptr<StatePacker> packer_;
   std::shared_ptr<ZobristHash> hash_;
-  mutable std::vector<uint32_t> tmp_packed_;
 };
 
 std::vector<int> ExtractPath(std::shared_ptr<const SearchGraph> graph,

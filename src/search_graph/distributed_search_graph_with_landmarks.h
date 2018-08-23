@@ -38,16 +38,16 @@ class DistributedSearchGraphWithLandmarks : public DistributedSearchGraph {
 
   virtual void AddMoreProperties(int action, int parent_node, int parent_rank)
     override {
-    DistributedSearchGraph::AddMoreProperties(action, parent_rank, parent_rank);
+    DistributedSearchGraph::AddMoreProperties(action, parent_node, parent_rank);
     landmarks_.resize(landmarks_.size() + n_landmarks_bytes_, 0);
   }
 
-  virtual int GenerateNodeIfNotClosed(const unsigned char *d) override;
+  virtual int GenerateNodeIfNotClosedFromBytes(const unsigned char *d) override;
 
-  virtual int GenerateAndCloseNode(const unsigned char *d) override;
+  virtual int GenerateAndCloseNodeFromBytes(const unsigned char *d) override;
 
-  virtual int GenerateNode(const unsigned char *d, std::vector<int> &values)
-    override;
+  virtual int GenerateNodeFromBytes(const unsigned char *d,
+                                    std::vector<int> &values) override;
 
   virtual void BufferNode(int action, int parent_node,
                           const std::vector<int> &parent,

@@ -21,26 +21,30 @@ int DistributedSearchGraph::GenerateNodeIfNotClosed(int action, int parent_node,
 int DistributedSearchGraph::GenerateNodeIfNotClosed(int action, int parent_node,
                                                     const vector<int> &state,
                                                     int parent_rank) {
-  int node = SearchGraph::GenerateNodeIfNotClosed(action, parent_node, state);
+  static vector<uint32_t> tmp_packed(state_size() / sizeof(uint32_t));
 
-  if (node != -1) AddMoreProperties(action, parent_node, parent_rank);
+  uint32_t hash_value = Hash(state);
+  Pack(state, tmp_packed.data());
 
-  return node;
+  return GenerateNodeIfNotClosed(
+      action, parent_node, hash_value, tmp_packed.data(), parent_rank);
 }
 
 int DistributedSearchGraph::GenerateNodeIfNotClosed(int action, int parent_node,
                                                     const vector<int> &parent,
                                                     const vector<int> &state,
                                                     int parent_rank) {
-  int node = SearchGraph::GenerateNodeIfNotClosed(
-      action, parent_node, parent, state);
+  static vector<uint32_t> tmp_packed(state_size() / sizeof(uint32_t));
 
-  if (node != -1) AddMoreProperties(action, parent_node, parent_rank);
+  uint32_t hash_value = HashByDifference(action, parent_node, parent, state);
+  Pack(state, tmp_packed.data());
 
-  return node;
+  return GenerateNodeIfNotClosed(
+      action, parent_node, hash_value, tmp_packed.data(), parent_rank);
 }
 
-int DistributedSearchGraph::GenerateNodeIfNotClosed(const unsigned char *d) {
+int DistributedSearchGraph::GenerateNodeIfNotClosedFromBytes(
+    const unsigned char *d) {
   int info[3];
   memcpy(info, d, 3 * sizeof(int));
   uint32_t hash_value;
@@ -66,26 +70,30 @@ int DistributedSearchGraph::GenerateAndCloseNode(int action, int parent_node,
 int DistributedSearchGraph::GenerateAndCloseNode(int action, int parent_node,
                                                  const vector<int> &state,
                                                  int parent_rank) {
-  int node = SearchGraph::GenerateAndCloseNode(action, parent_node, state);
+  static vector<uint32_t> tmp_packed(state_size() / sizeof(uint32_t));
 
-  if (node != -1) AddMoreProperties(action, parent_node, parent_rank);
+  uint32_t hash_value = Hash(state);
+  Pack(state, tmp_packed.data());
 
-  return node;
+  return GenerateAndCloseNode(
+      action, parent_node, hash_value, tmp_packed.data(), parent_rank);
 }
 
 int DistributedSearchGraph::GenerateAndCloseNode(int action, int parent_node,
                                                  const vector<int> &parent,
                                                  const vector<int> &state,
                                                  int parent_rank) {
-  int node = SearchGraph::GenerateAndCloseNode(
-      action, parent_node, parent, state);
+  static vector<uint32_t> tmp_packed(state_size() / sizeof(uint32_t));
 
-  if (node != -1) AddMoreProperties(action, parent_node, parent_rank);
+  uint32_t hash_value = HashByDifference(action, parent_node, parent, state);
+  Pack(state, tmp_packed.data());
 
-  return node;
+  return GenerateAndCloseNode(
+      action, parent_node, hash_value, tmp_packed.data(), parent_rank);
 }
 
-int DistributedSearchGraph::GenerateAndCloseNode(const unsigned char *d) {
+int DistributedSearchGraph::GenerateAndCloseNodeFromBytes(
+    const unsigned char *d) {
   int info[3];
   memcpy(info, d, 3 * sizeof(int));
   uint32_t hash_value;
@@ -96,8 +104,8 @@ int DistributedSearchGraph::GenerateAndCloseNode(const unsigned char *d) {
   return GenerateAndCloseNode(info[0], info[1], hash_value, packed, info[2]);
 }
 
-int DistributedSearchGraph::GenerateNode(const unsigned char *d,
-                                         vector<int> &values) {
+int DistributedSearchGraph::GenerateNodeFromBytes(const unsigned char *d,
+                                                  vector<int> &values) {
   size_t n_info = n_evaluators() + 3;
   int info[n_info];
   memcpy(info, d, n_info * sizeof(int));

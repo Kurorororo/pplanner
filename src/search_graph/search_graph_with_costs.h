@@ -35,6 +35,45 @@ class SearchGraphWithCosts : public T {
 
   int Cost(int i) const override { return costs_[i]; }
 
+  int GenerateNodeIfNotClosed(int action, int parent_node, uint32_t hash_value,
+                              const uint32_t *packed) override {
+    size_t index = this->Find(hash_value, packed);
+    int c = this->ClosedEntryAt(index);
+
+    if (c != -1) {
+      int cost = parent_node == -1 ?
+        0 : Cost(parent_node) + problem_->ActionCost(action);
+
+      if (cost >= Cost(c)) return -1;
+
+      this->OpenClosedEntryAt(index);
+    }
+
+    return this->GenerateNode(action, parent_node, hash_value, packed);
+  }
+
+  int GenerateAndCloseNode(int action, int parent_node, uint32_t hash_value,
+                           const uint32_t *packed) override {
+    size_t index = this->Find(hash_value, packed);
+    int c = this->ClosedEntryAt(index);
+
+    if (c != -1) {
+      int cost = parent_node == -1 ?
+        0 : Cost(parent_node) + problem_->ActionCost(action);
+
+      if (cost >= Cost(c)) return -1;
+    }
+
+    int node = this->GenerateNode(action, parent_node, hash_value, packed);
+    this->Close(index, node);
+
+    return node;
+  }
+
+  bool CloseIfNot(int node) override {
+    return this->CloseIfNotInner(node, true);
+  }
+
  private:
   std::vector<int> costs_;
   std::shared_ptr<const SASPlus> problem_;

@@ -412,7 +412,7 @@ void HDGBFS::CallbackOnReceiveNode(int source, const unsigned char *d,
                                    bool no_node) {
   static vector<int> values;
 
-  int node = graph_->GenerateNodeIfNotClosed(d);
+  int node = graph_->GenerateNodeIfNotClosedFromBytes(d);
 
   if (node != -1) {
     IncrementGenerated();

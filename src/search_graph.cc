@@ -6,16 +6,20 @@ namespace pplanner {
 
 using std::vector;
 
-bool SearchGraph::CloseIfNot(int node) {
+bool SearchGraph::CloseIfNotInner(int node, bool reopen_closed) {
   size_t block_size = packer_->block_size();
   auto packed = states_.data() + static_cast<size_t>(node) * block_size;
   size_t index = Find(HashValue(node), packed);
 
-  if (closed_[index] != -1) return false;
+  int c = closed_[index];
 
-  Close(index, node);
+  if (c == -1 || (reopen_closed && Cost(node) < Cost(c))) {
+    Close(index, node);
 
-  return true;
+    return true;
+  }
+
+  return false;
 }
 
 int SearchGraph::GenerateNodeIfNotClosed(int action, int parent_node,

@@ -29,7 +29,7 @@ class DistributedSearchGraphWithCosts : public T {
 
   int Cost(int i) const override { return costs_[i]; }
 
-  virtual void AddMoreProperties(int action, int parent_node, int parent_rank)
+  void AddMoreProperties(int action, int parent_node, int parent_rank)
     override {
     T::AddMoreProperties(action, parent_node, parent_rank);
 
@@ -41,27 +41,110 @@ class DistributedSearchGraphWithCosts : public T {
       costs_.resize(costs_.size() + 1);
   }
 
-  virtual int GenerateNodeIfNotClosed(const unsigned char *d) override {
-    int node = T::GenerateNodeIfNotClosed(d + sizeof(int));
-    int cost = -1;
+  int GenerateNodeIfNotClosed(int action, int parent_node, uint32_t hash_value,
+                              const uint32_t *packed,
+                              int parent_rank) override {
+    int node = T::GenerateNodeIfNotClosed(
+        action, parent_node, hash_value, packed, parent_rank);
+
+    if (node == -1 && parent_rank == this->rank()) {
+      size_t index = this->Find(hash_value, packed);
+      int c = this->ClosedEntryAt(index);
+
+      int cost = parent_node == -1 ?
+        0 : Cost(parent_node) + problem_->ActionCost(action);
+
+      if (cost < Cost(c)) {
+        node = T::GenerateNode(
+            action, parent_node, hash_value, packed, parent_rank);
+        this->OpenClosedEntryAt(index);
+      }
+    }
+
+    return node;
+  }
+
+  int GenerateNodeIfNotClosedFromBytes(const unsigned char *d) override {
+    int node = T::GenerateNodeIfNotClosedFromBytes(d + sizeof(int));
+
+    int cost;
     memcpy(&cost, d, sizeof(int));
+
+    if (node == -1) {
+      int info[3];
+      memcpy(info, d + sizeof(int), 3 * sizeof(int));
+      uint32_t hash_value;
+      memcpy(&hash_value, d + 4 * sizeof(int), sizeof(uint32_t));
+      const uint32_t *packed = reinterpret_cast<const uint32_t*>(
+          d + 4 * sizeof(int) + sizeof(uint32_t));
+
+      size_t index = this->Find(hash_value, packed);
+      int c = this->ClosedEntryAt(index);
+
+      if (cost < Cost(c)) {
+        node = T::GenerateNode(info[0], info[1], hash_value, packed, info[2]);
+        this->OpenClosedEntryAt(index);
+      }
+    }
+
     if (node != -1) costs_[node] = cost;
 
     return node;
   }
 
-  virtual int GenerateAndCloseNode(const unsigned char *d) override {
-    int node = T::GenerateAndCloseNode(d + sizeof(int));
-    int cost = -1;
+  int GenerateAndCloseNode(int action, int parent_node, uint32_t hash_value,
+                           const uint32_t *packed, int parent_rank) override {
+    int node = T::GenerateAndCloseNode(
+        action, parent_node, hash_value, packed, parent_rank);
+
+    if (node == -1 && parent_rank == this->rank()) {
+      size_t index = this->Find(hash_value, packed);
+      int c = this->ClosedEntryAt(index);
+
+      int cost = parent_node == -1 ?
+        0 : Cost(parent_node) + problem_->ActionCost(action);
+
+      if (cost < Cost(c)) {
+        node = T::GenerateNode(
+            action, parent_node, hash_value, packed, parent_rank);
+        this->Close(index, node);
+      }
+    }
+
+    return node;
+  }
+
+  int GenerateAndCloseNodeFromBytes(const unsigned char *d) override {
+    int node = T::GenerateAndCloseNodeFromBytes(d + sizeof(int));
+
+    int cost;
     memcpy(&cost, d, sizeof(int));
+
+    if (node == -1) {
+      int info[3];
+      memcpy(info, d + sizeof(int), 3 * sizeof(int));
+      uint32_t hash_value;
+      memcpy(&hash_value, d + 4 * sizeof(int), sizeof(uint32_t));
+      const uint32_t *packed = reinterpret_cast<const uint32_t*>(
+          d + 4 * sizeof(int) + sizeof(uint32_t));
+
+      size_t index = this->Find(hash_value, packed);
+      int c = this->ClosedEntryAt(index);
+
+      if (cost < Cost(c)) {
+        node = T::GenerateNode(info[0], info[1], hash_value, packed, info[2]);
+        this->Close(index, node);
+      }
+    }
+
     if (node != -1) costs_[node] = cost;
 
     return node;
   }
 
-  virtual int GenerateNode(const unsigned char *d, std::vector<int> &values)
-    override {
-    int node = T::GenerateNodeIfNotClosed(d + sizeof(int));
+  virtual int GenerateNodeFromBytes(const unsigned char *d,
+                                    std::vector<int> &values) override {
+    int node = T::GenerateNodeFromBytes(d + sizeof(int), values);
     int cost = -1;
     memcpy(&cost, d, sizeof(int));
     costs_[node] = cost;
@@ -83,6 +166,10 @@ class DistributedSearchGraphWithCosts : public T {
                           unsigned char *buffer) override {
     memcpy(buffer, base, sizeof(int));
     T::BufferNode(i, base + sizeof(int), buffer + sizeof(int));
+  }
+
+  bool CloseIfNot(int node) override {
+    return this->CloseIfNotInner(node, true);
   }
 
  private:

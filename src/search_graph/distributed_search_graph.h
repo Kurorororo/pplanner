@@ -10,9 +10,10 @@
 namespace pplanner {
 
 class DistributedSearchGraph : public SearchGraph {
-  using SearchGraph::GenerateNodeIfNotClosed;
-
  public:
+  using SearchGraph::GenerateNodeIfNotClosed;
+  using SearchGraph::GenerateAndCloseNode;
+
   DistributedSearchGraph(std::shared_ptr<const SASPlus> problem,
                          int closed_exponent, int n_evaluators, int rank)
     : SearchGraph(problem, closed_exponent),
@@ -34,11 +35,20 @@ class DistributedSearchGraph : public SearchGraph {
     parent_ranks_.push_back(parent_rank);
   }
 
-  virtual int GenerateNodeIfNotClosed(const unsigned char *d);
+  virtual int GenerateNodeIfNotClosed(int action, int parent_node,
+                                      uint32_t hash_value,
+                                      const uint32_t *packed, int parent_rank);
 
-  virtual int GenerateAndCloseNode(const unsigned char *d);
+  virtual int GenerateNodeIfNotClosedFromBytes(const unsigned char *d);
 
-  virtual int GenerateNode(const unsigned char *d, std::vector<int> &values);
+  virtual int GenerateAndCloseNode(int action, int parent_node,
+                                   uint32_t hash_value, const uint32_t *packed,
+                                   int parent_rank);
+
+  virtual int GenerateAndCloseNodeFromBytes(const unsigned char *d);
+
+  virtual int GenerateNodeFromBytes(const unsigned char *d,
+                                    std::vector<int> &values);
 
   virtual void BufferNode(int action, int parent_node,
                           const std::vector<int> &parent,
@@ -76,18 +86,12 @@ class DistributedSearchGraph : public SearchGraph {
     return SearchGraph::GenerateNode(action, parent_node, hash_value, packed);
   }
 
-  int GenerateNodeIfNotClosed(int action, int parent_node, uint32_t hash_value,
-                              const uint32_t *packed, int parent_rank);
-
   int GenerateNodeIfNotClosed(int action, int parent_node,
                               const std::vector<int> &state, int parent_rank);
 
   int GenerateNodeIfNotClosed(int action, int parent_node,
                               const std::vector<int> &parent,
                               const std::vector<int> &state, int parent_rank);
-
-  int GenerateAndCloseNode(int action, int parent_node, uint32_t hash_value,
-                           const uint32_t *packed, int parent_rank);
 
   int GenerateAndCloseNode(int action, int parent_node,
                            const std::vector<int> &state, int parent_rank);

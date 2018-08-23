@@ -48,7 +48,7 @@ void PDDSGBFS::CallbackOnReceiveNode(int source, const unsigned char *d,
   static vector<int> tmp_state(problem()->n_variables());
 
   auto g = graph();
-  int node = g->GenerateAndCloseNode(d);
+  int node = g->GenerateAndCloseNodeFromBytes(d);
 
   if (node != -1) {
     IncrementGenerated();
@@ -95,7 +95,8 @@ void PDDSGBFS::RegainNodes() {
     size_t n_nodes = d_size / unit_size;
 
     for (size_t i=0; i<n_nodes; ++i) {
-      int node = g->GenerateNode(IncomingBuffer() + i * unit_size, values);
+      int node = g->GenerateNodeFromBytes(
+          IncomingBuffer() + i * unit_size, values);
       IncrementGenerated();
       g->SetH(node, values[0]);
       Push(values, node);
