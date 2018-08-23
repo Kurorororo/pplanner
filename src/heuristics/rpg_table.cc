@@ -55,7 +55,7 @@ int RPGTable::HmaxCost(const vector<int> &state, bool unit_cost) {
   for (auto g : r_problem_->goal()) {
     int cost = prop_cost_[g];
     if (cost == -1) return cost;
-    h += cost;
+    h = std::max(h, cost);
   }
 
   return h;
