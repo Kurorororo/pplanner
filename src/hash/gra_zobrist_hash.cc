@@ -15,7 +15,7 @@ GRAZobristHash::GRAZobristHash(std::shared_ptr<const SASPlus> problem,
   std::vector<int> cut;
 
   for (auto &dtg : dtgs) {
-    if (greedy || dtg.n_nodes() > 20)
+    if (greedy)
       dtg.GreedyCut(cut);
     else
       dtg.SparsestCut(cut);
