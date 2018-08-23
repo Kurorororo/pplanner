@@ -4,19 +4,37 @@
 #include <iostream>
 #include <utility>
 
+#include "utils/arg_sort.h"
+
 namespace pplanner {
 
 using std::pair;
 using std::shared_ptr;
 using std::vector;
 
-void DTG::InitTransitionLists(const vector<vector<int> > &adjacent_matrix) {
+void DTG::Init(const vector<vector<int> > &adjacent_matrix) {
   adjacent_lists_.resize(adjacent_matrix.size());
+  in_degrees_.resize(adjacent_matrix.size(), 0);
+  out_degrees_.resize(adjacent_matrix.size(), 0);
 
-  for (int i=0, n=adjacent_matrix.size(); i<n; ++i)
-    for (int j=0; j<n; ++j)
-      if (adjacent_matrix[i][j] > 0)
+  for (int i=0, n=adjacent_matrix.size(); i<n; ++i) {
+    for (int j=0; j<n; ++j) {
+      int weight = adjacent_matrix[i][j];
+
+      if (weight > 0) {
         adjacent_lists_[i].push_back(j);
+        out_degrees_[i] += weight;
+        in_degrees_[j] += weight;
+      }
+    }
+  }
+
+  vector<int> degrees(adjacent_matrix.size(), 0);
+
+  for (int i=0, n=in_degrees_.size(); i<n; ++i)
+    degrees[i] = out_degrees_[i] + in_degrees_[i];
+
+  ArgSort(degrees, nodes_by_degree_, true);
 }
 
 void DTG::RemoveNode(int value) {
@@ -112,31 +130,46 @@ double DTG::GreedyCut(vector<int> &cut) const {
   return CalculateSparsity(cut);
 }
 
-double DTG::SparsestCut(vector<int> &cut) const {
-  cut.resize(adjacent_matrix_.size());
+double DTG::SparsestCut(vector<int> &cut, int max_expansion) const {
+  max_expansion = std::max(max_expansion, n_nodes());
+  int count = max_expansion;
+  vector<int> greed_cut(n_nodes());
+  double greedy_answer = GreedyCut(cut);
+  cut.resize(n_nodes());
   std::fill(cut.begin(), cut.end(), -1);
+  double answer = RecursiveSparsestCut(0, greedy_answer, cut, &count);
 
-  return RecursiveSparsestCut(0, 0.0, cut);
+  if (std::find(cut.begin(), cut.end(), -1) != cut.end()
+      || answer < greedy_answer) {
+    cut = greed_cut;
+    answer = greedy_answer;
+  }
+
+  return answer;
 }
 
-double DTG::RecursiveSparsestCut(int value, double answer,
-                                 vector<int> &cut) const {
-  if (value == static_cast<int>(adjacent_matrix_.size()))
+double DTG::RecursiveSparsestCut(int index, double answer, vector<int> &cut,
+                                 int *count) const {
+  if (--(*count) < 0) return answer;
+
+  if (index == static_cast<int>(n_nodes()))
     return CalculateSparsity(cut);
 
   double ub = CalculateUpperBound(cut);
 
   if (ub <= answer) return -1.0;
 
+  int value = nodes_by_degree_[index];
+
   auto zero_cut = cut;
   zero_cut[value] = 0;
-  double zero_answer = RecursiveSparsestCut(value + 1, answer, zero_cut);
+  double zero_answer = RecursiveSparsestCut(index + 1, answer, zero_cut, count);
 
   if (zero_answer > answer) answer = zero_answer;
 
   auto one_cut = cut;
   one_cut[value] = 1;
-  double one_answer = RecursiveSparsestCut(value + 1, answer, one_cut);
+  double one_answer = RecursiveSparsestCut(index + 1, answer, one_cut, count);
 
   if (one_answer > zero_answer) {
     cut = one_cut;
@@ -223,23 +256,22 @@ void DTG::Dump() const {
     for (auto value : list)
       std::cout << " " << value << "(" << adjacent_matrix_[i][value] << ")";
 
+    std::cout << ", #in=" << InDegree(i) << ", #out=" << OutDegree(i);
     std::cout << std::endl;
     ++i;
   }
 
   std::vector<int> cut;
 
-  if (adjacent_lists_.size() < 18) {
-    double sparsity = SparsestCut(cut);
-    std::cout << "sparsest cut: ";
+  double sparsity = SparsestCut(cut);
+  std::cout << "sparsest cut: ";
 
-    for (int i=0, n=cut.size(); i<n; ++i)
-      std::cout << i << ":" << cut[i] << " ";
+  for (int i=0, n=cut.size(); i<n; ++i)
+    std::cout << i << ":" << cut[i] << " ";
 
-    std::cout << "sparsity:" << sparsity << std::endl;
-  }
+  std::cout << "sparsity:" << sparsity << std::endl;
 
-  double sparsity = GreedyCut(cut);
+  sparsity = GreedyCut(cut);
   std::cout << "greedy cut: ";
 
   for (int i=0, n=cut.size(); i<n; ++i)

@@ -8,11 +8,18 @@
 namespace pplanner {
 
 template<typename T>
-void ArgSort(const std::vector<T> &v, std::vector<int> &indices) {
+void ArgSort(const std::vector<T> &v, std::vector<int> &indices,
+             bool greater=false) {
   indices.resize(v.size());
   std::iota(indices.begin(), indices.end(), 0);
-  auto compare = [&v](int l, int r) { return v[l] < v[r]; };
-  std::sort(indices.begin(), indices.end(), compare);
+
+  if (greater) {
+    auto compare = [&v](int l, int r) { return v[l] > v[r]; };
+    std::sort(indices.begin(), indices.end(), compare);
+  } else {
+    auto compare = [&v](int l, int r) { return v[l] < v[r]; };
+    std::sort(indices.begin(), indices.end(), compare);
+  }
 }
 
 template<typename T>

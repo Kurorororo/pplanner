@@ -15,11 +15,14 @@ class DTG {
 
   explicit DTG(const DTG &dtg)
     : adjacent_matrix_(dtg.adjacent_matrix_),
-      adjacent_lists_(dtg.adjacent_lists_) {}
+      adjacent_lists_(dtg.adjacent_lists_),
+      in_degrees_(dtg.in_degrees_),
+      out_degrees_(dtg.out_degrees_),
+      nodes_by_degree_(dtg.nodes_by_degree_) {}
 
   explicit DTG(const std::vector<std::vector<int> > &adjacent_matrix)
     : adjacent_matrix_(adjacent_matrix) {
-    InitTransitionLists(adjacent_matrix);
+    Init(adjacent_matrix);
   }
 
   ~DTG() {}
@@ -31,7 +34,7 @@ class DTG {
     return *this;
   }
 
-  size_t n_nodes() const { return adjacent_matrix_.size(); }
+  int n_nodes() const { return adjacent_matrix_.size(); }
 
   void RemoveNode(int value);
 
@@ -41,20 +44,25 @@ class DTG {
 
   bool IsConnected(int start, int goal, int ignore=-1);
 
+  int InDegree(int i) const { return in_degrees_[i]; }
+
+  int OutDegree(int i) const { return out_degrees_[i]; }
+
+  int Degree(int i) const { return InDegree(i) + OutDegree(i); }
+
   double GreedyCut(std::vector<int> &cut) const;
 
-  double SparsestCut(std::vector<int> &cut) const;
+  double SparsestCut(std::vector<int> &cut, int max_expansion=100000) const;
 
   void Dump() const;
 
  private:
-  void InitTransitionLists(
-      const std::vector<std::vector<int> > &adjacent_matrix);
+  void Init(const std::vector<std::vector<int> > &adjacent_matrix);
 
   bool RecursiveIsConnected(int i, int goal);
 
   double RecursiveSparsestCut(int value, double answer,
-                              std::vector<int> &cut) const;
+                              std::vector<int> &cut, int *count) const;
 
   double CalculateSparsity(const std::vector<int> &cut) const;
 
@@ -62,6 +70,9 @@ class DTG {
 
   std::vector<std::vector<int> > adjacent_matrix_;
   std::vector<std::vector<int> > adjacent_lists_;
+  std::vector<int> in_degrees_;
+  std::vector<int> out_degrees_;
+  std::vector<int> nodes_by_degree_;
   std::unordered_set<int> closed_;
   std::unordered_set<int> deleted_;
 };
