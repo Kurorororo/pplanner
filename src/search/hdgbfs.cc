@@ -193,6 +193,8 @@ int HDGBFS::Expand(int node, vector<int> &state, bool eager_dd) {
     uint32_t hash = z_hash_->operator()(child);
     int to_rank = hash % static_cast<uint32_t>(world_size_);
 
+    ++n_sent_or_generated_;
+
     if (to_rank == rank_) {
       int child_node = -1;
 
@@ -210,6 +212,7 @@ int HDGBFS::Expand(int node, vector<int> &state, bool eager_dd) {
     } else {
       unsigned char *buffer = ExtendOutgoingBuffer(to_rank, node_size());
       graph_->BufferNode(o, node, state, child, buffer);
+      ++n_sent_;
     }
   }
 
@@ -561,6 +564,8 @@ void HDGBFS::DumpStatistics() const {
   int n_preferreds = 0;
   int n_preferred_evaluated = 0;
   int n_branching = 0;
+  int n_sent = 0;
+  int n_sent_or_generated = 0;
   int n_received = 0;
   MPI_Allreduce(&expanded_, &expanded, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
   MPI_Allreduce(&evaluated_, &evaluated, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
@@ -572,6 +577,9 @@ void HDGBFS::DumpStatistics() const {
                 MPI_SUM, MPI_COMM_WORLD);
   MPI_Allreduce(
       &n_branching_, &n_branching, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(&n_sent_, &n_sent, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(&n_sent_or_generated_, &n_sent_or_generated, 1, MPI_INT,
+                MPI_SUM, MPI_COMM_WORLD);
   MPI_Allreduce(
       &n_received_, &n_received, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 
@@ -600,6 +608,11 @@ void HDGBFS::DumpStatistics() const {
       delay = static_cast<double>(expanded_) / static_cast<double>(n_received_);
 
     std::cout << "Delay " << delay << std::endl;
+
+    double co = static_cast<double>(n_sent)
+      / static_cast<double>(n_sent_or_generated);
+
+    std::cout << "CO " << co << std::endl;
   }
 
   graph_->Dump();
