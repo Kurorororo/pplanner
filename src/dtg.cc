@@ -131,17 +131,18 @@ double DTG::GreedyCut(vector<int> &cut) const {
 }
 
 double DTG::SparsestCut(vector<int> &cut, int max_expansion) const {
-  max_expansion = std::max(max_expansion, n_nodes());
-  int count = max_expansion;
-  vector<int> greed_cut(n_nodes());
-  double greedy_answer = GreedyCut(cut);
+  vector<int> greedy_cut(n_nodes());
+  double greedy_answer = GreedyCut(greedy_cut);
+
   cut.resize(n_nodes());
   std::fill(cut.begin(), cut.end(), -1);
-  double answer = RecursiveSparsestCut(0, greedy_answer, cut, &count);
+  max_expansion = std::max(max_expansion, n_nodes());
+  int count = max_expansion;
+  double answer = RecursiveSparsestCut(0, 0.0, cut, &count);
 
   if (std::find(cut.begin(), cut.end(), -1) != cut.end()
       || answer < greedy_answer) {
-    cut = greed_cut;
+    cut = greedy_cut;
     answer = greedy_answer;
   }
 
