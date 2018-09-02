@@ -3,6 +3,7 @@
 #include "search/hdgbfs.h"
 #include "search/pddsgbfs.h"
 #include "search/pigbfs.h"
+#include "search/symmetry_breaking_hdgbfs.h"
 
 namespace pplanner {
 
@@ -23,6 +24,9 @@ std::unique_ptr<Search> MpiSearchFactory(
 
   if (search.get() == "pigbfs")
     return std::unique_ptr<PIGBFS>(new PIGBFS(problem, option.get()));
+
+  if (search.get() == "sbhdgbfs")
+    return std::unique_ptr<SBHDGBFS>(new SBHDGBFS(problem, option.get()));
 
   throw std::runtime_error("No such search algorithm.");
 }
