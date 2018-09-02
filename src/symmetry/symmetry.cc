@@ -20,20 +20,12 @@ void SymmetryManager::ToCanonical(const vector<int> &state,
 
   canonical = state;
 
-  //std::cout << "state" << std::endl;
-
-  //for (auto v : canonical) {
-  //  std::cout << v << " ";
-  //}
-
-  //std::cout << std::endl;
-
   while (true) {
 
     bool local_minima = true;
 
     for (int i=0, n=var_permutations_.size(); i<n; ++i) {
-      Permutation(i, canonical, permutated);
+      Permutate(i, canonical, permutated);
 
       if (permutated < canonical) {
         arg_min = permutated;
@@ -48,8 +40,8 @@ void SymmetryManager::ToCanonical(const vector<int> &state,
   }
 }
 
-void SymmetryManager::Permutation(int i, const vector<int> &state,
-                                  vector<int> &permutated) const {
+void SymmetryManager::Permutate(int i, const vector<int> &state,
+                                vector<int> &permutated) const {
   int n_variables = state.size();
 
   for (int var=0; var<n_variables; ++var) {
@@ -61,38 +53,38 @@ void SymmetryManager::Permutation(int i, const vector<int> &state,
 
 void SymmetryManager::AddGenerator(const unsigned int n,
                                    const unsigned int *aut) {
+  int n_variables = var_to_id_.size();
+  std::vector<int> var_permutation(n_variables);
+  std::vector<std::vector<int> > value_permutation(n_variables);
+
   bool all = true;
 
-  for (unsigned int i =0; i<n; ++i) {
-    if (aut[i] != i) {
-      all = false;
-      break;
+  for (int var=0; var<n_variables; ++var) {
+    int new_var = id_to_var_[aut[var_to_id_[var]]];
+    var_permutation[var] = new_var;
+    value_permutation.resize(value_permutation.size() + 1);
+
+    if (all && var != new_var) all = false;
+
+    for (int value=0; value<problem_->VarRange(var); ++value) {
+      int new_value = id_to_value_[aut[value_to_id_[var][value]]];
+      value_permutation[var].push_back(new_value);
+
+      if (all && value != new_value) all = false;
     }
   }
 
   if (all) return;
 
-  int n_variables = var_to_id_.size();
-  std::vector<int> var_permutation(n_variables);
-  std::vector<std::vector<int> > value_permutation(n_variables);
-
-  for (int var=0; var<n_variables; ++var) {
-    var_permutation[var] = id_to_var_[aut[var_to_id_[var]]];
-    value_permutation.resize(value_permutation.size() + 1);
-
-    for (int value=0; value<problem_->VarRange(var); ++value) {
-      int new_value = id_to_value_[aut[value_to_id_[var][value]]];
-      value_permutation[var].push_back(new_value);
-    }
-  }
+  auto permutated = goal_;
 
   for (int var =0; var<n_variables; ++var) {
     int value = goal_[var];
     int new_var = var_permutation[var];
-    int new_value = value_permutation[var][value];
+    int new_value = value == -1 ? value : value_permutation[var][value];
     int goal_value = goal_[new_var];
 
-    if (goal_value != -1 && goal_value != new_value) return;
+    if (goal_value != new_value) return;
   }
 
   var_permutations_.push_back(var_permutation);
@@ -180,6 +172,8 @@ void SymmetryManager::Init(std::shared_ptr<const SASPlus> problem) {
 }
 
 void SymmetryManager::Dump() const {
+  std::cout << "#permutations=" << var_permutations_.size() << std::endl;
+
   for (int i=0, n=var_permutations_.size(); i<n; ++i) {
     std::cout << "permutation " << i << std::endl;
 

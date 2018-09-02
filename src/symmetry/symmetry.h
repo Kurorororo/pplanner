@@ -26,8 +26,8 @@ class SymmetryManager {
  private:
   void Init(std::shared_ptr<const SASPlus> problem);
 
-  void Permutation(int i, const std::vector<int> &state,
-                   std::vector<int> &permutated) const;
+  void Permutate(int i, const std::vector<int> &state,
+                 std::vector<int> &permutated) const;
 
   std::vector<int> goal_;
   std::vector<unsigned int> var_to_id_;
