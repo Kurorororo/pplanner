@@ -70,7 +70,7 @@ void SBGBFS::Init(const boost::property_tree::ptree &pt) {
   if (auto ram = pt.get_optional<size_t>("ram"))
     graph_->ReserveByRAMSize(ram.get());
   else
-    graph_->ReserveByRAMSize(5000000000);
+    graph_->ReserveByRAMSize(3000000000);
 
   states_.reserve(graph_->capacity() * graph_->block_size());
   //manager_->Dump();

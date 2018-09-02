@@ -29,6 +29,16 @@ void DistributedSearchGraphWithLandmarks::BufferNode(int action,
   memcpy(landmark, Landmark(parent_node), n_landmarks_bytes_ * sizeof(uint8_t));
 }
 
+void DistributedSearchGraphWithLandmarks::BufferNode(int action,
+                                                     int parent_node,
+                                                     const vector<int> &state,
+                                                     unsigned char *buffer) {
+  DistributedSearchGraph::BufferNode( action, parent_node, state, buffer);
+  uint8_t *landmark = reinterpret_cast<uint8_t*>(
+      buffer + DistributedSearchGraph::node_size());
+  memcpy(landmark, Landmark(parent_node), n_landmarks_bytes_ * sizeof(uint8_t));
+}
+
 int DistributedSearchGraphWithLandmarks::GenerateNodeIfNotClosedFromBytes(
     const unsigned char *d) {
   int node = DistributedSearchGraph::GenerateNodeIfNotClosedFromBytes(d);

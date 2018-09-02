@@ -54,6 +54,10 @@ class DistributedSearchGraphWithLandmarks : public DistributedSearchGraph {
                           const std::vector<int> &state,
                           unsigned char *buffer) override;
 
+  virtual void BufferNode(int action, int parent_node,
+                          const std::vector<int> &state,
+                          unsigned char *buffer) override;
+
   virtual void BufferNode(int i, const unsigned char *base,
                           unsigned char *buffer) override {
     DistributedSearchGraph::BufferNode(i, base, buffer);
