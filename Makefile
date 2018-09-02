@@ -2,8 +2,8 @@ SRC_DIR=./src
 BIN_DIR=./bin
 TEST_DIR=./tests
 
-INCS = -I$(SRC_DIR) -I/usr/local/include/
-LIBS = -L/usr/local/lib/ -lboost_program_options
+INCS = -I$(SRC_DIR) -I/usr/local/include/ -I./lib/bliss
+LIBS = -L/usr/local/lib/ -lboost_program_options -L./lib/bliss -lbliss
 CXX = g++
 MPIXX = mpic++
 RELEASE_FLAG = -Wall -std=c++11 -O3 -DNDEBUG
@@ -199,14 +199,18 @@ $(BIN_DIR)/libsearch.a: \
 	$(BIN_DIR)/search/kgbfs.o \
 	$(BIN_DIR)/search/gbfs.o \
 	$(BIN_DIR)/search/lazy_gbfs.o \
-	$(BIN_DIR)/search/mrw13.o
+	$(BIN_DIR)/search/symmetry_breaking_gbfs.o \
+	$(BIN_DIR)/search/mrw13.o \
+	$(BIN_DIR)/symmetry/symmetry.o
 	ar rcs $(BIN_DIR)/libsearch.a \
 		$(BIN_DIR)/search.o \
 		$(BIN_DIR)/search_factory.o \
 		$(BIN_DIR)/search/kgbfs.o \
 		$(BIN_DIR)/search/gbfs.o \
 		$(BIN_DIR)/search/lazy_gbfs.o \
-		$(BIN_DIR)/search/mrw13.o
+		$(BIN_DIR)/search/symmetry_breaking_gbfs.o \
+		$(BIN_DIR)/search/mrw13.o \
+		$(BIN_DIR)/symmetry/symmetry.o
 
 $(BIN_DIR)/libff.a: \
 	$(BIN_DIR)/heuristics/rpg.o \

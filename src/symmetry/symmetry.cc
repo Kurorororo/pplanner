@@ -1,8 +1,11 @@
 #include "symmetry.h"
 
 #include <graph.hh>
+#include <iostream>
 
 namespace pplanner {
+
+using std::vector;
 
 static void save_aut(void* param, const unsigned int n,
                      const unsigned int* aut) {
@@ -10,26 +13,29 @@ static void save_aut(void* param, const unsigned int n,
   manager->AddGenerator(n, aut);
 }
 
-void SymmetryManager::ToCanonical(const std::vector<int> &state,
-                                  std::vector<int> &canonical) {
+void SymmetryManager::ToCanonical(const vector<int> &state,
+                                  vector<int> &canonical) const {
   static vector<int> permutated(state.size());
   static vector<int> arg_min(state.size());
 
-  int n_variables = state.size();
-  canonical.resize(n_variables);
-
   canonical = state;
-  int order_min = LexicalOrder(canonical);
+
+  //std::cout << "state" << std::endl;
+
+  //for (auto v : canonical) {
+  //  std::cout << v << " ";
+  //}
+
+  //std::cout << std::endl;
 
   while (true) {
+
     bool local_minima = true;
 
-    for (auto g : generators_) {
-      Permutation(g, canonical, permutated);
-      int order = LexicalOrder(permutated);
+    for (int i=0, n=var_permutations_.size(); i<n; ++i) {
+      Permutation(i, canonical, permutated);
 
-      if (order < order_min) {
-        order_min = order;
+      if (permutated < canonical) {
         arg_min = permutated;
         local_minima = false;
       }
@@ -42,28 +48,15 @@ void SymmetryManager::ToCanonical(const std::vector<int> &state,
   }
 }
 
-void SymmetryManager::Permutation(const std::vector<unsigned int> &permutation,
-                                  const std::vector<int> &state,
-                                  std::vector<int> &permutated) {
+void SymmetryManager::Permutation(int i, const vector<int> &state,
+                                  vector<int> &permutated) const {
   int n_variables = state.size();
 
   for (int var=0; var<n_variables; ++var) {
-    unsigned int var_id = var_to_id_[var];
-    unsigned int value_id = value_to_id_[var][state[var]];
-    int new_var = id_to_var_[permutation[var_id]];
-    int new_value = id_to_value_[permutation[value_id]];
-    permutated[new_var] = id_to_value_[new_value];
+    int new_var = var_permutations_[i][var];
+    int new_value = value_permutations_[i][var][state[var]];
+    permutated[new_var] = new_value;
   }
-}
-
-int SymmetryManager::LexicalOrder(const std::vector<int> &state) const {
-  int order = 0;
-  int n_variables = states.size();
-
-  for (int i=0; i<n_variables; ++i
-    order += state[i] * prefix_[i];
-
-  return order;
 }
 
 void SymmetryManager::AddGenerator(const unsigned int n,
@@ -79,37 +72,38 @@ void SymmetryManager::AddGenerator(const unsigned int n,
 
   if (all) return;
 
-  for (int i =0; i<n_goal_; ++i) {
-    int var = goal_vars[i];
-    int value = goal_values[i];
-    int new_var = id_to_var_[permutation[var_to_id_[var]]];
-    int new_value = id_to_value_[permutation[value_to_id_[var][value]]];
+  int n_variables = var_to_id_.size();
+  std::vector<int> var_permutation(n_variables);
+  std::vector<std::vector<int> > value_permutation(n_variables);
+
+  for (int var=0; var<n_variables; ++var) {
+    var_permutation[var] = id_to_var_[aut[var_to_id_[var]]];
+    value_permutation.resize(value_permutation.size() + 1);
+
+    for (int value=0; value<problem_->VarRange(var); ++value) {
+      int new_value = id_to_value_[aut[value_to_id_[var][value]]];
+      value_permutation[var].push_back(new_value);
+    }
+  }
+
+  for (int var =0; var<n_variables; ++var) {
+    int value = goal_[var];
+    int new_var = var_permutation[var];
+    int new_value = value_permutation[var][value];
     int goal_value = goal_[new_var];
 
     if (goal_value != -1 && goal_value != new_value) return;
   }
 
-  unsigned int index = generators_.size();
-  generators_.push_back(std::vector<unsigned int>(n));
-
-  for (unsigned int i=0; i<n; ++i)
-    generators_[index][i] = aut[i];
+  var_permutations_.push_back(var_permutation);
+  value_permutations_.push_back(value_permutation);
 }
 
 void SymmetryManager::Init(std::shared_ptr<const SASPlus> problem) {
   int n_variables = problem->n_variables();
 
-  for (int var=0; var<n_variables; ++var) {
-    int p = 1;
-
-    for (int v=var+1; v<n_variables; ++v)
-      p *= problem->VarRange(v);
-
-    prefix_.push_back(p);
-  }
-
   goal_.resize(n_variables, -1);
-  std::vector<std::pair<int, int> > goal;
+  vector<std::pair<int, int> > goal;
   problem->CopyGoal(goal);
 
   for (auto p  : goal)
@@ -118,10 +112,11 @@ void SymmetryManager::Init(std::shared_ptr<const SASPlus> problem) {
   bliss::Graph::SplittingHeuristic shs = bliss::Graph::shs_fsm;
   unsigned int verbose_level = 1;
   std::unique_ptr<bliss::Graph> g = std::unique_ptr<bliss::Graph>(
-      new blissGraph);
+      new bliss::Graph);
+  g->set_splitting_heuristic(shs);
   g->set_verbose_level(verbose_level);
   g->set_verbose_file(NULL);
-  g->set_failure_reconding(true);
+  g->set_failure_recording(true);
   g->set_component_recursion(true);
 
   for (int var=0; var<n_variables; ++var) {
@@ -129,19 +124,19 @@ void SymmetryManager::Init(std::shared_ptr<const SASPlus> problem) {
     var_to_id_.push_back(var_id);
 
     if (id_to_var_.size() < var_id + 1)
-      id_to_var_.resize(var_id + 1, -1)
+      id_to_var_.resize(var_id + 1, -1);
 
     id_to_var_[var_id] = var;
   }
 
   for (int var=0; var<n_variables; ++var) {
-    unsigned int var_id = var_to_id[var];
-    value_to_id_.push_back(std::vector<int>());
+    unsigned int var_id = var_to_id_[var];
+    value_to_id_.resize(value_to_id_.size() + 1);
 
     for (int value=0, d=problem->VarRange(var); value<d; ++value) {
       unsigned int value_id = g->add_vertex(1);
       g->add_edge(var_id, value_id);
-      var_to_id_[var].push_back(value_id);
+      value_to_id_[var].push_back(value_id);
 
       if (id_to_value_.size() < value_id + 1)
         id_to_value_.resize(value_id + 1, -1);
@@ -151,16 +146,15 @@ void SymmetryManager::Init(std::shared_ptr<const SASPlus> problem) {
   }
 
   int n_actions = problem->n_actions();
-  std::vector<unsigned int> precondition_ids;
-  std::vector<unsigned int> effect_ids;
 
   for (int i=0; i<n_actions; ++i) {
     unsigned int precondition_id = g->add_vertex(2);
     unsigned int effect_id = g->add_vertex(3);
+    g->add_edge(precondition_id, effect_id);
 
-    auto var_itr = problem->PreconditionVarsBegin();
-    auto value_itr = problem->PreconditionVarluesBegin();
-    auto var_end = problem->PreconditionValuesEnd();
+    auto var_itr = problem->PreconditionVarsBegin(i);
+    auto value_itr = problem->PreconditionValuesBegin(i);
+    auto var_end = problem->PreconditionVarsEnd(i);
 
     while (var_itr != var_end) {
       unsigned int value_id = value_to_id_[*var_itr][*value_itr];
@@ -169,9 +163,9 @@ void SymmetryManager::Init(std::shared_ptr<const SASPlus> problem) {
       ++value_itr;
     }
 
-    var_itr = problem->EffectVarsBegin();
-    value_itr = problem->EffectVarluesBegin();
-    var_end = problem->EffectValuesEnd();
+    var_itr = problem->EffectVarsBegin(i);
+    value_itr = problem->EffectValuesBegin(i);
+    var_end = problem->EffectVarsEnd(i);
 
     while (var_itr != var_end) {
       unsigned int value_id = value_to_id_[*var_itr][*value_itr];
@@ -185,4 +179,24 @@ void SymmetryManager::Init(std::shared_ptr<const SASPlus> problem) {
   g->find_automorphisms(stats, &save_aut, this);
 }
 
+void SymmetryManager::Dump() const {
+  for (int i=0, n=var_permutations_.size(); i<n; ++i) {
+    std::cout << "permutation " << i << std::endl;
+
+    for (int var=0, m=var_permutations_[i].size(); var<m; ++var) {
+      int new_var = var_permutations_[i][var];
+      std::cout << "var" << var << "->var" << new_var << std::endl;
+
+      for (int value=0, l=problem_->VarRange(var); value<l; ++value) {
+        int new_value = value_permutations_[i][var][value];
+        std::cout << value << "->" << new_value << ",";
+      }
+
+      std::cout << std::endl;
+    }
+
+    std::cout << std::endl;
+  }
 }
+
+} // namespace pplanner

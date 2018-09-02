@@ -10,9 +10,11 @@ namespace pplanner {
 
 class SymmetryManager {
  public:
-  SymmetryManager(std::shared_ptr<const SASPlus> problem) { Init(problem); }
+  SymmetryManager(std::shared_ptr<const SASPlus> problem) : problem_(problem) {
+    Init(problem);
+  }
 
-  ~SymmetryManager();
+  ~SymmetryManager() {}
 
   void ToCanonical(const std::vector<int> &state, std::vector<int> &canonical)
     const;
@@ -24,18 +26,17 @@ class SymmetryManager {
  private:
   void Init(std::shared_ptr<const SASPlus> problem);
 
-  void Permutation(const std::vector<unsigned int> &permutation,
-                   const std::vector<int> &state, std::vector<int> &permutated);
-
-  int LexicalOrder(const std::vector<int> &state) const;
+  void Permutation(int i, const std::vector<int> &state,
+                   std::vector<int> &permutated) const;
 
   std::vector<int> goal_;
-  std::vector<int> prefix_;
   std::vector<unsigned int> var_to_id_;
   std::vector<std::vector<unsigned int> > value_to_id_;
   std::vector<int> id_to_var_;
   std::vector<int> id_to_value_;
-  std::vector<std::vector<unsigned int> > generators_;
+  std::vector<std::vector<int> > var_permutations_;
+  std::vector<std::vector<std::vector<int> > > value_permutations_;
+  std::shared_ptr<const SASPlus> problem_;
 };
 
 

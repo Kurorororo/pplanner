@@ -211,6 +211,8 @@ class SearchGraph {
     packer_->Unpack(packed, state);
   }
 
+  size_t block_size() const { return packer_->block_size(); }
+
   size_t Find(int i) const {
     uint32_t hash_value = HashValue(i);
     size_t block_size = packer_->block_size();

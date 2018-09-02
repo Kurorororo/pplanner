@@ -4,6 +4,7 @@
 #include "search/kgbfs.h"
 #include "search/lazy_gbfs.h"
 #include "search/mrw13.h"
+#include "search/symmetry_breaking_gbfs.h"
 
 namespace pplanner {
 
@@ -28,6 +29,9 @@ std::unique_ptr<Search> SearchFactory(std::shared_ptr<const SASPlus> problem,
 
   if (search.get() == "kgbfs")
     return std::unique_ptr<KGBFS>(new KGBFS(problem, option.get()));
+
+  if (search.get() == "sbgbfs")
+    return std::unique_ptr<SBGBFS>(new SBGBFS(problem, option.get()));
 
   throw std::runtime_error("No such search algorithm.");
 }
