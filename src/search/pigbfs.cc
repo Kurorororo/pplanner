@@ -5,7 +5,7 @@ namespace pplanner {
 int PIGBFS::Search() {
   auto state = InitialEvaluate();
 
-  if (rank() == initial_rank()) {
+  if (!NoNode()) {
     while (n_open_nodes() < world_size() && !NoNode()) {
       int node = Pop();
       int goal = IndependentExpand(node, state);
