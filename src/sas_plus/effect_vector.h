@@ -21,6 +21,15 @@ class EffectVector : public PartialStateVector {
       const std::vector<std::vector<std::pair<int, int> > > &conditions,
       const std::vector<std::pair<int, int> > &effects);
 
+  bool HasConditionalEffects(int i) const { return has_conditional_[i]; }
+
+  void CopyEffectConditions(
+      int i,
+      std::vector<std::vector<std::pair<int, int> > > &conditions) const;
+
+  void CopyConditionalEffects(int i,
+                              std::vector<std::pair<int, int> > &effects) const;
+
  private:
   bool use_conditional_;
   std::vector<bool> has_conditional_;

@@ -18,6 +18,8 @@ void RelaxedSASPlus::InitActions(const SASPlus &problem, bool simplify) {
   vector<pair<int, int> > pair_effect;
   vector<int> precondition;
   vector<int> actions;
+  vector<vector<pair<int, int> > > effect_conditions;
+  vector<pair<int, int> > conditional_effects;
   int action = 0;
 
   for (int i=0, n=problem.n_actions(); i<n; ++i) {
@@ -43,6 +45,28 @@ void RelaxedSASPlus::InitActions(const SASPlus &problem, bool simplify) {
       precondition_size_.push_back(size);
       preconditions_.push_back(precondition);
       effects_.push_back(f);
+      conditional_.push_back(false);
+    }
+
+    if (problem.HasConditionalEffects(i)) {
+      problem.CopyEffectConditions(i, effect_conditions);
+      problem.CopyConditionalEffects(i, conditional_effects);
+
+      for (int j=0, m=effect_conditions.size(); j<m; ++j) {
+        auto precondition_ec = precondition;
+
+        for (auto &p : effect_conditions[j])
+          precondition_ec.push_back(problem.Fact(p.first, p.second));
+
+        ids_.push_back(i);
+        actions.push_back(action++);
+        costs_.push_back(cost);
+        precondition_size_.push_back(precondition_ec.size());
+        preconditions_.push_back(precondition_ec);
+        auto effect = conditional_effects[j];
+        effects_.push_back(problem.Fact(effect.first, effect.second));
+        conditional_.push_back(true);
+      }
     }
 
     id_to_actions_.push_back(actions);
@@ -50,9 +74,10 @@ void RelaxedSASPlus::InitActions(const SASPlus &problem, bool simplify) {
 
   std::cout << ids_.size() << " unary operators" << std::endl;
 
-  if (simplify) Simplify();
-
-  std::cout << "simplified to " << ids_.size() << std::endl;
+  if (simplify) {
+    Simplify();
+    std::cout << "simplified to " << ids_.size() << std::endl;
+  }
 
   precondition_map_.resize(problem.n_facts());
 
@@ -112,6 +137,7 @@ void RelaxedSASPlus::Simplify() {
   vector<int> precondition_size;
   vector<vector<int> > preconditions;
   vector<int> effects;
+  vector<bool> conditional;
   int action = 0;
 
   for (auto &v : umap) {
@@ -151,15 +177,17 @@ void RelaxedSASPlus::Simplify() {
       precondition_size.push_back(p.size());
       preconditions.push_back(p);
       effects.push_back(e);
+      conditional.push_back(conditional_[a]);
     }
   }
 
-  ids_ = ids;
-  id_to_actions_ = id_to_actions;
-  costs_ = costs;
-  precondition_size_ = precondition_size;
-  preconditions_ = preconditions;
-  effects_ = effects;
+  ids_.swap(ids);
+  id_to_actions_.swap(id_to_actions);
+  costs_.swap(costs);
+  precondition_size_.swap(precondition_size);
+  preconditions_.swap(preconditions);
+  effects_.swap(effects);
+  conditional_.swap(conditional);
 }
 
 } // namespace pplanner

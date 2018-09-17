@@ -33,6 +33,8 @@ class RelaxedSASPlus {
 
   int Effect(int i) const { return effects_[i]; }
 
+  bool IsConditional(int i) const { return conditional_[i]; }
+
   bool IsGoal(int i) const { return is_goal_[i]; }
 
   const std::vector<int>& goal() const { return goal_; }
@@ -61,6 +63,7 @@ class RelaxedSASPlus {
   std::vector<int> precondition_size_;
   std::vector<std::vector<int> > preconditions_;
   std::vector<int> effects_;
+  std::vector<bool> conditional_;
   std::vector<std::vector<int> > precondition_map_;
   std::vector<std::vector<int> > effect_map_;
   std::vector<bool> is_goal_;

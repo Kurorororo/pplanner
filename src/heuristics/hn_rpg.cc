@@ -208,9 +208,11 @@ int HNRPG::ExtractAction(int i, int g) {
   int id = problem_->ActionId(o);
 
   for (auto a : problem_->IdToActions(id)) {
-    int f = problem_->Effect(a);
-    marked_[0][f] = true;
-    marked_[1][f] = true;
+    if (a == o || !problem_->IsConditional(a)) {
+      int f = problem_->Effect(a);
+      marked_[0][f] = true;
+      marked_[1][f] = true;
+    }
   }
 
   return o;

@@ -1,4 +1,4 @@
-#include "heuristics/rpg.h"
+#include "heuristics/hn_rpg.h"
 
 #include <algorithm>
 #include <iostream>
@@ -43,7 +43,7 @@ int main(int argc, char *argv[]) {
   sas->InitFromLines(lines);
 
   auto r_sas = std::make_shared<RelaxedSASPlus>(*sas, simplify);
-  RPG rpg(r_sas);
+  HNRPG rpg(r_sas);
   std::unordered_set<int> preferred;
 
   auto initial = sas->initial();
@@ -51,7 +51,7 @@ int main(int argc, char *argv[]) {
   StateToFactVector(*sas, initial, initial_facts);
 
   auto result = rpg.Plan(initial_facts, preferred);
-  int result_cost = rpg.PlanCost(initial_facts, preferred);
+  int result_cost = rpg.PlanCost(initial_facts, preferred, false);
   std::cout << "plan" << std::endl;
   int cost = 0;
 
@@ -131,7 +131,46 @@ int main(int argc, char *argv[]) {
       facts[f] = 1;
     }
 
-    std::cout << std::endl << std::endl;
+    std::cout << std::endl;
+
+    if (sas->HasConditionalEffects(o)) {
+      std::cout << "conditional eff: ";
+
+      std::vector<std::vector<std::pair<int, int> > > effect_conditions;
+      sas->CopyEffectConditions(o, effect_conditions);
+      std::vector<std::pair<int, int> > conditional_effects;
+      sas->CopyConditionalEffects(o, conditional_effects);
+
+      for (int j=0, m=effect_conditions.size(); j<m; ++j) {
+        bool all = true;
+        std::cout << "condition: ";
+
+        for (auto &condition : effect_conditions[j]) {
+          int f = sas->Fact(condition.first, condition.second);
+          if (facts[f] == 0) all = false;
+          std::cout << "fact" << f << "|";
+          std::cout << "var" << condition.first << "=" << condition.second;
+          std::cout << ",";
+        }
+
+        auto effect = conditional_effects[j];
+        int f = sas->Fact(effect.first, effect.second);
+        std::cout << " effect: ";
+        std::cout << "fact" << f << "|";
+        std::cout << "var" << effect.first << "=" << effect.second;
+
+        if (all)
+          facts[f] = 1;
+        else
+          std::cout << " not fired";
+
+        std::cout << std::endl;
+      }
+
+      std::cout << std::endl;
+    }
+
+    std::cout << std::endl;
   }
 
   for (auto g : r_sas->goal()) {

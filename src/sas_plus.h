@@ -124,6 +124,22 @@ class SASPlus {
     effects_->Copy(i, effect);
   }
 
+  bool HasConditionalEffects(int i) const {
+    return effects_->HasConditionalEffects(i);
+  }
+
+  void CopyEffectConditions(
+      int i,
+      std::vector<std::vector<std::pair<int, int> > > &conditions) const {
+    effects_->CopyEffectConditions(i, conditions);
+  }
+
+  void CopyConditionalEffects(
+      int i,
+      std::vector<std::pair<int, int> > &effects) const {
+    effects_->CopyConditionalEffects(i, effects);
+  }
+
   void ApplyEffect(int i, std::vector<int> &state) const {
     effects_->Apply(i, state);
   }

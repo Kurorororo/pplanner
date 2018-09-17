@@ -4,8 +4,11 @@
 
 namespace pplanner {
 
-void EffectVector::Apply(int i, std::vector<int> &state) const {
-  static std::vector<int> backup(state);
+using std::vector;
+using std::pair;
+
+void EffectVector::Apply(int i, vector<int> &state) const {
+  static vector<int> backup(state);
 
   if (use_conditional_ && has_conditional_[i]) {
     backup = state;
@@ -41,8 +44,8 @@ void EffectVector::Apply(int i, std::vector<int> &state) const {
 }
 
 void EffectVector::AddConditionalEffect(
-    const std::vector<std::vector<std::pair<int, int> > > &conditions,
-    const std::vector<std::pair<int, int> > &effects) {
+    const vector<vector<pair<int, int> > > &conditions,
+    const vector<pair<int, int> > &effects) {
 
   if (conditions.empty()) {
     has_conditional_.push_back(false);
@@ -70,6 +73,40 @@ void EffectVector::AddConditionalEffect(
   for (auto p : effects) {
     conditional_effect_vars_.push_back(p.first);
     conditional_effect_values_.push_back(p.second);
+  }
+}
+
+void EffectVector::CopyEffectConditions(
+    int i,
+    vector<vector<pair<int, int> > > &conditions) const {
+  conditions.clear();
+  int begin = effect_condition_offsets_1_[i];
+  int end = effect_condition_offsets_1_[i + 1];
+
+  for (int j = begin; j < end; ++j) {
+    int b = effect_condition_offsets_2_[j];
+    int e = effect_condition_offsets_2_[j + 1];
+    conditions.push_back(vector<pair<int, int> >());
+
+    for (int k = b; k < e; ++k) {
+      int var = effect_condition_vars_[k];
+      int value = effect_condition_values_[k];
+      conditions.back().push_back(std::make_pair(var, value));
+    }
+  }
+}
+
+void EffectVector::CopyConditionalEffects(
+    int i,
+    vector<pair<int, int> > &effects) const {
+  effects.clear();
+  int begin = effect_condition_offsets_1_[i];
+  int end = effect_condition_offsets_1_[i + 1];
+
+  for (int j = begin; j < end; ++j) {
+    int var = conditional_effect_vars_[j];
+    int value = conditional_effect_values_[j];
+    effects.push_back(std::make_pair(var, value));
   }
 }
 
