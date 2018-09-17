@@ -155,8 +155,12 @@ void ParsePrecondition(queue<string> &lines,
 }
 
 void ParseEffect(queue<string> &lines, vector<pair<int, int> > &precondition,
-                 vector<pair<int, int> > &effect) {
+                 vector<pair<int, int> > &effect,
+                 vector<vector<pair<int, int> > > &effect_conditions,
+                 vector<pair<int, int> > &conditional_effects) {
   effect.clear();
+  effect_conditions.clear();
+  conditional_effects.clear();
   int n = ParseN(lines);
   effect.reserve(n);
   string buffer;
@@ -165,9 +169,17 @@ void ParseEffect(queue<string> &lines, vector<pair<int, int> > &precondition,
     std::istringstream line_separater(lines.front());
     lines.pop();
     std::getline(line_separater, buffer, ' ');
+    int n_ce = std::stoi(buffer);
 
-    if (std::stoi(buffer) != 0)
-      throw std::runtime_error(kConditionalEffectNotSupported);
+    if (n_ce > 0) effect_conditions.push_back(vector<pair<int, int> >());
+
+    for (int j=0; j<n_ce; ++j) {
+      std::getline(line_separater, buffer, ' ');
+      int var = std::stoi(buffer);
+      std::getline(line_separater, buffer, ' ');
+      int value = std::stoi(buffer);
+      effect_conditions.back().push_back(std::make_pair(var, value));
+    }
 
     std::getline(line_separater, buffer, ' ');
     int var = std::stoi(buffer);
@@ -178,19 +190,26 @@ void ParseEffect(queue<string> &lines, vector<pair<int, int> > &precondition,
 
     std::getline(line_separater, buffer, ' ');
     value = std::stoi(buffer);
-    effect.push_back(std::make_pair(var, value));
+
+    if (n_ce == 0)
+      effect.push_back(std::make_pair(var, value));
+    else
+      conditional_effects.push_back(std::make_pair(var, value));
   }
 }
 
 int ParseOperator(queue<string> &lines, int metric, string &name,
                   vector<pair<int, int> > &precondition,
-                  vector<pair<int, int> > &effect) {
+                  vector<pair<int, int> > &effect,
+                  vector<vector<pair<int, int> > > &effect_conditions,
+                  vector<pair<int, int> > &conditional_effects) {
   CheckString("begin_operator", lines);
 
   name = lines.front();
   lines.pop();
   ParsePrecondition(lines, precondition);
-  ParseEffect(lines, precondition, effect);
+  ParseEffect(lines, precondition, effect, effect_conditions,
+              conditional_effects);
   int cost = ParseN(lines);
   if (metric == 0) cost = 1;
 

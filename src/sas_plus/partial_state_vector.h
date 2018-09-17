@@ -12,6 +12,10 @@ class PartialStateVector {
  public:
   PartialStateVector() { offsets_.push_back(0); }
 
+  virtual ~PartialStateVector() {}
+
+  virtual void Dump(int i) const;
+
   void Reserve(size_t size) {
     offsets_.reserve(size);
     vars_.reserve(size);
@@ -49,8 +53,6 @@ class PartialStateVector {
   void Copy(int i, std::vector<std::pair<int, int> > &v) const;
 
   void Add(const std::vector<std::pair<int, int> > &v);
-
-  void Dump(int i) const;
 
   const int* offsets_data() const { return offsets_.data(); }
 

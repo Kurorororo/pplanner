@@ -26,9 +26,14 @@ std::vector<int> ParseInitial(const Facts &facts,
 
 std::vector<std::pair<int, int> > ParseGoal(std::queue<std::string> &lines);
 
-int ParseOperator(std::queue<std::string> &lines, int metric, std::string &name,
-                  std::vector<std::pair<int, int> > &precondition,
-                  std::vector<std::pair<int, int> > &effect);
+int ParseOperator(
+    std::queue<std::string> &lines,
+    int metric,
+    std::string &name,
+    std::vector<std::pair<int, int> > &precondition,
+    std::vector<std::pair<int, int> > &effect,
+    std::vector<std::vector<std::pair<int, int> > > &effect_conditions,
+    std::vector<std::pair<int, int> > &conditional_effects);
 
 void ParseAxiom(std::queue<std::string> &lines);
 

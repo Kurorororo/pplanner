@@ -146,9 +146,13 @@ class SASPlus {
  private:
   void CreateActions(int n);
 
-  int AddAction(int cost, const std::string &name,
-                const std::vector<std::pair<int, int> > &precondition,
-                const std::vector<std::pair<int, int> > &effect);
+  int AddAction(
+      int cost,
+      const std::string &name,
+      const std::vector<std::pair<int, int> > &precondition,
+      const std::vector<std::pair<int, int> > &effect,
+      const std::vector<std::vector<std::pair<int, int> > > &effect_conditions,
+      const std::vector<std::pair<int, int> > &conditional_effects);
 
   int metric_;
   std::shared_ptr<Facts> facts_;

@@ -21,15 +21,20 @@ void SASPlus::CreateActions(int n) {
   effects_->Reserve(n);
 }
 
-int SASPlus::AddAction(int cost, const string &name,
-                       const vector<pair<int, int> > &precondition,
-                       const vector<pair<int, int> > &effect) {
+int SASPlus::AddAction(
+    int cost,
+    const string &name,
+    const vector<pair<int, int> > &precondition,
+    const vector<pair<int, int> > &effect,
+    const vector<vector<pair<int, int> > > &effect_conditions,
+    const vector<pair<int, int> > &conditional_effects) {
   int a = static_cast<int>(action_costs_.size());
 
   action_costs_.push_back(cost);
   action_names_.push_back(name);
   preconditions_->Add(precondition);
   effects_->Add(effect);
+  effects_->AddConditionalEffect(effect_conditions, conditional_effects);
 
   return a;
 }
@@ -64,10 +69,14 @@ void SASPlus::InitFromLines(queue<string> &lines) {
   string name;
   vector<pair<int, int> > precondition;
   vector<pair<int, int> > effect;
+  vector<vector<pair<int, int> > > effect_conditions;
+  vector<pair<int, int> > conditional_effects;
 
   for (int i=0; i<n; ++i) {
-    int cost = ParseOperator(lines, metric_, name, precondition, effect);
-    AddAction(cost, name, precondition, effect);
+    int cost = ParseOperator(lines, metric_, name, precondition, effect,
+                             effect_conditions, conditional_effects);
+    AddAction(cost, name, precondition, effect, effect_conditions,
+              conditional_effects);
   }
 
   n = ParseN(lines);
