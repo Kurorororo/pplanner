@@ -52,14 +52,16 @@ void SetPossibleAchievers(const Landmark &psi,
   }
 }
 
-void RRPG(const vector<int> &possible_achievers,
+void RRPG(const Landmark &psi,
+          shared_ptr<const SASPlus> problem,
           const vector<int> &initial,
-          vector<bool> &black_list,
           shared_ptr<RPG> rrpg) {
+  static vector<bool> black_list(problem->n_facts(), false);
+
   std::fill(black_list.begin(), black_list.end(), false);
 
-  for (auto o : possible_achievers)
-    black_list[o] = true;
+  for (int i=0, n=psi.size(); i<n; ++i)
+    black_list[problem->Fact(psi.Var(i), psi.Value(i))] = true;
 
   rrpg->ConstructRRPG(initial, black_list);
 }
@@ -83,6 +85,30 @@ vector<pair<int, int> > ExtendedPreconditions(const Landmark &psi,
   vector<pair<int, int> > precondition;
   problem->CopyPrecondition(action, precondition);
 
+  if (problem->HasConditionalEffects(action)) {
+    // Add effect conditions of psi to the precondition.
+    vector<vector<pair<int, int> > > effect_conditions;
+    problem->CopyEffectConditions(action, effect_conditions);
+    vector<pair<int, int> > conditional_effects;
+    problem->CopyConditionalEffects(action, conditional_effects);
+
+    for (int i=0, n=effect_conditions.size(); i<n; ++i) {
+      auto e = conditional_effects[i];
+
+      for (int j=0, m=psi.size(); j<m; ++j) {
+        if (psi.Var(j) == e.first && psi.Value(j) == e.second) {
+          for (auto p : effect_conditions[i])
+            precondition.push_back(p);
+
+          break;
+        }
+      }
+    }
+  }
+
+  // Add the initial assignment of a variable in psi to the precondition
+  // if the variable takes only two values and initialy takes different value
+  // from that of psi, and the action has an effect on the variable.
   for (auto p : precondition)
     has_precondition[p.first] = true;
 
@@ -292,7 +318,6 @@ void IdentifyLandmarks(shared_ptr<const SASPlus> problem,
   unordered_map<int, pair_set> potential_orderings;
 
   shared_ptr<RPG> rrpg = RPGFactory(problem, r_problem, use_rpg_table);
-  vector<bool> black_list(problem->n_actions(), false);
 
   auto dtgs = InitializeDTGs(problem);
 
@@ -312,8 +337,7 @@ void IdentifyLandmarks(shared_ptr<const SASPlus> problem,
       continue;
     }
 
-    auto &p_achievers = graph->GetPossibleAchievers(psi_id);
-    RRPG(p_achievers, initial_facts, black_list, rrpg);
+    RRPG(psi, problem, initial_facts, rrpg);
     SetFirstAchievers(psi, rrpg, graph);
     auto &pre_shared = PreShared(psi, problem, graph);
 

@@ -134,9 +134,8 @@ void HNRPG::RistrictedFactLayer(const vector<bool> &black_list) {
 
     for (auto o : problem_->PreconditionMap(f)) {
       if (--precondition_counter_[o] == 0) {
-        int a = problem_->ActionId(o);
-        is_applicable_[a] = true;
-        if (!black_list[a]) scheduled_actions_.push_back(o);
+        is_applicable_[problem_->ActionId(o)] = true;
+        if (!black_list[problem_->Effect(o)]) scheduled_actions_.push_back(o);
       }
     }
   }
