@@ -164,8 +164,7 @@ void RPGTable::ConstructRRPG(const vector<int> &state,
   for (int i=0, n=r_problem_->n_actions(); i<n; ++i) {
     if (precondition_counter_[i] == 0) {
       is_applicable_[r_problem_->ActionId(i)] = true;
-      int effect = r_problem_->Effect(i);
-      if (!black_list[effect]) MayPush(effect, i);
+      if (!black_list[i]) MayPush(r_problem_->Effect(i), i);
     }
   }
 
@@ -190,8 +189,7 @@ void RPGTable::ConstructRRPG(const vector<int> &state,
 
       if (--precondition_counter_[a] == 0) {
         is_applicable_[r_problem_->ActionId(a)] = true;
-        int effect = r_problem_->Effect(a);
-        if (!black_list[effect]) MayPush(effect, a);
+        if (!black_list[a]) MayPush(r_problem_->Effect(a), a);
       }
     }
   }

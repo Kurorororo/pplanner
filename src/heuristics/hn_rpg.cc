@@ -110,7 +110,7 @@ void HNRPG::ActionLayer() {
   }
 }
 
-void HNRPG::ConstructRRPG(const std::vector<int> &state,
+void HNRPG::ConstructRRPG(const vector<int> &state,
                           const vector<bool> &black_list) {
   SetUp();
 
@@ -135,7 +135,7 @@ void HNRPG::RistrictedFactLayer(const vector<bool> &black_list) {
     for (auto o : problem_->PreconditionMap(f)) {
       if (--precondition_counter_[o] == 0) {
         is_applicable_[problem_->ActionId(o)] = true;
-        if (!black_list[problem_->Effect(o)]) scheduled_actions_.push_back(o);
+        if (!black_list[o]) scheduled_actions_.push_back(o);
       }
     }
   }

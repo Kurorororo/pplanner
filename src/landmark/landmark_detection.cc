@@ -52,16 +52,27 @@ void SetPossibleAchievers(const Landmark &psi,
   }
 }
 
-void RRPG(const Landmark &psi,
-          shared_ptr<const SASPlus> problem,
-          const vector<int> &initial,
-          shared_ptr<RPG> rrpg) {
-  static vector<bool> black_list(problem->n_facts(), false);
+void RRPG(const Landmark &psi, shared_ptr<const SASPlus> problem,
+          shared_ptr<const RelaxedSASPlus> r_problem,
+          const vector<int> &initial, shared_ptr<RPG> rrpg) {
+  static vector<bool> black_list(r_problem->n_actions(), false);
 
   std::fill(black_list.begin(), black_list.end(), false);
 
-  for (int i=0, n=psi.size(); i<n; ++i)
-    black_list[problem->Fact(psi.Var(i), psi.Value(i))] = true;
+  for (int i=0, n=psi.size(); i<n; ++i) {
+    int f = problem->Fact(psi.VarValue(i));
+
+    for (auto o : r_problem->EffectMap(f)) {
+      if (r_problem->IsConditional(o)) {
+        black_list[o] = true;
+      } else {
+        int a = r_problem->ActionId(o);
+
+        for (auto p : r_problem->IdToActions(a))
+          black_list[p] = true;
+      }
+    }
+  }
 
   rrpg->ConstructRRPG(initial, black_list);
 }
@@ -337,7 +348,7 @@ void IdentifyLandmarks(shared_ptr<const SASPlus> problem,
       continue;
     }
 
-    RRPG(psi, problem, initial_facts, rrpg);
+    RRPG(psi, problem, r_problem, initial_facts, rrpg);
     SetFirstAchievers(psi, rrpg, graph);
     auto &pre_shared = PreShared(psi, problem, graph);
 
