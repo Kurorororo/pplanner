@@ -109,7 +109,9 @@ int LazyGBFS::Search() {
 
       bool is_preferred = use_preferred_
         && preferred.find(o) != preferred.end();
-      int child_node = graph_->GenerateNode(o, node, state, child);
+
+      int child_node = graph_->GenerateNodeIfNotClosed(o, node, state, child);
+      if (child_node == -1) continue;
       ++generated_;
 
       open_list_->Push(values_, child_node, is_preferred);
