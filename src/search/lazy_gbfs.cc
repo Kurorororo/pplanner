@@ -74,8 +74,11 @@ int LazyGBFS::Search() {
   while (!open_list_->IsEmpty() || best_h == -1) {
     if (best_h != -1) node = open_list_->Pop();
     if (!graph_->CloseIfNot(node)) continue;
+
     ++expanded_;
     graph_->Expand(node, state);
+
+    if (problem_->IsGoal(state)) return node;
 
     generator_->Generate(state, applicable);
 
@@ -100,8 +103,6 @@ int LazyGBFS::Search() {
 
       if (use_preferred_) open_list_->Boost();
     }
-
-    if (problem_->IsGoal(state)) return node;
 
     for (auto o : applicable) {
       child = state;
