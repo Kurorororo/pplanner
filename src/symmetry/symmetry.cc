@@ -40,6 +40,38 @@ void SymmetryManager::ToCanonical(const vector<int> &state,
   }
 }
 
+void SymmetryManager::ToCanonical(const vector<int> &state,
+                                  vector<int> &canonical,
+                                  vector<int> &generators) const {
+  static vector<int> permutated(state.size());
+  static vector<int> arg_min(state.size());
+
+  generators.clear();
+  canonical = state;
+
+  while (true) {
+
+    bool local_minima = true;
+    int sigma = -1;
+
+    for (int i=0, n=var_permutations_.size(); i<n; ++i) {
+      Permutate(i, canonical, permutated);
+
+      if (permutated < canonical) {
+        arg_min = permutated;
+        local_minima = false;
+        sigma = i;
+      }
+    }
+
+    if (local_minima)
+      break;
+
+    canonical = arg_min;
+    generators.push_back(sigma);
+  }
+}
+
 void SymmetryManager::Permutate(int i, const vector<int> &state,
                                 vector<int> &permutated) const {
   int n_variables = state.size();
@@ -47,6 +79,17 @@ void SymmetryManager::Permutate(int i, const vector<int> &state,
   for (int var=0; var<n_variables; ++var) {
     int new_var = var_permutations_[i][var];
     int new_value = value_permutations_[i][var][state[var]];
+    permutated[new_var] = new_value;
+  }
+}
+
+void SymmetryManager::InversePermutate(int i, const vector<int> &state,
+                                       vector<int> &permutated) const {
+  int n_variables = state.size();
+
+  for (int var=0; var<n_variables; ++var) {
+    int new_var = inverse_var_permutations_[i][var];
+    int new_value = inverse_value_permutations_[i][var][state[var]];
     permutated[new_var] = new_value;
   }
 }
@@ -89,6 +132,27 @@ void SymmetryManager::AddGenerator(const unsigned int n,
 
   var_permutations_.push_back(var_permutation);
   value_permutations_.push_back(value_permutation);
+}
+
+void SymmetryManager::AddInverseGenerators() {
+  inverse_value_permutations_.resize(value_permutations_.size(),
+                                     vector<vector<int> >());
+
+  for (int i=0, n=var_permutations_.size(); i<n; ++i) {
+    vector<int> var_permutation(var_permutations_[i].size());
+
+    for (int j=0, m=var_permutations_[i].size(); j<m; ++j) {
+      var_permutation[var_permutations_[i][j]] = j;
+      vector<int> value_permutation(value_permutations_[i][j].size());
+
+      for (int k=0, l=value_permutations_[i][j].size(); k<l; ++k)
+        value_permutation[value_permutations_[i][j][k]] = k;
+
+      inverse_value_permutations_[i].push_back(value_permutation);
+    }
+
+    inverse_var_permutations_.push_back(var_permutation);
+  }
 }
 
 void SymmetryManager::Init(std::shared_ptr<const SASPlus> problem) {
@@ -141,7 +205,7 @@ void SymmetryManager::Init(std::shared_ptr<const SASPlus> problem) {
 
   for (int i=0; i<n_actions; ++i) {
     unsigned int precondition_id = g->add_vertex(2);
-    unsigned int effect_id = g->add_vertex(3);
+    unsigned int effect_id = g->add_vertex(3 + problem->ActionCost(i));
     g->add_edge(precondition_id, effect_id);
 
     auto var_itr = problem->PreconditionVarsBegin(i);
@@ -169,6 +233,7 @@ void SymmetryManager::Init(std::shared_ptr<const SASPlus> problem) {
 
   bliss::Stats stats;
   g->find_automorphisms(stats, &save_aut, this);
+  AddInverseGenerators();
 }
 
 void SymmetryManager::Dump() const {

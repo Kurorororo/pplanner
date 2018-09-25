@@ -1,5 +1,5 @@
-#ifndef SBGBFS_H_
-#define SBGBFS_H_
+#ifndef ORBIT_GBFS_H_
+#define ORBIT_GBFS_H_
 
 #include <memory>
 #include <random>
@@ -19,9 +19,9 @@
 
 namespace pplanner {
 
-class SBGBFS : public Search {
+class OrbitGBFS : public Search {
  public:
-  SBGBFS(std::shared_ptr<const SASPlus> problem,
+  OrbitGBFS(std::shared_ptr<const SASPlus> problem,
        const boost::property_tree::ptree &pt)
     : use_preferred_(false),
       exhaust_(false),
@@ -42,12 +42,13 @@ class SBGBFS : public Search {
       open_list_(nullptr),
       manager_(std::make_shared<SymmetryManager>(problem)) { Init(pt); }
 
-  virtual ~SBGBFS() {}
+  virtual ~OrbitGBFS() {}
 
   std::vector<int> Plan() override {
     int goal = Search();
+    auto trace = Trace(goal);
 
-    return ExtractPath(graph_, goal);
+    return TraceForward(trace);
   }
 
   void DumpStatistics() const override;
@@ -63,12 +64,13 @@ class SBGBFS : public Search {
   int Expand(int node, std::vector<int> &state, std::vector<int> &child,
              std::vector<int> &applicable, std::unordered_set<int> &preferred);
 
+  std::vector<std::pair<int, int> > Trace(int goal) const;
+
+  std::vector<int> TraceForward(const std::vector<std::pair<int, int> > &trace)
+    const;
+
  private:
   void Init(const boost::property_tree::ptree &pt);
-
-  void SaveState(const std::vector<int> &state);
-
-  void RestoreState(int node, std::vector<int> &state) const;
 
   bool use_preferred_;
   bool exhaust_;
@@ -88,9 +90,8 @@ class SBGBFS : public Search {
   std::shared_ptr<SearchGraph> graph_;
   std::unique_ptr<OpenList> open_list_;
   std::shared_ptr<SymmetryManager> manager_;
-  std::vector<uint32_t> states_;
 };
 
 } // namespace pplanner
 
-#endif // SBGBFS_H_
+#endif // ORIBT_GBFS_H_

@@ -42,7 +42,7 @@ mpi_planner: \
 	$(SRC_DIR)/search/pddsgbfs.cc \
 	$(SRC_DIR)/search/pigbfs.cc \
 	$(SRC_DIR)/search/hdgbfs.cc \
-	$(SRC_DIR)/search/symmetry_breaking_hdgbfs.cc \
+	$(SRC_DIR)/search/orbit_hdgbfs.cc \
 	$(BIN_DIR)/successor_generator.o \
 	$(BIN_DIR)/postprocess/action_elimination.o \
 	$(BIN_DIR)/utils/file_utils.o \
@@ -59,7 +59,7 @@ mpi_planner: \
 		$(SRC_DIR)/search/pddsgbfs.cc \
 		$(SRC_DIR)/search/pigbfs.cc \
 		$(SRC_DIR)/search/hdgbfs.cc \
-		$(SRC_DIR)/search/symmetry_breaking_hdgbfs.cc \
+		$(SRC_DIR)/search/orbit_hdgbfs.cc \
 		$(BIN_DIR)/successor_generator.o \
 		$(BIN_DIR)/postprocess/action_elimination.o \
 		$(BIN_DIR)/utils/file_utils.o \
@@ -201,7 +201,7 @@ $(BIN_DIR)/libsearch.a: \
 	$(BIN_DIR)/search/kgbfs.o \
 	$(BIN_DIR)/search/gbfs.o \
 	$(BIN_DIR)/search/lazy_gbfs.o \
-	$(BIN_DIR)/search/symmetry_breaking_gbfs.o \
+	$(BIN_DIR)/search/orbit_gbfs.o \
 	$(BIN_DIR)/search/mrw13.o \
 	$(BIN_DIR)/symmetry/symmetry.o
 	ar rcs $(BIN_DIR)/libsearch.a \
@@ -210,7 +210,7 @@ $(BIN_DIR)/libsearch.a: \
 		$(BIN_DIR)/search/kgbfs.o \
 		$(BIN_DIR)/search/gbfs.o \
 		$(BIN_DIR)/search/lazy_gbfs.o \
-		$(BIN_DIR)/search/symmetry_breaking_gbfs.o \
+		$(BIN_DIR)/search/orbit_gbfs.o \
 		$(BIN_DIR)/search/mrw13.o \
 		$(BIN_DIR)/symmetry/symmetry.o
 

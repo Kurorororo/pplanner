@@ -19,15 +19,24 @@ class SymmetryManager {
   void ToCanonical(const std::vector<int> &state, std::vector<int> &canonical)
     const;
 
+  void ToCanonical(const std::vector<int> &state, std::vector<int> &canonical,
+                   std::vector<int> &generators) const;
+
   void AddGenerator(const unsigned int n, const unsigned int *aut);
+
+  void Permutate(int i, const std::vector<int> &state,
+                 std::vector<int> &permutated) const;
+
+  void InversePermutate(int i, const std::vector<int> &state,
+                        std::vector<int> &permutated) const;
 
   void Dump() const;
 
  private:
+  void AddInverseGenerators();
+
   void Init(std::shared_ptr<const SASPlus> problem);
 
-  void Permutate(int i, const std::vector<int> &state,
-                 std::vector<int> &permutated) const;
 
   std::vector<int> goal_;
   std::vector<unsigned int> var_to_id_;
@@ -36,6 +45,8 @@ class SymmetryManager {
   std::vector<int> id_to_value_;
   std::vector<std::vector<int> > var_permutations_;
   std::vector<std::vector<std::vector<int> > > value_permutations_;
+  std::vector<std::vector<int> > inverse_var_permutations_;
+  std::vector<std::vector<std::vector<int> > > inverse_value_permutations_;
   std::shared_ptr<const SASPlus> problem_;
 };
 

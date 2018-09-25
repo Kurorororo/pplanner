@@ -1,7 +1,8 @@
-#include "search/symmetry_breaking_gbfs.h"
+#include "search/orbit_gbfs.h"
 
 #include <algorithm>
 #include <iostream>
+#include <utility>
 
 #include <boost/foreach.hpp>
 
@@ -12,10 +13,11 @@
 namespace pplanner {
 
 using std::make_shared;
+using std::pair;
 using std::unordered_set;
 using std::vector;
 
-void SBGBFS::Init(const boost::property_tree::ptree &pt) {
+void OrbitGBFS::Init(const boost::property_tree::ptree &pt) {
   int closed_exponent = 22;
 
   if (auto opt = pt.get_optional<int>("exhaust")) exhaust_ = true;
@@ -70,35 +72,14 @@ void SBGBFS::Init(const boost::property_tree::ptree &pt) {
   if (auto ram = pt.get_optional<size_t>("ram"))
     graph_->ReserveByRAMSize(ram.get());
   else
-    graph_->ReserveByRAMSize(3000000000);
+    graph_->ReserveByRAMSize(5000000000);
 
-  states_.reserve(graph_->capacity() * graph_->block_size());
   //manager_->Dump();
 }
 
-void SBGBFS::SaveState(const std::vector<int> &state) {
-  if (states_.size() == states_.capacity()) {
-    size_t size = states_.size() / graph_->block_size();
-    size_t new_size = 1.2 * size * graph_->block_size();
-    states_.reserve(new_size);
-  }
-
-  size_t index = states_.size();
-  states_.resize(index + graph_->block_size());
-  graph_->Pack(state, states_.data() + index);
-}
-
-void SBGBFS::RestoreState(int node, std::vector<int> &state) const {
-  graph_->Unpack(states_.data() + node * graph_->block_size(), state);
-}
-
-vector<int> SBGBFS::InitialExpand() {
+vector<int> OrbitGBFS::InitialExpand() {
   auto state = problem_->initial();
-  std::vector<int> canonical;
-  manager_->ToCanonical(state, canonical);
-
-  int node = graph_->GenerateNode(-1, -1, canonical);
-  SaveState(state);
+  int node = graph_->GenerateNode(-1, -1, state);
   ++generated_;
 
   best_h_ = open_list_->EvaluateAndPush(state, node, true);
@@ -109,14 +90,14 @@ vector<int> SBGBFS::InitialExpand() {
   return state;
 }
 
-int SBGBFS::Expand(int node, vector<int> &state, vector<int> &child,
+int OrbitGBFS::Expand(int node, vector<int> &state, vector<int> &child,
                  vector<int> &applicable, unordered_set<int> &preferred) {
   static std::vector<int> canonical(state);
 
   if (!graph_->CloseIfNot(node)) return -1;
 
   ++expanded_;
-  RestoreState(node, state);
+  graph_->Expand(node, state);
 
   if (problem_->IsGoal(state)) return node;
 
@@ -146,8 +127,7 @@ int SBGBFS::Expand(int node, vector<int> &state, vector<int> &child,
     if (child_node == -1) continue;
     ++generated_;
 
-    SaveState(child);
-    int h = open_list_->EvaluateAndPush(child, child_node, is_preferred);
+    int h = open_list_->EvaluateAndPush(canonical, child_node, is_preferred);
     graph_->SetH(child_node, h);
     ++evaluated_;
 
@@ -169,7 +149,7 @@ int SBGBFS::Expand(int node, vector<int> &state, vector<int> &child,
   return -1;
 }
 
-int SBGBFS::Search() {
+int OrbitGBFS::Search() {
   auto state = InitialExpand();
   vector<int> child(state);
   vector<int> applicable;
@@ -191,8 +171,87 @@ int SBGBFS::Search() {
   return last_goal;
 }
 
+vector<pair<int, int> > OrbitGBFS::Trace(int node) const {
+  vector<pair<int, int> > result;
 
-void SBGBFS::DumpStatistics() const {
+  while (node != -1) {
+    result.push_back(std::make_pair(graph_->Action(node), node));
+    node = graph_->Parent(node);
+  }
+
+  std::reverse(result.begin(), result.end());
+
+  return result;
+}
+
+vector<int> OrbitGBFS::TraceForward(const vector<pair<int, int> > &trace)
+  const {
+  vector<int> s_0(problem_->n_variables());
+  vector<int> s_0_o(problem_->n_variables());
+  vector<int> s_1(problem_->n_variables());
+  vector<int> s_p_0(problem_->n_variables());
+  vector<int> s_p_1(problem_->n_variables());
+  vector<int> s_p_0_o(problem_->n_variables());
+  vector<int> tmp_s(problem_->n_variables());
+  vector<int> sigma;
+  vector<int> sigma_i;
+  vector<int> applicable;
+  vector<int> plan;
+
+  graph_->State(trace.begin()->second, s_p_0);
+  s_0 = s_p_0;
+
+  for (auto itr = trace.begin() + 1; itr != trace.end(); ++itr) {
+    s_p_0_o = s_p_0;
+    problem_->ApplyEffect(itr->first, s_p_0_o);
+    manager_->ToCanonical(s_p_0_o, tmp_s, sigma_i);
+    graph_->State(itr->second, s_p_1);
+
+    //if (s_p_1 != tmp_s) {
+    //  std::cout << "something is wrong!" << std::endl;
+    //}
+
+    std::reverse(sigma_i.begin(), sigma_i.end());
+    sigma_i.insert(sigma_i.end(), sigma.begin(), sigma.end());
+    sigma.swap(sigma_i);
+
+    s_1 = s_p_1;
+    tmp_s = s_p_1;
+
+    for (int i=0, n=sigma.size(); i<n; ++i) {
+      manager_->InversePermutate(sigma[i], tmp_s, s_1);
+      if (i < (n - 1)) tmp_s.swap(s_1);
+    }
+
+    generator_->Generate(s_0, applicable);
+    int min_cost = -1;
+    int o_i = -1;
+
+    for (auto o : applicable) {
+      int cost = problem_->ActionCost(o);
+      if (min_cost != -1 && cost >= min_cost) continue;
+
+      s_0_o = s_0;
+      problem_->ApplyEffect(o, s_0_o);
+
+      if (s_0_o == s_1) {
+        min_cost = cost;
+        o_i = o;
+      }
+    }
+
+    if (o_i == -1) return vector<int>{-1};
+
+    plan.push_back(o_i);
+
+    s_0.swap(s_1);
+    s_p_0.swap(s_p_1);
+  }
+
+  return plan;
+}
+
+void OrbitGBFS::DumpStatistics() const {
   std::cout << "Expanded " << expanded_ << " state(s)" << std::endl;
   std::cout << "Evaluated " << evaluated_ << " state(s)" << std::endl;
   std::cout << "Generated " << generated_ << " state(s)" << std::endl;
