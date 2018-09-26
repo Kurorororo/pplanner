@@ -10,11 +10,12 @@
 #include <boost/property_tree/ptree.hpp>
 
 #include "evaluator.h"
+#include "open_list.h"
 #include "sas_plus.h"
+#include "sas_plus/strong_stubborn_sets.h"
 #include "search.h"
 #include "search_graph.h"
 #include "successor_generator.h"
-#include "open_list.h"
 
 namespace pplanner {
 
@@ -25,6 +26,7 @@ class GBFS : public Search {
     : use_preferred_(false),
       exhaust_(false),
       limit_expansion_(false),
+      use_sss_(false),
       max_expansion_(0),
       generated_(0),
       expanded_(0),
@@ -38,7 +40,8 @@ class GBFS : public Search {
       generator_(std::unique_ptr<SuccessorGenerator>(
             new SuccessorGenerator(problem))),
       graph_(nullptr),
-      open_list_(nullptr) { Init(pt); }
+      open_list_(nullptr),
+      sss_aproximater_(nullptr) { Init(pt); }
 
   virtual ~GBFS() {}
 
@@ -67,6 +70,7 @@ class GBFS : public Search {
   bool use_preferred_;
   bool exhaust_;
   bool limit_expansion_;
+  bool use_sss_;
   int max_expansion_;
   int generated_;
   int expanded_;
@@ -81,6 +85,7 @@ class GBFS : public Search {
   std::unique_ptr<SuccessorGenerator> generator_;
   std::shared_ptr<SearchGraph> graph_;
   std::unique_ptr<OpenList> open_list_;
+  std::unique_ptr<SSSApproximater> sss_aproximater_;
 };
 
 } // namespace pplanner

@@ -25,6 +25,10 @@ class PartialState {
 
   void Copy(std::vector<std::pair<int, int> > &v) const;
 
+  int Var(int i) const { return vars_[i]; }
+
+  int Value(int i) const { return values_[i]; }
+
   void Dump() const;
 
   const int* vars_data() const { return vars_.data(); }

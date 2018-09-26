@@ -130,7 +130,8 @@ $(BIN_DIR)/libsas_plus.a: \
 	$(BIN_DIR)/sas_plus/effect_vector.o \
 	$(BIN_DIR)/sas_plus/facts.o \
 	$(BIN_DIR)/sas_plus/mutex_groups.o \
-	$(BIN_DIR)/sas_plus/parse_utils.o
+	$(BIN_DIR)/sas_plus/parse_utils.o \
+	$(BIN_DIR)/sas_plus/strong_stubborn_sets.o
 	ar rcs $(BIN_DIR)/libsas_plus.a \
 		$(BIN_DIR)/sas_plus.o \
 		$(BIN_DIR)/sas_plus/partial_state.o \
@@ -138,7 +139,8 @@ $(BIN_DIR)/libsas_plus.a: \
 		$(BIN_DIR)/sas_plus/effect_vector.o \
 		$(BIN_DIR)/sas_plus/facts.o \
 		$(BIN_DIR)/sas_plus/mutex_groups.o \
-		$(BIN_DIR)/sas_plus/parse_utils.o
+		$(BIN_DIR)/sas_plus/parse_utils.o \
+		$(BIN_DIR)/sas_plus/strong_stubborn_sets.o
 
 $(BIN_DIR)/libsearch_graph.a: \
 	$(BIN_DIR)/search_graph.o \

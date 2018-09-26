@@ -71,6 +71,7 @@ class SASPlus {
     return IsMutex(f, g);
   }
 
+
   void CopyGoal(std::vector<std::pair<int, int> > &goal) const {
     goal_->Copy(goal);
   }
@@ -78,6 +79,10 @@ class SASPlus {
   bool IsGoal(const std::vector<int> &state) const {
     return goal_->IsSubset(state);
   }
+
+  int GoalVar(int i) const { return goal_->Var(i); }
+
+  int GoalValue(int i) const { return goal_->Value(i); }
 
   int ActionCost(int i) const { return action_costs_[i]; }
 
@@ -141,7 +146,6 @@ class SASPlus {
   }
 
   std::shared_ptr<const EffectVector> effects() const { return effects_; }
-
 
  private:
   void CreateActions(int n);

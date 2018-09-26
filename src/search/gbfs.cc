@@ -71,6 +71,12 @@ void GBFS::Init(const boost::property_tree::ptree &pt) {
     graph_->ReserveByRAMSize(ram.get());
   else
     graph_->ReserveByRAMSize(5000000000);
+
+  if (auto opt = pt.get_optional<int>("sss")) {
+    use_sss_ = true;
+    sss_aproximater_ = std::unique_ptr<SSSApproximater>(
+        new SSSApproximater(problem_));
+  }
 }
 
 vector<int> GBFS::InitialExpand() {
@@ -88,6 +94,8 @@ vector<int> GBFS::InitialExpand() {
 
 int GBFS::Expand(int node, vector<int> &state, vector<int> &child,
                  vector<int> &applicable, unordered_set<int> &preferred) {
+  static vector<bool> sss;
+
   if (!graph_->CloseIfNot(node)) return -1;
 
   ++expanded_;
@@ -108,7 +116,12 @@ int GBFS::Expand(int node, vector<int> &state, vector<int> &child,
   ++n_preferred_evaluated_;
   n_branching_ += applicable.size();
 
+  if (use_sss_)
+    sss_aproximater_->ApproximateSSS(state, applicable, sss);
+
   for (auto o : applicable) {
+    if (use_sss_ && !sss[o]) continue;
+
     child = state;
     problem_->ApplyEffect(o, child);
 
