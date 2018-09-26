@@ -23,14 +23,12 @@ void SSSApproximater::ApproximateSSS(const vector<int> &state,
   int var = -1;
   int value = -1;
   FDOrderGoal(state, &var, &value);
-
   if (var == -1 && value == -1) return;
+  int f = problem_->Fact(var, value);
 
   new_comers_0.clear();
   new_comers_1.clear();
-
   int size = 0;
-  int f = problem_->Fact(var, value);
 
   for (auto a : to_achievers_[f]) {
     sss[a] = true;
@@ -53,7 +51,6 @@ void SSSApproximater::ApproximateSSS(const vector<int> &state,
         }
       } else {
         FDOrderPrecondition(state, a, &var, &value);
-        if (var == -1 && value == -1) continue;
         int f = problem_->Fact(var, value);
 
         for (auto b : to_achievers_[f]) {
@@ -65,7 +62,7 @@ void SSSApproximater::ApproximateSSS(const vector<int> &state,
       }
     }
 
-    if (size == before_size) return;
+    if (size == before_size) break;
 
     new_comers_0.swap(new_comers_1);
     new_comers_1.clear();
@@ -163,8 +160,10 @@ bool SSSApproximater::MutexInterfere(int a, int b) const {
       int b_var = *b_var_itr;
       int b_value = *b_value_itr;
 
-      if (problem_->IsMutex(a_var, a_value, b_var, b_value))
+      if ((a_var == b_var && a_value != b_value)
+          || problem_->IsMutex(a_var, a_value, b_var, b_value)) {
         return false;
+      }
 
       ++b_var_itr;
       ++b_value_itr;
