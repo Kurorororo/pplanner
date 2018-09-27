@@ -74,6 +74,12 @@ void SBGBFS::Init(const boost::property_tree::ptree &pt) {
 
   states_.reserve(graph_->capacity() * graph_->block_size());
   //manager_->Dump();
+
+  if (auto opt = pt.get_optional<int>("sss")) {
+    use_sss_ = true;
+    sss_aproximater_ = std::unique_ptr<SSSApproximater>(
+        new SSSApproximater(problem_));
+  }
 }
 
 void SBGBFS::SaveState(const std::vector<int> &state) {
@@ -112,6 +118,7 @@ vector<int> SBGBFS::InitialExpand() {
 int SBGBFS::Expand(int node, vector<int> &state, vector<int> &child,
                  vector<int> &applicable, unordered_set<int> &preferred) {
   static std::vector<int> canonical(state);
+  static vector<bool> sss;
 
   if (!graph_->CloseIfNot(node)) return -1;
 
@@ -133,7 +140,12 @@ int SBGBFS::Expand(int node, vector<int> &state, vector<int> &child,
   ++n_preferred_evaluated_;
   n_branching_ += applicable.size();
 
+  if (use_sss_)
+    sss_aproximater_->ApproximateSSS(state, applicable, sss);
+
   for (auto o : applicable) {
+    if (use_sss_ && !sss[o]) continue;
+
     child = state;
     problem_->ApplyEffect(o, child);
 

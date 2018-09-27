@@ -8,17 +8,14 @@ using std::vector;
 
 void SSSApproximater::ApproximateSSS(const vector<int> &state,
                                      const vector<int> &applicable,
-                                     vector<bool> &sss) const {
-  static vector<bool> applicable_set(problem_->n_actions(), false);
+                                     vector<bool> &sss) {
   static vector<int> new_comers_0;
   static vector<int> new_comers_1;
 
   sss.resize(problem_->n_actions());
   std::fill(sss.begin(), sss.end(), false);
-  std::fill(applicable_set.begin(), applicable_set.end(), false);
-
-  for (auto a : applicable)
-    applicable_set[a] = true;
+  new_comers_0.clear();
+  new_comers_1.clear();
 
   int var = -1;
   int value = -1;
@@ -26,8 +23,6 @@ void SSSApproximater::ApproximateSSS(const vector<int> &state,
   if (var == -1 && value == -1) return;
   int f = problem_->Fact(var, value);
 
-  new_comers_0.clear();
-  new_comers_1.clear();
   int size = 0;
 
   for (auto a : to_achievers_[f]) {
@@ -40,17 +35,18 @@ void SSSApproximater::ApproximateSSS(const vector<int> &state,
     int before_size = size;
 
     for (auto a : new_comers_0) {
-      if (applicable_set[a]) {
-        for (int b=0, n=problem_->n_actions(); b<n; ++b) {
-        //for (auto b : to_interfere_[a]) {
+      FDOrderPrecondition(state, a, &var, &value);
+
+      if (var == -1 && value == -1) {
+        if (!interfere_computed_[a]) ComputeInterfere(a);
+
+        for (auto b : to_interfere_[a]) {
           if (sss[b]) continue;
-          if (!MutexInterfere(a, b)) continue;
           sss[b] = true;
           new_comers_1.push_back(b);
           ++size;
         }
       } else {
-        FDOrderPrecondition(state, a, &var, &value);
         int f = problem_->Fact(var, value);
 
         for (auto b : to_achievers_[f]) {
@@ -87,17 +83,12 @@ void SSSApproximater::InitAchievers() {
   }
 }
 
-void SSSApproximater::InitInterfere() {
-  int n = problem_->n_actions();
-  to_interfere_.resize(n, vector<int>());
+void SSSApproximater::ComputeInterfere(int a) {
+  for (int b=0, n=problem_->n_actions(); b<n; ++b)
+    if (AreInterfere(a, b))
+      to_interfere_[a].push_back(b);
 
-  for (int i=0; i<n; ++i) {
-    for (int j=0; j<n; ++j) {
-      if (i == j) continue;
-
-      if (MutexInterfere(i, j)) to_interfere_[i].push_back(j);
-    }
-  }
+  interfere_computed_[a] = true;
 }
 
 void SSSApproximater::FDOrderGoal(const vector<int> &state, int *goal_var,
@@ -143,37 +134,80 @@ void SSSApproximater::FDOrderPrecondition(const vector<int> &state, int a,
   }
 }
 
-bool SSSApproximater::MutexInterfere(int a, int b) const {
+bool SSSApproximater::PreconditionsMutex(int a, int b) const {
   auto a_var_itr = problem_->PreconditionVarsBegin(a);
   auto a_var_end = problem_->PreconditionVarsEnd(a);
   auto a_value_itr = problem_->PreconditionValuesBegin(a);
 
-  while (a_var_itr != a_var_end) {
+  auto b_var_itr = problem_->PreconditionVarsBegin(b);
+  auto b_var_end = problem_->PreconditionVarsEnd(b);
+  auto b_value_itr = problem_->PreconditionValuesBegin(b);
+
+  while (a_var_itr != a_var_end && b_var_itr != b_var_end) {
     int a_var = *a_var_itr;
     int a_value = *a_value_itr;
 
-    auto b_var_itr = problem_->PreconditionVarsBegin(b);
-    auto b_var_end = problem_->PreconditionVarsEnd(b);
-    auto b_value_itr = problem_->PreconditionValuesBegin(b);
+    int b_var = *b_var_itr;
+    int b_value = *b_value_itr;
 
-    while (b_var_itr != b_var_end) {
-      int b_var = *b_var_itr;
-      int b_value = *b_value_itr;
-
-      if ((a_var == b_var && a_value != b_value)
-          || problem_->IsMutex(a_var, a_value, b_var, b_value)) {
-        return false;
-      }
-
-      ++b_var_itr;
-      ++b_value_itr;
-    }
+    if ((b_var == a_var && b_value != a_value)
+        || problem_->IsMutex(a_var, a_value, b_var, b_value))
+      return true;
 
     ++a_var_itr;
     ++a_value_itr;
+
+    ++b_var_itr;
+    ++b_value_itr;
   }
 
-  return true;
+  return false;
+}
+
+bool SSSApproximater::Disable(int a, int b) const {
+  auto a_var_itr = problem_->EffectVarsBegin(a);
+  auto a_var_end = problem_->EffectVarsEnd(a);
+  auto a_value_itr = problem_->EffectValuesBegin(a);
+
+  auto b_var_itr = problem_->PreconditionVarsBegin(b);
+  auto b_var_end = problem_->PreconditionVarsEnd(b);
+  auto b_value_itr = problem_->PreconditionValuesBegin(b);
+
+  while (a_var_itr != a_var_end && b_var_itr != b_var_end) {
+    if (*b_var_itr == *a_var_itr && *b_value_itr != *a_value_itr)
+      return true;
+
+    ++a_var_itr;
+    ++a_value_itr;
+
+    ++b_var_itr;
+    ++b_value_itr;
+  }
+
+  return false;
+}
+
+bool SSSApproximater::Conflict(int a, int b) const {
+  auto a_var_itr = problem_->EffectVarsBegin(a);
+  auto a_var_end = problem_->EffectVarsEnd(a);
+  auto a_value_itr = problem_->EffectValuesBegin(a);
+
+  auto b_var_itr = problem_->EffectVarsBegin(b);
+  auto b_var_end = problem_->EffectVarsEnd(b);
+  auto b_value_itr = problem_->EffectValuesBegin(b);
+
+  while (a_var_itr != a_var_end && b_var_itr != b_var_end) {
+    if (*b_var_itr == *a_var_itr && *b_value_itr != *a_value_itr)
+      return true;
+
+    ++a_var_itr;
+    ++a_value_itr;
+
+    ++b_var_itr;
+    ++b_value_itr;
+  }
+
+  return false;
 }
 
 } // namespace pplanner

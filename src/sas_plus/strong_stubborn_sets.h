@@ -10,21 +10,21 @@ namespace pplanner {
 
 class SSSApproximater {
  public:
-  SSSApproximater(std::shared_ptr<const SASPlus> problem) : problem_(problem) {
+  SSSApproximater(std::shared_ptr<const SASPlus> problem)
+    : to_interfere_(problem->n_actions(), std::vector<int>()),
+      interfere_computed_(problem->n_actions(), false),
+      problem_(problem) {
     InitAchievers();
-    //InitInterfere();
   }
 
   ~SSSApproximater() {}
 
   void ApproximateSSS(const std::vector<int> &state,
                      const std::vector<int> &applicable,
-                     std::vector<bool> &sss) const;
+                     std::vector<bool> &sss);
 
  private:
   void InitAchievers();
-
-  void InitInterfere();
 
   void FDOrderGoal(const std::vector<int> &state, int *goal_var,
                    int *goal_value) const;
@@ -32,10 +32,25 @@ class SSSApproximater {
   void FDOrderPrecondition(const std::vector<int> &state, int a, int *goal_var,
                            int *goal_value) const;
 
-  bool MutexInterfere(int a, int b) const;
+  void ComputeInterfere(int a);
+
+  bool AreInterfere(int a, int b) const {
+    // This makes some instances in sokoban unsolvable.
+    //if (a == b || PreconditionsMutex(a, b)) return false;
+    if (a == b) return false;
+
+    return Disable(a, b) || Disable(a, b) || Conflict(a, b);
+  }
+
+  bool PreconditionsMutex(int a, int b) const;
+
+  bool Disable(int a, int b) const;
+
+  bool Conflict(int a, int b) const;
 
   std::vector<std::vector<int> > to_achievers_;
   std::vector<std::vector<int> > to_interfere_;
+  std::vector<bool> interfere_computed_;
   std::shared_ptr<const SASPlus> problem_;
 };
 

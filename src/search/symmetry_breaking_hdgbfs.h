@@ -11,12 +11,13 @@
 #include <boost/property_tree/ptree.hpp>
 
 #include "evaluator.h"
+#include "hash/distribution_hash.h"
+#include "open_list.h"
 #include "sas_plus.h"
+#include "sas_plus/strong_stubborn_sets.h"
 #include "search.h"
 #include "search_graph/distributed_search_graph.h"
 #include "successor_generator.h"
-#include "open_list.h"
-#include "hash/distribution_hash.h"
 #include "symmetry/symmetry.h"
 
 namespace pplanner {
@@ -28,6 +29,7 @@ class SBHDGBFS : public Search {
     : use_preferred_(false),
       runup_(false),
       limit_expansion_(false),
+      use_sss_(false),
       max_expansion_(0),
       generated_(0),
       expanded_(0),
@@ -53,7 +55,8 @@ class SBHDGBFS : public Search {
       graph_(nullptr),
       open_list_(nullptr),
       z_hash_(nullptr),
-      manager_(std::make_shared<SymmetryManager>(problem)) {
+      manager_(std::make_shared<SymmetryManager>(problem)),
+      sss_aproximater_(nullptr) {
     Init(pt);
   }
 
@@ -188,6 +191,7 @@ class SBHDGBFS : public Search {
   bool use_preferred_;
   bool runup_;
   bool limit_expansion_;
+  bool use_sss_;
   int max_expansion_;
   int generated_;
   int expanded_;
@@ -217,6 +221,7 @@ class SBHDGBFS : public Search {
   std::shared_ptr<DistributionHash> z_hash_;
   std::shared_ptr<SymmetryManager> manager_;
   std::vector<uint32_t> states_;
+  std::unique_ptr<SSSApproximater> sss_aproximater_;
 };
 
 } // namespace pplanner

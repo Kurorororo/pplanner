@@ -12,6 +12,7 @@
 
 #include "evaluator.h"
 #include "sas_plus.h"
+#include "sas_plus/strong_stubborn_sets.h"
 #include "search.h"
 #include "search_graph/distributed_search_graph.h"
 #include "successor_generator.h"
@@ -27,6 +28,7 @@ class HDGBFS : public Search {
     : use_preferred_(false),
       runup_(false),
       limit_expansion_(false),
+      use_sss_(false),
       max_expansion_(0),
       generated_(0),
       expanded_(0),
@@ -51,9 +53,8 @@ class HDGBFS : public Search {
             new SuccessorGenerator(problem))),
       graph_(nullptr),
       open_list_(nullptr),
-      z_hash_(nullptr) {
-    Init(pt);
-  }
+      z_hash_(nullptr),
+      sss_aproximater_(nullptr) { Init(pt); }
 
   virtual ~HDGBFS() {
     Flush(kNodeTag);
@@ -182,6 +183,7 @@ class HDGBFS : public Search {
   bool use_preferred_;
   bool runup_;
   bool limit_expansion_;
+  bool use_sss_;
   int max_expansion_;
   int generated_;
   int expanded_;
@@ -209,6 +211,7 @@ class HDGBFS : public Search {
   std::shared_ptr<DistributedSearchGraph> graph_;
   std::unique_ptr<OpenList> open_list_;
   std::shared_ptr<DistributionHash> z_hash_;
+  std::unique_ptr<SSSApproximater> sss_aproximater_;
 };
 
 } // namespace pplanner
