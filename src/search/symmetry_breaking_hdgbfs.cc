@@ -118,6 +118,19 @@ void SBHDGBFS::SaveState(const std::vector<int> &state) {
   graph_->Pack(state, states_.data() + index);
 }
 
+void SBHDGBFS::SavePackedState(const uint32_t *packed) {
+  if (states_.size() == states_.capacity()) {
+    size_t size = states_.size() / graph_->block_size();
+    size_t new_size = 1.2 * size * graph_->block_size();
+    states_.reserve(new_size);
+  }
+
+  size_t index = states_.size();
+  states_.resize(index + graph_->block_size());
+  memcpy(states_.data() + index, packed,
+         graph_->block_size() * sizeof(uint32_t));
+}
+
 void SBHDGBFS::RestoreState(int node, std::vector<int> &state) const {
   graph_->Unpack(states_.data() + node * graph_->block_size(), state);
 }
@@ -462,7 +475,7 @@ void SBHDGBFS::CallbackOnReceiveNode(int source, const unsigned char *d,
     IncrementGenerated();
     const uint32_t *packed = reinterpret_cast<const uint32_t*>(d + node_size());
     graph_->Unpack(packed, tmp_state_);
-    SaveState(tmp_state_);
+    SavePackedState(packed);
     int h = Evaluate(tmp_state_, node, values);
 
     if (h == -1) {

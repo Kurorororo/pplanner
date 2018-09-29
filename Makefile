@@ -42,6 +42,7 @@ mpi_planner: \
 	$(SRC_DIR)/search/pddsgbfs.cc \
 	$(SRC_DIR)/search/pigbfs.cc \
 	$(SRC_DIR)/search/hdgbfs.cc \
+	$(SRC_DIR)/search/symmetry_breaking_pddsgbfs.cc \
 	$(SRC_DIR)/search/symmetry_breaking_hdgbfs.cc \
 	$(BIN_DIR)/successor_generator.o \
 	$(BIN_DIR)/postprocess/action_elimination.o \
@@ -59,6 +60,7 @@ mpi_planner: \
 		$(SRC_DIR)/search/pddsgbfs.cc \
 		$(SRC_DIR)/search/pigbfs.cc \
 		$(SRC_DIR)/search/hdgbfs.cc \
+		$(SRC_DIR)/search/symmetry_breaking_pddsgbfs.cc \
 		$(SRC_DIR)/search/symmetry_breaking_hdgbfs.cc \
 		$(BIN_DIR)/successor_generator.o \
 		$(BIN_DIR)/postprocess/action_elimination.o \

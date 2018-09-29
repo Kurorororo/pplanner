@@ -172,6 +172,12 @@ class SBHDGBFS : public Search {
 
   void IncrementDeadEnds() { ++dead_ends_; }
 
+  void SaveState(const std::vector<int> &state);
+
+  void SavePackedState(const uint32_t *packed);
+
+  void RestoreState(int node, std::vector<int> &state) const;
+
   void Flush(int tag);
 
   static constexpr int kNodeTag = 0;
@@ -183,10 +189,6 @@ class SBHDGBFS : public Search {
   void Init(const boost::property_tree::ptree &pt);
 
   std::vector<int> ExtractPath(int node);
-
-  void SaveState(const std::vector<int> &state);
-
-  void RestoreState(int node, std::vector<int> &state) const;
 
   bool use_preferred_;
   bool runup_;
