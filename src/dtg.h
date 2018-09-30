@@ -42,6 +42,8 @@ class DTG {
 
   void RecoverSoftDelete() { deleted_.clear(); }
 
+  bool IsAdjacent(int i, int j) const { return adjacent_matrix_[i][j] > 0; }
+
   bool IsConnected(int start, int goal, int ignore=-1);
 
   int InDegree(int i) const { return in_degrees_[i]; }
@@ -53,6 +55,10 @@ class DTG {
   double GreedyCut(std::vector<int> &cut) const;
 
   double SparsestCut(std::vector<int> &cut, int max_expansion=100000) const;
+
+  const std::vector<int>& AdjacentList(int i) const {
+    return adjacent_lists_[i];
+  }
 
   void Dump() const;
 
@@ -77,7 +83,8 @@ class DTG {
   std::unordered_set<int> deleted_;
 };
 
-std::vector<DTG> InitializeDTGs(std::shared_ptr<const SASPlus> problem);
+std::vector<std::shared_ptr<DTG> > InitializeDTGs(
+    std::shared_ptr<const SASPlus> problem);
 
 } // namespace pplanner
 

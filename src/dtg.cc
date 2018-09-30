@@ -281,7 +281,7 @@ void DTG::Dump() const {
   std::cout << "sparsity:" << sparsity << std::endl;
 }
 
-vector<DTG> InitializeDTGs(shared_ptr<const SASPlus> problem) {
+vector<shared_ptr<DTG> > InitializeDTGs(shared_ptr<const SASPlus> problem) {
   int variables_size = problem->n_variables();
   vector<vector<vector<int> > > adjacent_matrixes(variables_size);
 
@@ -328,10 +328,10 @@ vector<DTG> InitializeDTGs(shared_ptr<const SASPlus> problem) {
     }
   }
 
-  vector<DTG> dtgs;
+  vector<shared_ptr<DTG> > dtgs;
 
   for (auto &matrix : adjacent_matrixes)
-    dtgs.push_back(DTG(matrix));
+    dtgs.push_back(std::make_shared<DTG>(matrix));
 
   return dtgs;
 }

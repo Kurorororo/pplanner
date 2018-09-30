@@ -182,7 +182,7 @@ const unordered_map<string, Landmark>& PreDisj(
 
 void RemoveNodesByRRPG(shared_ptr<const SASPlus> &problem,
                        shared_ptr<const RPG> rrpg,
-                       int var, int goal_value, DTG *dtg) {
+                       int var, int goal_value, shared_ptr<DTG> dtg) {
   dtg->RecoverSoftDelete();
 
   for (int i=0, m=problem->VarRange(var); i<m; ++i) {
@@ -194,7 +194,7 @@ void RemoveNodesByRRPG(shared_ptr<const SASPlus> &problem,
 
 void PreLookAhead(shared_ptr<const SASPlus> &problem,
                   shared_ptr<const RPG> rrpg,
-                  int var, int start, int goal, DTG *dtg,
+                  int var, int start, int goal, shared_ptr<DTG> dtg,
                   vector<int> &pre_lookahead) {
   pre_lookahead.clear();
   RemoveNodesByRRPG(problem, rrpg, var, goal, dtg);
@@ -333,8 +333,8 @@ void IdentifyLandmarks(shared_ptr<const SASPlus> problem,
     if (psi.IsFact()) {
       int var = psi.Var(0);
       int goal = psi.Value(0);
-      DTG &dtg = dtgs[var];
-      PreLookAhead(problem, rrpg, var, initial[var], goal, &dtg, pre_lookahead);
+      auto dtg = dtgs[var];
+      PreLookAhead(problem, rrpg, var, initial[var], goal, dtg, pre_lookahead);
 
       for (auto value : pre_lookahead) {
         Landmark phi(var, value);

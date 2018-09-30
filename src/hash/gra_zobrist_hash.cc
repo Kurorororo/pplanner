@@ -16,9 +16,9 @@ GRAZobristHash::GRAZobristHash(std::shared_ptr<const SASPlus> problem,
 
   for (auto &dtg : dtgs) {
     if (greedy)
-      dtg.GreedyCut(cut);
+      dtg->GreedyCut(cut);
     else
-      dtg.SparsestCut(cut);
+      dtg->SparsestCut(cut);
 
     cuts_.push_back(cut);
   }
