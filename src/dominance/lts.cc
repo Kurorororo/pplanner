@@ -2,27 +2,34 @@
 
 namespace pplanner {
 
-shared_ptr<const SASPlus> AtomicLTS::problem_ = nullptr;
-
 void AtomicLTS::MinLabel(int s, int t, int *label, int *cost, bool only_tau)
   const {
   *label = -1;
   *cost = -1;
 
   for (auto l : labels_[s][t]) {
-    if (only_tau && !tau_[l]) continue;
+    int c = -1;
 
-    int c = problem_->ActionCost(l);
+    if (only_tau) {
+      if (!tau_[l]) continue;
+      c = tau_cost_[l];
+    } else {
+      c = 1;
+    }
 
-    if (*cost == -1 || c < *cost) {
+    if (*cost == -1 || (c != -1 && c < *cost)) {
       *label = l;
       *cost = c;
     }
   }
 }
 
-int AtomicLTS::HStar(int start, bool only_tau) const {
-  if (h_star_cache_[start] != -1) return h_star_cache_[start];
+int AtomicLTS::HStar(int start, int goal, bool only_tau) {
+  if (only_tau && h_tau_cache_[start][goal] != -1)
+    return h_tau_cache_[start][goal];
+
+  if (!only_tau && h_star_cache_[start][goal] != -1)
+    return h_star_cache_[start][goal];
 
   open_ = PQueue();
   std::fill(closed_.begin(). closed_.end(), -1);
@@ -38,8 +45,11 @@ int AtomicLTS::HStar(int start, bool only_tau) const {
 
     if (closed_[v] < g) continue;
 
-    if (s == Goal()) {
-      h_star_cache_[start] = g;
+    if (s == goal) {
+      if (only_tau)
+        h_tau_cache_[start][goal] = g;
+      else
+        h_star_cache_[start][goal] = g;
 
       return g;
     }
@@ -60,7 +70,10 @@ int AtomicLTS::HStar(int start, bool only_tau) const {
     }
   }
 
-  h_star_cache_[start] = -1;
+  if (only_tau)
+    h_tau_cache_[start] = -1;
+  else
+    h_star_cache_[start] = -1;
 
   return -1;
 }
@@ -76,6 +89,11 @@ void Init() {
       }
     }
   }
+}
+
+void ClearTauCache() {
+  for (auto &v : h_tau_cache_)
+    std::fill(v.begin(), v.end(), -1);
 }
 
 vector<shared_ptr<LTS> > InitializeLTSs(shared_ptr<const SASPlus> problem) {
@@ -163,6 +181,61 @@ vector<shared_ptr<LTS> > InitializeLTSs(shared_ptr<const SASPlus> problem) {
   }
 
   return ltss;
+}
+
+
+void AddRecursiveTauLabel(vector<shared_ptr<AtomicLTS> > &ltss) {
+  bool condition = true;
+
+  while (condition) {
+    bool condition = false;
+
+    for (int l=0, n=n_labels(); l<n; ++l) {
+      int i = -1;
+
+      for (int j=0, m=ltss.size(); j<m; ++j) {
+        if (ltss[j]->IsTauLabel(l) || (ltss[j]->LabelTo(l) != -1 && i != -1)) {
+          i = -1;
+          break;
+        }
+
+        if (ltss[j]->LabelTo(l) != -1) i = j;
+      }
+
+      if (i == -1) continue;
+
+      int cost = -1;
+
+      for (int j=0, m=ltss.size(); j<m; ++j) {
+        if (i == j) continue;
+
+        int s = ltss[j]->LabelFrom(l);
+
+        if (s == -1) continue;
+
+        for (int t=0; t<ltss[j]->n_nodes(); ++t) {
+          if (t == s) continue;
+
+          int c_1 = ltss[j]->HStar(t, s, true);
+          int c_2 = ltss[j]->HStar(s, t, true);
+
+          if (c_1 != -1 || c_2 != -1) {
+            cost = -1;
+            break;
+          }
+
+          cost = std::max(cost, c_1 + c_2 + 1);
+        }
+
+        if (cost == -1) break;
+      }
+
+      if (cost != -1) {
+        ltss[i]->SetTauLabel(l, cost);
+        condition = true;
+      }
+    }
+  }
 }
 
 } // namespace pplanner

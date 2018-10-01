@@ -10,8 +10,11 @@ namespace pplanner {
 
 class QDF {
  public:
-  QDF(std::shared_ptr<const SASPlus> problem) : d_(problem->n_variables()) {
-    Init(problem);
+  QDF(std::shared_ptr<const SASPlus> problem, int limit=10)
+    : d_(problem->n_variables()),
+      ltss_(InitializeLTSs(problem)),
+      is_dangerous_(problem->n_actions(), false) {
+    Init(problem, limit);
   }
 
   ~QDF() {}
@@ -20,13 +23,16 @@ class QDF {
 
   int Dominance(const std::vector<int> &s, const std::vector<int> &t) const;
 
-  int FQLD(const std::vector<std::shared_ptr<LTS> > &ltss, int i, int s, int t)
-    const;
+  int FQLD(int i, int s, int t) const;
+
+  static constexpr kInfinity = 10000000;
 
  private:
-  void Init(std::shared_ptr<const SASPlus> problem, int limit=10);
+  void Init(std::shared_ptr<const SASPlus> problem);
 
   std::vector<std::vector<std::vector<int> > > d_;
+  std::vector<std::shared_ptr<LTS> > ltss_;
+  std::vector<std::vector<bool> > is_dangerous_;
 }
 
 
