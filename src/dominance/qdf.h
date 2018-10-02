@@ -13,6 +13,7 @@ class QDF {
  public:
   QDF(std::shared_ptr<const SASPlus> problem, int limit=10)
     : d_(problem->n_variables()),
+      r_(problem->n_variables()),
       ltss_(InitializeLTSs(problem)) { Init(problem, limit); }
 
   ~QDF() {}
@@ -33,6 +34,7 @@ class QDF {
   int FQLDInner(int i, int s, int t, int l, int s_p);
 
   std::vector<std::vector<std::vector<int> > > d_;
+  std::vector<std::vector<std::vector<bool> > > r_;
   std::vector<std::shared_ptr<LTS> > ltss_;
 }
 
