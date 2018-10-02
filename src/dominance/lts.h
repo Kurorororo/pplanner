@@ -3,62 +3,59 @@
 
 #include <vector>
 
-#include "dtg.h"
 #include "sas_plus.h"
 
 namespace pplanner {
 
-class AtomicLTS : public DTG {
+class AtomicLTS {
  public:
-  AtomicLTS() {}
-
-  AtomicLTS(const std::vector<std::vector<int> > &adjacent_matrix,
-            int initial, int goal,
-            const std::vector<std::vector<std::vector<int> > > &labels,
-            const std::vector<bool> &tau) {
-    : DTG(adjacent_matrix),
-      initial_(initial),
+  AtomicLTS(int initial, int goal, const std::vector<int> &label_to,
+            const std::vector<bool> &is_tau_label,
+            const std::vector<std::vector<int> > &labels) {
+    : initial_(initial),
       goal_(goal),
+      label_to_(label_to),
+      tau_cost_(is_tau_label.size(), kInfinity),
       labels_(labels),
-      tau_(tau),
-      tau_(tau.size(), 0),
-      tau_cost_(tau.size(), 1),
-      label_from_(tau.size(), -1),
-      label_to_(tau.size(), -1),
       h_star_cache_(labels.size(), std::vector<int>(labels.size(), -1)),
       h_tau_cache_(labels.size(), std::vector<int>(labels.size(), -1)),
-      closed_(adjacent_matrix.size(), -1) {
-    Init();
-  }
+      closed_(adjacent_matrix.size(), -1) { InitTauCost(is_tau_label); }
 
   ~AtomicLTS() {}
 
-  int n_labels() const { return tau_.size(); }
+  int n_states() const { return labels_.size(); }
 
-  int Initial() const { return initial_; }
+  int n_labels() const { return is_tau_label_.size(); }
 
-  int Goal() const { return goal_; }
+  int initial_node() const { return initial_; }
 
-  void MinLabel(int s, int t, int *label, int *cost, bool only_tau=false) const;
+  int goal_node() const { return goal_; }
 
-  int HStar(int start, int goal, bool only_tau=false);
+  // -1 : noop
 
-  const std::vector<int>& Labels(int s, int t) const { return labels_[s][t]; }
+  int LabelFrom(int l) const { return l == -1 ? -1 : label_from_[l]; }
 
-  int LabelFrom(int l) const { return label_from_[l]; }
+  int LabelTo(int l) const { return l == -1 ? -1 : label_to_[l]; }
 
-  int LabelTo(int l) const { return label_to_[l]; }
+  int LabelCost(int l) const { return l == -1 ? 0 : 1; }
 
-  bool IsTauLabel(int l) const { return tau_[l]; }
+  int TauLabelCost(int l) const { return tau_cost_[l]; }
+
+  bool IsTauLabel(int l) const { return l != -1 && tau_[l] != kInfinity; }
 
   void SetTauLabel(int l, int cost) {
-    tau_[l] = true;
     tau_cost_[l] = cost;
     ClearTauCache();
   }
 
+  int ShortestPathCost(int start, int goal, bool only_tau=false);
+
+  const std::vector<int>& Labels(int s) const { return labels_[s]; }
+
+  static constexpr kInfinity = std::numeric_limits<int>::max();
+
  private:
-  void Init();
+  void InitTauCost(const std::vector<bool> &is_tau_label);
 
   void ClearTauCache();
 
@@ -74,17 +71,14 @@ class AtomicLTS : public DTG {
                                      FirstGreater>;
   int initial_;
   int goal_;
-  std::vector<std::vector<std::vector<int> > > labels_;
-  std::vector<bool> tau_;
-  std::vector<int> tau_cost_;
   std::vector<int> label_from_;
   std::vector<int> label_to_;
+  std::vector<int> tau_cost_;
+  std::vector<std::vector<int> > labels_;
   std::vector<std::vector<int> > h_star_cache_;
   std::vector<std::vector<int> > h_tau_cache_;
   PQueue open_;
   std::vector<int> closed_;
-
-  static std::shared_ptr<const SASPlus> problem_;
 };
 
 std::vector<std::shared_ptr<AtomicLTS> > InitializeLTSs(

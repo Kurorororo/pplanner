@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "sas_plus.h"
+#include "dominance/lts.h"
 
 namespace pplanner {
 
@@ -12,10 +13,7 @@ class QDF {
  public:
   QDF(std::shared_ptr<const SASPlus> problem, int limit=10)
     : d_(problem->n_variables()),
-      ltss_(InitializeLTSs(problem)),
-      is_dangerous_(problem->n_actions(), false) {
-    Init(problem, limit);
-  }
+      ltss_(InitializeLTSs(problem)) { Init(problem, limit); }
 
   ~QDF() {}
 
@@ -23,18 +21,20 @@ class QDF {
 
   int Dominance(const std::vector<int> &s, const std::vector<int> &t) const;
 
+  int LabelDominance(int j, int l, int l_p);
+
   int FQLD(int i, int s, int t) const;
 
-  static constexpr kInfinity = 10000000;
-
  private:
-  void Init(std::shared_ptr<const SASPlus> problem);
+  void Init(std::shared_ptr<const SASPlus> problem, int limit);
+
+  void InitFunctions(shared_ptr<const SASPlus> problem, int limit);
+
+  int FQLDInner(int i, int s, int t, int l, int s_p);
 
   std::vector<std::vector<std::vector<int> > > d_;
   std::vector<std::shared_ptr<LTS> > ltss_;
-  std::vector<std::vector<bool> > is_dangerous_;
 }
-
 
 } // namespace pplanner
 
