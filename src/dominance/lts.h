@@ -1,6 +1,9 @@
 #ifndef ATOMIC_LTS_H_
 #define ATOMIC_LTS_H_
 
+#include <memory>
+#include <queue>
+#include <utility>
 #include <vector>
 
 #include "sas_plus.h"
@@ -9,27 +12,29 @@ namespace pplanner {
 
 class AtomicLTS {
  public:
-  AtomicLTS(int initial, int goal, const std::vector<int> &label_to,
+  AtomicLTS(int initial, int goal, const std::vector<int> &label_from,
+            const std::vector<int> &label_to,
             const std::vector<bool> &is_tau_label,
-            const std::vector<std::vector<int> > &labels) {
+            const std::vector<std::vector<int> > &labels)
     : initial_(initial),
       goal_(goal),
+      label_from_(label_from),
       label_to_(label_to),
       tau_cost_(is_tau_label.size(), kInfinity),
       labels_(labels),
       h_star_cache_(labels.size(), std::vector<int>(labels.size(), -1)),
       h_tau_cache_(labels.size(), std::vector<int>(labels.size(), -1)),
-      closed_(adjacent_matrix.size(), -1) { InitTauCost(is_tau_label); }
+      closed_(labels.size(), -1) { InitTauCost(is_tau_label); }
 
   ~AtomicLTS() {}
 
   int n_states() const { return labels_.size(); }
 
-  int n_labels() const { return is_tau_label_.size(); }
+  int n_labels() const { return tau_cost_.size(); }
 
-  int initial_node() const { return initial_; }
+  int initial() const { return initial_; }
 
-  int goal_node() const { return goal_; }
+  int goal() const { return goal_; }
 
   // -1 : noop
 
@@ -39,9 +44,9 @@ class AtomicLTS {
 
   int LabelCost(int l) const { return l == -1 ? 0 : 1; }
 
-  int TauLabelCost(int l) const { return tau_cost_[l]; }
+  int TauLabelCost(int l) const { return l == -1 ? kInfinity : tau_cost_[l]; }
 
-  bool IsTauLabel(int l) const { return l != -1 && tau_[l] != kInfinity; }
+  bool IsTauLabel(int l) const { return l != -1 && tau_cost_[l] != kInfinity; }
 
   void SetTauLabel(int l, int cost) {
     tau_cost_[l] = cost;
@@ -52,7 +57,7 @@ class AtomicLTS {
 
   const std::vector<int>& Labels(int s) const { return labels_[s]; }
 
-  static constexpr kInfinity = std::numeric_limits<int>::max();
+  static constexpr int kInfinity = std::numeric_limits<int>::max();
 
  private:
   void InitTauCost(const std::vector<bool> &is_tau_label);

@@ -1,37 +1,44 @@
-#include "atomic_lts.h"
+#include "lts.h"
 
 namespace pplanner {
 
-int AtomicLTS::ShortestPathCost(int start, int goal, bool only_tau) {
-  if (only_tau && h_tau_cache_[start][goal] != -1)
-    return h_tau_cache_[start][goal];
+using std::shared_ptr;
+using std::vector;
 
-  if (!only_tau && h_star_cache_[start][goal] != -1)
-    return h_star_cache_[start][goal];
+constexpr int AtomicLTS::kInfinity;
 
-  std::fill(closed_.begin(). closed_.end(), kInfinity);
+int AtomicLTS::ShortestPathCost(int from, int to, bool only_tau) {
+  if (only_tau && h_tau_cache_[from][to] != -1)
+    return h_tau_cache_[from][to];
+
+  if (!only_tau && h_star_cache_[from][to] != -1)
+    return h_star_cache_[from][to];
+
+  std::fill(closed_.begin(), closed_.end(), kInfinity);
   open_ = PQueue();
-  open_.push(std::make_pair(0, start));
+  open_.push(std::make_pair(0, from));
 
-  while (!open__.empty()) {
+  while (!open_.empty()) {
     auto top = open_.top();
     open_.pop();
 
     int g = top.first;
     int s = top.second;
 
-    if (closed_[v] < g) continue;
+    if (closed_[s] < g) continue;
 
-    if (s == goal_node()) {
+    if (s == to) {
       if (only_tau)
-        h_tau_cache_[start][goal] = g;
+        h_tau_cache_[from][to] = g;
       else
-        h_star_cache_[start][goal] = g;
+        h_star_cache_[from][to] = g;
 
       return g;
     }
 
     for (auto l : labels_[s]) {
+      if (only_tau && !IsTauLabel(l)) continue;
+
       int t = LabelTo(l);
 
       // ignore self loop
@@ -47,24 +54,24 @@ int AtomicLTS::ShortestPathCost(int start, int goal, bool only_tau) {
   }
 
   if (only_tau)
-    h_tau_cache_[start] = kInfinity;
+    h_tau_cache_[from][to] = kInfinity;
   else
-    h_star_cache_[start] = kInfinity;
+    h_star_cache_[from][to] = kInfinity;
 
   return kInfinity;
 }
 
-void InitTauCost(const vector<bool> &is_tau_label) {
+void AtomicLTS::InitTauCost(const vector<bool> &is_tau_label) {
   for (int i=0, n=is_tau_label.size(); i<n; ++i)
-    if (is_tau_label_[i]) tau_cost_[i] = 1;
+    if (is_tau_label[i]) tau_cost_[i] = 1;
 }
 
-void ClearTauCache() {
+void AtomicLTS::ClearTauCache() {
   for (auto &v : h_tau_cache_)
     std::fill(v.begin(), v.end(), -1);
 }
 
-void MakeState(shared_ptr<const SASPlus> problem, vector<int> &precondition,
+void MakeState(int i, shared_ptr<const SASPlus> problem, vector<int> &precondition,
                vector<int> &effect) {
   std::fill(precondition.begin(), precondition.end(), -1);
   std::fill(effect.begin(), effect.end(), -1);
@@ -93,7 +100,7 @@ void MakeState(shared_ptr<const SASPlus> problem, vector<int> &precondition,
 int TauVariable(const vector<int> &precondition, const vector<int> &effect) {
   int tau_v = -1;
 
-  for (int j=0; j<n_variables; ++j) {
+  for (int j=0, n=precondition.size(); j<n; ++j) {
     if (precondition[j] == -1 && effect[j] == -1) continue;
 
     if (tau_v == -1)
@@ -105,7 +112,8 @@ int TauVariable(const vector<int> &precondition, const vector<int> &effect) {
   return tau_v;
 }
 
-vector<shared_ptr<LTS> > InitializeLTSs(shared_ptr<const SASPlus> problem) {
+vector<shared_ptr<AtomicLTS> > InitializeLTSs(shared_ptr<const SASPlus> problem)
+{
   int n_variables = problem->n_variables();
   int n_actions = problem->n_actions();
   vector<vector<int> > label_from(n_variables,
@@ -119,15 +127,15 @@ vector<shared_ptr<LTS> > InitializeLTSs(shared_ptr<const SASPlus> problem) {
   for (int i=0; i<n_variables; ++i)
     labels[i].resize(problem->VarRange(i), vector<int>{-1});
 
-  vector<int> precondition(variables_size);
-  vector<int> effect(variables_size);
+  vector<int> precondition(n_variables);
+  vector<int> effect(n_variables);
 
   for (int i=0, n=problem->n_actions(); i<n; ++i) {
-    MakeState(problem, precondition, effect);
+    MakeState(i, problem, precondition, effect);
     int tau_v = TauVariable(precondition, effect);
     is_tau_label[tau_v][i] = true;
 
-    for (int j=0; j<variables_size; ++j) {
+    for (int j=0; j<n_variables; ++j) {
       int precondition_value = precondition[j];
       label_from[j][i] = precondition_value;
       label_to[j][i] = effect[j];
@@ -141,17 +149,18 @@ vector<shared_ptr<LTS> > InitializeLTSs(shared_ptr<const SASPlus> problem) {
     }
   }
 
-  auto initial = problem->Initial();
-  std::vector<int> goal(variables_size, -1);
+  auto initial = problem->initial();
+  std::vector<int> goal(n_variables, -1);
 
   for (int i=0, n=problem->n_goal_facts(); i<n; ++i)
     goal[problem->GoalVar(i)] = problem->GoalValue(i);
 
-  vector<shared_ptr<LTS> > ltss(n_variables, nullptr);
+  vector<shared_ptr<AtomicLTS> > ltss(n_variables, nullptr);
 
   for (int i=0; i<n_variables; ++i) {
-    ltss[i] = std::make_shared<LTS>(initial[i], goal[i], label_from[i],
-                                    label_to[i], is_tau_label[i], labels[i]);
+    ltss[i] = std::make_shared<AtomicLTS>(initial[i], goal[i], label_from[i],
+                                          label_to[i], is_tau_label[i],
+                                          labels[i]);
   }
 
   return ltss;
@@ -159,6 +168,8 @@ vector<shared_ptr<LTS> > InitializeLTSs(shared_ptr<const SASPlus> problem) {
 
 int RecursiveTauPathCost(int i, int s_i, int t_i,
                          vector<shared_ptr<AtomicLTS> > &ltss) {
+  auto &kInfinity = AtomicLTS::kInfinity;
+
   int h_max = 0;
 
   for (int j=0, n=ltss.size(); j<n; ++j) {
@@ -168,7 +179,7 @@ int RecursiveTauPathCost(int i, int s_i, int t_i,
 
     if (t_j == -1) continue;
 
-    for (int s_j=0, m=ltss[j]->n_nodes(); s_j<m; ++s_j) {
+    for (int s_j=0, m=ltss[j]->n_states(); s_j<m; ++s_j) {
       if (s_j == t_j) continue;
 
       int h_s_t = ltss[j]->ShortestPathCost(s_j, t_j, true);
@@ -189,6 +200,8 @@ int RecursiveTauPathCost(int i, int s_i, int t_i,
 }
 
 bool AddRecursiveTauLabel(int l, vector<shared_ptr<AtomicLTS> > &ltss) {
+  auto &kInfinity = AtomicLTS::kInfinity;
+
   int i = -1;
 
   for (int j=0, n=ltss.size(); j<n; ++j) {
@@ -204,19 +217,27 @@ bool AddRecursiveTauLabel(int l, vector<shared_ptr<AtomicLTS> > &ltss) {
   if (s_i == -1) {
     int h_max = 0;
 
-    for (s_i=0, n=ltss[i]->n_nodes(); s_i<n; ++s_i) {
+    for (s_i=0; s_i<ltss[i]->n_states(); ++s_i) {
       if (s_i == t_i) continue;
       h_max = std::max(h_max, RecursiveTauPathCost(i, s_i, t_i, ltss));
     }
 
-    if (h_max != kInfinity)
-      ltss[i]->SetTauLabel(l, LabelCost(l) + h_max);
+    if (h_max != kInfinity) {
+      ltss[i]->SetTauLabel(l, ltss[i]->LabelCost(l) + h_max);
+
+      return true;
+    }
   } else {
     int h = RecursiveTauPathCost(i, s_i, t_i, ltss);
 
-    if (h != kInfinity)
-      ltss[i]->SetTauLabel(l, LabelCost(l) + h);
+    if (h != kInfinity) {
+      ltss[i]->SetTauLabel(l, ltss[i]->LabelCost(l) + h);
+
+      return true;
+    }
   }
+
+  return false;
 }
 
 void AddRecursiveTauLabels(vector<shared_ptr<AtomicLTS> > &ltss) {
@@ -225,7 +246,7 @@ void AddRecursiveTauLabels(vector<shared_ptr<AtomicLTS> > &ltss) {
   while (condition) {
     bool condition = false;
 
-    for (int l=0, n=n_labels(); l<n; ++l)
+    for (int l=0, n=ltss[0]->n_labels(); l<n; ++l)
       condition = AddRecursiveTauLabel(l, ltss) || condition;
   }
 }

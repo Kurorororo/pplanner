@@ -491,6 +491,15 @@ $(BIN_DIR)/test_dtg: \
 		$(BIN_DIR)/dtg.o \
 		$(BIN_DIR)/libsas_plus.a
 
+$(BIN_DIR)/dominance/test_lts: \
+	$(TEST_DIR)/dominance/test_lts.cc \
+	$(BIN_DIR)/dominance/lts.o \
+	$(BIN_DIR)/libsas_plus.a
+	$(CXX) $(INCS) $(TEST_FLAG) -o $(BIN_DIR)/dominance/test_lts \
+		$(TEST_DIR)/dominance/test_lts.cc \
+		$(BIN_DIR)/dominance/lts.o \
+		$(BIN_DIR)/libsas_plus.a
+
 clean:
 	rm -rf $(BIN_DIR)/*
 
