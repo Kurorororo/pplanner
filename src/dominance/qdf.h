@@ -38,7 +38,7 @@ class QDF {
  private:
   void Init(int limit) {
     ComputeRelations();
-    //ComputeFunctions(limit);
+    ComputeFunctions(limit);
   }
 
   void ComputeFunctions(int limit);
