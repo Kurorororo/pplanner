@@ -91,7 +91,7 @@ class AtomicLTS {
 std::vector<std::shared_ptr<AtomicLTS> > InitializeLTSs(
     std::shared_ptr<const SASPlus> problem);
 
-void AddRecursiveTauLabel(std::vector<std::shared_ptr<AtomicLTS> > &ltss);
+void AddRecursiveTauLabels(std::vector<std::shared_ptr<AtomicLTS> > &ltss);
 
 } // namespace ppalnner
 

@@ -165,6 +165,8 @@ vector<shared_ptr<AtomicLTS> > InitializeLTSs(shared_ptr<const SASPlus> problem)
                                           labels[i]);
   }
 
+  //AddRecursiveTauLabels(ltss);
+
   return ltss;
 }
 
