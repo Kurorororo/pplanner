@@ -141,14 +141,14 @@ vector<shared_ptr<AtomicLTS> > InitializeLTSs(shared_ptr<const SASPlus> problem)
       int precondition_value = precondition[j];
       int effect_value = effect[j];
 
-      if (precondition_value == effect_value) continue;
-
       label_from[j][i] = precondition_value;
       label_to[j][i] = effect_value;
 
+      if (precondition_value == effect_value) continue;
+
       if (precondition_value == -1) {
         for (int k=0; k<problem->VarRange(j); ++k) {
-          if (k == effect_value) continue;
+          //if (k == effect_value) continue;
           labels[j][k].push_back(i);
         }
       } else {
