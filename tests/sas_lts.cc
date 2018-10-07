@@ -1,4 +1,4 @@
-#include "dtg.h"
+#include "dominance/lts.h"
 
 #include <iostream>
 #include <memory>
@@ -18,13 +18,13 @@ int main(int argc, char *argv[]) {
   auto lines = pplanner::FileToLines(filename);
   auto sas = std::make_shared<pplanner::SASPlus>();
   sas->InitFromLines(lines);
-  auto dtgs = pplanner::InitializeDTGs(sas);
+  auto ltss = pplanner::InitializeLTSs(sas);
 
   int i = 0;
 
-  for (auto &dtg : dtgs) {
+  for (auto &lts: ltss) {
     std::cout << "var" << i << std::endl;
-    dtg->Dump();
+    lts->Dump();
     ++i;
   }
 }

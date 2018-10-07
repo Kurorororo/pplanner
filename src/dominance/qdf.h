@@ -22,21 +22,38 @@ class QDF {
 
   int Dominance(const std::vector<int> &s, const std::vector<int> &t) const;
 
-  int LabelDominance(int j, int l, int l_p);
+  int LabelDominance(int j, int l, int l_p) const;
 
   int FQLD(int i, int s, int t) const;
 
+  bool QualitativeDominance(int i, int s, int t) const { return r_[i][s][t]; }
+
+  bool QualitativeDominance(const std::vector<int> &s,
+                            const std::vector<int> &t) const;
+
+  void Dump() const;
+
  private:
-  void Init(std::shared_ptr<const SASPlus> problem, int limit);
+  void Init(std::shared_ptr<const SASPlus> problem, int limit) {
+    ComputeRelations();
+  }
 
-  void InitFunctions(shared_ptr<const SASPlus> problem, int limit);
+  void ComputeFunctions(std::shared_ptr<const SASPlus> problem, int limit);
 
-  int FQLDInner(int i, int s, int t, int l, int s_p);
+  void InitFunctions(std::shared_ptr<const SASPlus> problem, int limit);
+
+  int FQLDInner(int i, int s, int t, int l, int s_p) const;
+
+  void ComputeRelations();
+
+  void InitRelations();
+
+  bool Ok(int i, int s, int t) const;
 
   std::vector<std::vector<std::vector<int> > > d_;
   std::vector<std::vector<std::vector<bool> > > r_;
-  std::vector<std::shared_ptr<LTS> > ltss_;
-}
+  std::vector<std::shared_ptr<AtomicLTS> > ltss_;
+};
 
 } // namespace pplanner
 

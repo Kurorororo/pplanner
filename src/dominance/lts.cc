@@ -1,5 +1,7 @@
 #include "lts.h"
 
+#include <iostream>
+
 namespace pplanner {
 
 using std::shared_ptr;
@@ -133,7 +135,7 @@ vector<shared_ptr<AtomicLTS> > InitializeLTSs(shared_ptr<const SASPlus> problem)
   for (int i=0, n=problem->n_actions(); i<n; ++i) {
     MakeState(i, problem, precondition, effect);
     int tau_v = TauVariable(precondition, effect);
-    is_tau_label[tau_v][i] = true;
+    if (tau_v != -1) is_tau_label[tau_v][i] = true;
 
     for (int j=0; j<n_variables; ++j) {
       int precondition_value = precondition[j];
@@ -197,6 +199,35 @@ int RecursiveTauPathCost(int i, int s_i, int t_i,
   }
 
   return h_max;
+}
+
+void AtomicLTS::Dump() const {
+  int n = n_states();
+
+  for (int s=0; s<n; ++s) {
+    if (s == initial())
+      std::cout << "(initial) ";
+
+    if (s == goal())
+      std::cout << "(goal) ";
+
+    std::cout << s << " -> ";
+
+    for (auto l : Labels(s)) {
+      int t = LabelTo(l);
+
+      if (t == -1 && l != -1) continue;
+
+      std::cout << t << "(" << l;
+
+      if (IsTauLabel(l))
+        std::cout << " tau";
+
+      std::cout << ") ";
+    }
+
+    std::cout << std::endl;
+  }
 }
 
 bool AddRecursiveTauLabel(int l, vector<shared_ptr<AtomicLTS> > &ltss) {

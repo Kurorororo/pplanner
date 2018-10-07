@@ -1,6 +1,6 @@
 #include "qdf.h"
 
-#include "dtg.h"
+#include <iostream>
 
 namespace pplanner {
 
@@ -8,7 +8,7 @@ using std::shared_ptr;
 using std::vector;
 
 int QDF::Dominance(const vector<int> &s, const vector<int> &t) const {
-  auto &kInfinigy = AtomicLTS::kInfinity;
+  auto &kInfinity = AtomicLTS::kInfinity;
 
   int d = 0;
 
@@ -18,7 +18,7 @@ int QDF::Dominance(const vector<int> &s, const vector<int> &t) const {
     if (d_i == -kInfinity) return -kInfinity;
 
     if (d_i == kInfinity || d == kInfinity)
-      d = kInfinity
+      d = kInfinity;
     else
       d += d_i;
   }
@@ -26,23 +26,24 @@ int QDF::Dominance(const vector<int> &s, const vector<int> &t) const {
   return d;
 }
 
-int QDF::LabelDominance(int j, int l, int l_p) {
-  auto &kInfinigy = AtomicLTS::kInfinity;
+int QDF::LabelDominance(int j, int l, int l_p) const {
+  auto &kInfinity = AtomicLTS::kInfinity;
 
-  int s = ltss[j]->LabelFrom(l_p);
+  int s = ltss_[j]->LabelFrom(l_p);
 
-  if (s != -1 && s != ltss[j]->LabelFrom(l))
+  if (s != -1 && s != ltss_[j]->LabelFrom(l))
     return -kInfinity;
 
-  int s_p = ltss[j]->LabelTo(l);
-  int s_pp = ltss[j]->LabelTo(l_p);
+  int s_p = ltss_[j]->LabelTo(l);
+  int s_pp = ltss_[j]->LabelTo(l_p);
 
   if (s_p == s_pp) return 0;
 
   if (s == -1) {
     int d_min = kInfinity;
+    int range = ltss_[j]->n_states();
 
-    for (s=0, n=ltss[j]->n_states(); s<n; ++s) {
+    for (s=0; s<range; ++s) {
       int t_p = s_p == -1 ? s : s_p;
       int t_pp = s_pp == -1 ? s : s_pp;
       d_min = std::min(d_min, Dominance(j, t_p, t_pp));
@@ -58,7 +59,7 @@ int QDF::LabelDominance(int j, int l, int l_p) {
 }
 
 int QDF::FQLD(int i, int s, int t) const {
-  auto &kInfinigy = AtomicLTS::kInfinity;
+  auto &kInfinity = AtomicLTS::kInfinity;
 
   int f_qld_min = kInfinity;
 
@@ -75,13 +76,13 @@ int QDF::FQLD(int i, int s, int t) const {
   return f_qld_min;
 }
 
-int QDF::FQLDInner(int i, int s, int t, int l, int s_p) {
-  auto &kInfinigy = AtomicLTS::kInfinity;
+int QDF::FQLDInner(int i, int s, int t, int l, int s_p) const {
+  auto &kInfinity = AtomicLTS::kInfinity;
 
   int f_qld_max = -kInfinity;
 
   for (int u=0, n=ltss_[i]->n_states(); u<n; ++u) {
-    int h_t_u = ltss[i]->ShortestPathCost(t, u, true);
+    int h_t_u = ltss_[i]->ShortestPathCost(t, u, true);
     if (h_t_u == kInfinity) continue;
 
     for (auto l_p : ltss_[i]->Labels(u)) {
@@ -94,7 +95,7 @@ int QDF::FQLDInner(int i, int s, int t, int l, int s_p) {
 
       int d_sum = 0;
 
-      for (int j=0, m=ltss.size(); j<m; ++j) {
+      for (int j=0, m=ltss_.size(); j<m; ++j) {
         if (j == i) continue;
         int d = LabelDominance(j, l, l_p);
 
@@ -120,7 +121,7 @@ int QDF::FQLDInner(int i, int s, int t, int l, int s_p) {
 }
 
 void QDF::InitFunctions(shared_ptr<const SASPlus> problem, int limit) {
-  auto &kInfinigy = AtomicLTS::kInfinity;
+  auto &kInfinity = AtomicLTS::kInfinity;
 
   int n_variables = problem->n_variables();
   std::vector<int> goal(n_variables, -1);
@@ -131,7 +132,7 @@ void QDF::InitFunctions(shared_ptr<const SASPlus> problem, int limit) {
   for (int i=0; i<n_variables; ++i) {
     int range = problem->VarRange(i);
     d_[i].resize(range, vector<int>(range, 0));
-    int g = ltss_[i]->goal_node();
+    int g = ltss_[i]->goal();
 
     for (int s=0; s<range; ++s) {
       for (int t=0; t<range; ++t) {
@@ -171,7 +172,7 @@ void QDF::ComputeFunctions(shared_ptr<const SASPlus> problem, int limit) {
         for (int t=0; t<range; ++t) {
           if (s == t) continue;
 
-          int f_qld = FQLD(ltss_, i, s, t);
+          int f_qld = FQLD(i, s, t);
 
           if (d_[i][s][t] <= f_qld) continue;
           condition = true;
@@ -179,24 +180,28 @@ void QDF::ComputeFunctions(shared_ptr<const SASPlus> problem, int limit) {
           if (f_qld > -limit)
             d_[i][s][t] = f_qld;
           else
-            d_[i][s][t] = -ltss_[i]->ShortestPathCost(t, u, true);
+            d_[i][s][t] = -ltss_[i]->ShortestPathCost(t, s, true);
         }
       }
     }
   }
 }
 
-void QDF::InitRelations(shared_ptr<const SASPlus> problem) {
-  int n_variables = problem->n_variables();
-  std::vector<int> goal(n_variables, -1);
+bool QDF::QualitativeDominance(const vector<int> &s, const vector<int> &t)
+  const {
+  for (int i=0, n=s.size(); i<n; ++i)
+    if (!QualitativeDominance(i, s[i], t[i])) return false;
 
-  for (int i=0, n=problem->n_goal_facts(); i<n; ++i)
-    goal[problem->GoalVar(i)] = problem->GoalValue(i);
+  return true;
+}
+
+void QDF::InitRelations() {
+  int n_variables = ltss_.size();
 
   for (int i=0; i<n_variables; ++i) {
-    int range = problem->VarRange(i);
+    int range = ltss_[i]->n_states();
     r_[i].resize(range, vector<bool>(range, false));
-    int g = ltss_[i]->goal_node();
+    int g = ltss_[i]->goal();
 
     for (int s=0; s<range; ++s)
       for (int t=0; t<range; ++t)
@@ -205,10 +210,69 @@ void QDF::InitRelations(shared_ptr<const SASPlus> problem) {
   }
 }
 
-void QDF::ComputeRelations(shared_ptr<const SASPlus> problem) {
-  InitRelations(problem);
+bool QDF::Ok(int i, int s, int t) const {
+  if (s == t) return true;
 
-  int n_variables = problem->n_variables();
+  if (s == ltss_[i]->goal() && t != ltss_[i]->goal())
+    return false;
+
+  for (auto l : ltss_[i]->Labels(s)) {
+    int s_p = ltss_[i]->LabelTo(l);
+    if (s_p == -1) s_p = s;
+    int c = ltss_[i]->LabelCost(l);
+    bool all = true;
+
+    for (auto l_p : ltss_[i]->Labels(t)) {
+      int t_p = ltss_[i]->LabelTo(l_p);
+      if (t_p == -1) t_p = t;
+      int c_p = ltss_[i]->LabelCost(l_p);
+
+      if (c_p <= c && r_[i][s_p][t_p]) {
+        all = false;
+        break;
+      }
+    }
+
+    if (all) return false;
+  }
+
+  return true;
+}
+
+void QDF::ComputeRelations() {
+  InitRelations();
+
+  int n_variables = ltss_.size();
+  bool condition = true;
+
+  while (condition) {
+    condition = false;
+
+    for (int i=0; i<n_variables; ++i) {
+      int range = ltss_[i]->n_states();
+
+      for (int s=0; s<range; ++s) {
+        for (int t=0; t<range; ++t) {
+          if (r_[i][s][t] && !Ok(i, s, t)) {
+            r_[i][s][t] = false;
+            condition = true;
+          }
+        }
+      }
+    }
+  }
+}
+
+void QDF::Dump() const {
+  for (int i=0, n=ltss_.size(); i<n; ++i) {
+    std::cout << "var" << i << std::endl;
+    int range = ltss_[i]->n_states();
+
+    for (int s=0; s<range; ++s)
+      for (int t=0; t<range; ++t)
+        if (r_[i][s][t])
+          std::cout << s << "<=" << t << std::endl;
+  }
 }
 
 } // namespace pplanner

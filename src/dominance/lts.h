@@ -57,6 +57,8 @@ class AtomicLTS {
 
   const std::vector<int>& Labels(int s) const { return labels_[s]; }
 
+  void Dump() const;
+
   static constexpr int kInfinity = std::numeric_limits<int>::max();
 
  private:
@@ -87,7 +89,7 @@ class AtomicLTS {
 };
 
 std::vector<std::shared_ptr<AtomicLTS> > InitializeLTSs(
-    std::shared_ptr<const SASPlus> problem_);
+    std::shared_ptr<const SASPlus> problem);
 
 void AddRecursiveTauLabel(std::vector<std::shared_ptr<AtomicLTS> > &ltss);
 

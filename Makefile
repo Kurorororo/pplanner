@@ -92,7 +92,7 @@ sas_parser: \
 	$(TEST_DIR)/sas_parser.cc \
 	$(BIN_DIR)/utils/file_utils.o \
 	$(BIN_DIR)/libsas_plus.a
-	$(CXX) $(INCS) $(TEST_FLAG) -o $(BIN_DIR)/sas_parser \
+	$(CXX) $(INCS) $(RELEASE_FLAG) -o $(BIN_DIR)/sas_parser \
 		$(TEST_DIR)/sas_parser.cc \
 		$(BIN_DIR)/utils/file_utils.o \
 		$(BIN_DIR)/libsas_plus.a
@@ -102,7 +102,7 @@ sas_dtg: \
 	$(BIN_DIR)/dtg.o \
 	$(BIN_DIR)/utils/file_utils.o \
 	$(BIN_DIR)/libsas_plus.a
-	$(CXX) $(INCS) $(TEST_FLAG) -o $(BIN_DIR)/sas_dtg \
+	$(CXX) $(INCS) $(RELEASE_FLAG) -o $(BIN_DIR)/sas_dtg \
 		$(TEST_DIR)/sas_dtg.cc \
 		$(BIN_DIR)/dtg.o \
 		$(BIN_DIR)/utils/file_utils.o \
@@ -119,6 +119,28 @@ sas_landmark_detection: \
 		$(BIN_DIR)/utils/file_utils.o \
 		$(BIN_DIR)/liblandmark.a \
 		$(BIN_DIR)/libff.a \
+		$(BIN_DIR)/libsas_plus.a
+
+sas_lts: \
+	$(TEST_DIR)/sas_lts.cc \
+	$(BIN_DIR)/utils/file_utils.o \
+	$(BIN_DIR)/libdominance.a \
+	$(BIN_DIR)/libsas_plus.a
+	$(CXX) $(INCS) $(RELEASE_FLAG) -o $(BIN_DIR)/sas_lts \
+		$(TEST_DIR)/sas_lts.cc \
+		$(BIN_DIR)/utils/file_utils.o \
+		$(BIN_DIR)/libdominance.a \
+		$(BIN_DIR)/libsas_plus.a
+
+sas_qdf: \
+	$(TEST_DIR)/sas_qdf.cc \
+	$(BIN_DIR)/utils/file_utils.o \
+	$(BIN_DIR)/libdominance.a \
+	$(BIN_DIR)/libsas_plus.a
+	$(CXX) $(INCS) $(RELEASE_FLAG) -o $(BIN_DIR)/sas_qdf \
+		$(TEST_DIR)/sas_qdf.cc \
+		$(BIN_DIR)/utils/file_utils.o \
+		$(BIN_DIR)/libdominance.a \
 		$(BIN_DIR)/libsas_plus.a
 
 $(BIN_DIR)/%.o: $(SRC_DIR)/%.cc
@@ -245,6 +267,13 @@ $(BIN_DIR)/liblandmark.a: \
 		$(BIN_DIR)/landmark/landmark_detection.o \
 		$(BIN_DIR)/landmark/landmark_graph.o \
 		$(BIN_DIR)/landmark/generating_orderings.o
+
+$(BIN_DIR)/libdominance.a: \
+	$(BIN_DIR)/dominance/qdf.o \
+	$(BIN_DIR)/dominance/lts.o
+	ar rcs $(BIN_DIR)/libdominance.a \
+		$(BIN_DIR)/dominance/qdf.o \
+		$(BIN_DIR)/dominance/lts.o
 
 $(BIN_DIR)/sas_plus/test_partial_state: \
 	$(TEST_DIR)/sas_plus/test_partial_state.cc \
