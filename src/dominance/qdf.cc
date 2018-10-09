@@ -145,6 +145,8 @@ void QDF::InitFunctions(int limit) {
           d_[i][s][t] = 0;
         } else if (g == s) {
           d_[i][s][t] = -ltss_[i]->ShortestPathCost(t, s, true);
+        } else if (g == -1) {
+          d_[i][s][t] = 0;
         } else {
           int h_s = ltss_[i]->ShortestPathCost(s, g);
           int h_t = ltss_[i]->ShortestPathCost(t, g);
