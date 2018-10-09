@@ -71,59 +71,60 @@ int QDF::FQLD(int i, int s, int t) const {
 
   int f_qld_min = kInfinity;
 
-  for (int l : ltss_[i]->Labels(s)) {
-    int s_p = ltss_[i]->LabelTo(l);
-    if (s_p == -1) s_p = s;
-
-    int f_qld = FQLDInner(i, s, t, l, s_p);
-
-    if (f_qld == -kInfinity) return -kInfinity;
-
-    f_qld_min = std::min(f_qld_min, f_qld);
+  for (int s_p : ltss_[i]->To(s)) {
+    for (int l : ltss_[i]->Labels(s, s_p)) {
+      f_qld_min = std::min(f_qld_min, FQLDInner(i, s, s_p, l, t));
+      if (f_qld_min == -kInfinity) return -kInfinity;
+    }
   }
 
   return f_qld_min;
 }
 
-int QDF::FQLDInner(int i, int s, int t, int l, int s_p) const {
+int QDF::FQLDInner(int i, int s, int s_p, int l, int t) const {
   auto &kInfinity = AtomicLTS::kInfinity;
 
+  int c = ltss_[i]->LabelCost(l);
+  int range = ltss_[i]->n_states();
   int f_qld_max = -kInfinity;
 
-  for (int u=0, n=ltss_[i]->n_states(); u<n; ++u) {
-    int h_t_u = ltss_[i]->ShortestPathCost(t, u, true);
+  for (int u=0; u<range; ++u) {
+    int h_t_u = u == t ? 0 : ltss_[i]->ShortestPathCost(t, u, true);
     if (h_t_u == kInfinity) continue;
 
-    for (auto l_p : ltss_[i]->Labels(u)) {
-      int u_p = ltss_[i]->LabelTo(l_p);
-      if (u_p == -1) u_p = u;
-
+    for (int u_p=0; u_p<range; ++u_p) {
       int d_i = QuantitativeDominance(i, s_p, u_p);
       if (d_i == -kInfinity) continue;
-      if (d_i == kInfinity) return kInfinity;
 
-      int d_sum = 0;
+      for (int l_p : ltss_[i]->Labels(u, u_p)) {
+        int d_sum = 0;
 
-      for (int j=0, m=ltss_.size(); j<m; ++j) {
-        if (j == i) continue;
+        for (int j=0, m=ltss_.size(); j<m; ++j) {
+          if (j == i) continue;
 
-        int d = QuantitativeLabelDominance(j, l, l_p);
+          int d = QuantitativeLabelDominance(j, l, l_p);
 
-        if (d == -kInfinity) {
-          d_sum = -kInfinity;
-          break;
+          if (d == -kInfinity) {
+            d_sum = -kInfinity;
+            break;
+          }
+
+          if (d_sum == kInfinity || d == kInfinity) {
+            d_sum = kInfinity;
+            continue;
+          }
+
+          d_sum += d;
         }
 
-        if (d_sum != kInfinity && d != kInfinity)
-          d_sum += d;
-        else
-          d_sum = kInfinity;
+        if (d_sum == -kInfinity) continue;
+
+        if (d_i == kInfinity || d_sum == kInfinity) return kInfinity;
+
+        int c_p = ltss_[i]->LabelCost(l_p);
+        int f_qld = d_i - h_t_u + c - c_p + d_sum;
+        f_qld_max = std::max(f_qld_max, f_qld);
       }
-
-      if (d_sum == -kInfinity) continue;
-      if (d_sum == kInfinity) return kInfinity;
-
-      f_qld_max = std::max(f_qld_max, d_i - h_t_u + d_sum);
     }
   }
 
@@ -205,7 +206,6 @@ bool QDF::LabelDominance(int j, int l, int l_p) const {
   int s = ltss_[j]->LabelFrom(l);
   int t = ltss_[j]->LabelFrom(l_p);
 
-  // t must be s or -1 (any state).
   if (t != -1 && t != s) return false;
 
   int s_p = ltss_[j]->LabelTo(l);
@@ -258,34 +258,40 @@ bool QDF::Ok(int i, int s, int t) const {
   if (s == ltss_[i]->goal() && t != ltss_[i]->goal())
     return false;
 
-  for (auto l : ltss_[i]->Labels(s)) {
-    int s_p = ltss_[i]->LabelTo(l);
-    if (s_p == -1) s_p = s;
-    int c = ltss_[i]->LabelCost(l);
-    bool no_simulation = true;
+  for (int s_p : ltss_[i]->To(s)) {
+    int c_min = ltss_[i]->TransitionCost(s, s_p);
 
-    for (auto l_p : ltss_[i]->Labels(t)) {
-      int t_p = ltss_[i]->LabelTo(l_p);
-      if (t_p == -1) t_p = t;
-      int c_p = ltss_[i]->LabelCost(l_p);
+    for (int t_p : ltss_[i]->To(t)) {
+      int c_p_min = ltss_[i]->TransitionCost(t, t_p);
 
-      if (c_p > c || !Dominance(i, s_p, t_p)) continue;
+      if (c_p_min > c_min || !Dominance(i, s_p, t_p)) return false;
 
-      bool label_dominance = true;
+      for (auto l : ltss_[i]->Labels(s, s_p)) {
+        int c = ltss_[i]->LabelCost(l);
+        bool dominated = false;
 
-      for (int j=0, n=ltss_.size(); j<n; ++j) {
-        if (i == j || LabelDominance(j, l, l_p)) continue;
-        label_dominance = false;
-        break;
-      }
+        for (auto l_p : ltss_[i]->Labels(t, t_p)) {
+          int c_p = ltss_[i]->LabelCost(l_p);
 
-      if (label_dominance) {
-        no_simulation = false;
-        break;
+          if (c_p > c) continue;
+
+          bool label_dominance = true;
+
+          for (int j=0, n=ltss_.size(); j<n; ++j) {
+            if (i == j || LabelDominance(j, l, l_p)) continue;
+            label_dominance = false;
+            break;
+          }
+
+          if (label_dominance) {
+            dominated = true;
+            break;
+          }
+        }
+
+        if (!dominated) return false;
       }
     }
-
-    if (no_simulation) return false;
   }
 
   return true;

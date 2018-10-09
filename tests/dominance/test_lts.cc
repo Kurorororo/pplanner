@@ -19,21 +19,31 @@ class AtomicLTSTest : public ::testing::Test {
     std::vector<bool> is_tau_label{
       true, false, false, true, true, true, false, false, false
     };
-    std::vector<std::vector<int> > labels(7, std::vector<int>{-1});
+    std::vector<std::vector<int> > to(7);
+    std::vector<std::vector<std::vector<int> > > labels(
+        7, std::vector<std::vector<int> >(7, std::vector<int>{-1}));
+
+    for (int s=0; s<7; ++s)
+      to[s].push_back(s);
 
     for (int i=0; i<9; ++i) {
-      int from = label_from[i];
+      int s = label_from[i];
+      int t = label_to[i];
 
-      if (from == -1) {
-        for (int j=0; j<7; ++j)
-          labels[j].push_back(i);
+      if (s == -1) {
+        for (int j=0; j<7; ++j) {
+          labels[j][t].push_back(i);
+          to[j].push_back(t);
+        }
       } else {
-        labels[from].push_back(i);
+        if (t == -1) t = s;
+        labels[s][t].push_back(i);
+        to[s].push_back(t);
       }
     }
 
     lts_ = std::make_shared<AtomicLTS>(
-        initial, goal, label_from, label_to, is_tau_label, labels);
+        initial, goal, label_from, label_to, is_tau_label, to, labels);
   }
 
  std::shared_ptr<AtomicLTS> lts_;
@@ -81,30 +91,29 @@ TEST_F(AtomicLTSTest, LabelToWorks) {
   EXPECT_EQ(-1, lts_->LabelTo(8));
 }
 
-TEST_F(AtomicLTSTest, LabelCostWorks) {
-  EXPECT_EQ(0, lts_->LabelCost(-1));
-  EXPECT_EQ(1, lts_->LabelCost(0));
-  EXPECT_EQ(1, lts_->LabelCost(1));
-  EXPECT_EQ(1, lts_->LabelCost(2));
-  EXPECT_EQ(1, lts_->LabelCost(3));
-  EXPECT_EQ(1, lts_->LabelCost(4));
-  EXPECT_EQ(1, lts_->LabelCost(5));
-  EXPECT_EQ(1, lts_->LabelCost(6));
-  EXPECT_EQ(1, lts_->LabelCost(7));
-  EXPECT_EQ(1, lts_->LabelCost(8));
+TEST_F(AtomicLTSTest, TransitionCostWorks) {
+  for (int s=0; s<7; ++s) {
+    for (int t=0; t<7; ++t) {
+      if (s == t)
+        EXPECT_EQ(0, lts_->TransitionCost(s, t));
+      else
+        EXPECT_EQ(1, lts_->TransitionCost(s, t));
+    }
+  }
 }
 
-TEST_F(AtomicLTSTest, TauLabelCostWorks) {
-  EXPECT_EQ(AtomicLTS::kInfinity, lts_->TauLabelCost(-1));
-  EXPECT_EQ(1, lts_->TauLabelCost(0));
-  EXPECT_EQ(AtomicLTS::kInfinity, lts_->TauLabelCost(1));
-  EXPECT_EQ(AtomicLTS::kInfinity, lts_->TauLabelCost(2));
-  EXPECT_EQ(1, lts_->TauLabelCost(3));
-  EXPECT_EQ(1, lts_->TauLabelCost(4));
-  EXPECT_EQ(1, lts_->TauLabelCost(5));
-  EXPECT_EQ(AtomicLTS::kInfinity, lts_->TauLabelCost(6));
-  EXPECT_EQ(AtomicLTS::kInfinity, lts_->TauLabelCost(7));
-  EXPECT_EQ(AtomicLTS::kInfinity, lts_->TauLabelCost(8));
+TEST_F(AtomicLTSTest, TauTransitionCostWorks) {
+  for (int s=0; s<7; ++s) {
+    for (int t=0; t<7; ++t) {
+      if ((s == 0 && t == 1)
+          || (s == 1 && t == 4)
+          || (s == 4 && t == 5)
+          || (s == 5 && t == 3))
+        EXPECT_EQ(1, lts_->TauTransitionCost(s, t));
+      else
+        EXPECT_EQ(AtomicLTS::kInfinity, lts_->TauTransitionCost(s, t));
+    }
+  }
 }
 
 TEST_F(AtomicLTSTest, IsTauLabelWorks) {

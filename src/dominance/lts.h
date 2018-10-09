@@ -15,12 +15,15 @@ class AtomicLTS {
   AtomicLTS(int initial, int goal, const std::vector<int> &label_from,
             const std::vector<int> &label_to,
             const std::vector<bool> &is_tau_label,
-            const std::vector<std::vector<int> > &labels)
+            const std::vector<std::vector<int> > &to,
+            const std::vector<std::vector<std::vector<int> > > &labels)
     : initial_(initial),
       goal_(goal),
+      is_tau_label_(is_tau_label),
       label_from_(label_from),
       label_to_(label_to),
-      tau_cost_(is_tau_label.size(), kInfinity),
+      to_(to),
+      tau_cost_(labels.size(), std::vector<int>(labels.size(), kInfinity)),
       labels_(labels),
       h_star_cache_(labels.size(), std::vector<int>(labels.size(), -1)),
       h_tau_cache_(labels.size(), std::vector<int>(labels.size(), -1)),
@@ -30,7 +33,7 @@ class AtomicLTS {
 
   int n_states() const { return labels_.size(); }
 
-  int n_labels() const { return tau_cost_.size(); }
+  int n_labels() const { return is_tau_label_.size(); }
 
   int initial() const { return initial_; }
 
@@ -44,18 +47,22 @@ class AtomicLTS {
 
   int LabelCost(int l) const { return l == -1 ? 0 : 1; }
 
-  int TauLabelCost(int l) const { return l == -1 ? kInfinity : tau_cost_[l]; }
+  int TransitionCost(int s, int t) const { return s == t ? 0 : 1; }
 
-  bool IsTauLabel(int l) const { return l != -1 && tau_cost_[l] != kInfinity; }
+  int TauTransitionCost(int s, int t) const { return tau_cost_[s][t]; }
 
-  void SetTauLabel(int l, int cost) {
-    tau_cost_[l] = cost;
+  bool IsTauLabel(int l) const { return l != -1 && is_tau_label_[l]; }
+
+  void SetTauTransition(int s, int t, int cost) {
+    tau_cost_[s][t] = cost;
     ClearTauCache();
   }
 
   int ShortestPathCost(int start, int goal, bool only_tau=false);
 
-  const std::vector<int>& Labels(int s) const { return labels_[s]; }
+  const std::vector<int>& To(int s) const { return to_[s]; }
+
+  const std::vector<int>& Labels(int s, int t) const { return labels_[s][t]; }
 
   void Dump() const;
 
@@ -78,10 +85,12 @@ class AtomicLTS {
                                      FirstGreater>;
   int initial_;
   int goal_;
+  std::vector<bool> is_tau_label_;
   std::vector<int> label_from_;
   std::vector<int> label_to_;
-  std::vector<int> tau_cost_;
-  std::vector<std::vector<int> > labels_;
+  std::vector<std::vector<int> > to_;
+  std::vector<std::vector<int> > tau_cost_;
+  std::vector<std::vector<std::vector<int> > > labels_;
   std::vector<std::vector<int> > h_star_cache_;
   std::vector<std::vector<int> > h_tau_cache_;
   PQueue open_;
