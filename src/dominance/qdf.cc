@@ -254,6 +254,7 @@ void QDF::InitRelations() {
   }
 }
 
+
 bool QDF::Ok(int i, int s, int t) const {
   if (s == t) return true;
 
@@ -261,39 +262,53 @@ bool QDF::Ok(int i, int s, int t) const {
     return false;
 
   for (int s_p : ltss_[i]->To(s)) {
-    int c_min = ltss_[i]->TransitionCost(s, s_p);
+    bool dominated = true;
 
     for (int t_p : ltss_[i]->To(t)) {
-      int c_p_min = ltss_[i]->TransitionCost(t, t_p);
-
-      if (c_p_min > c_min || !Dominance(i, s_p, t_p)) return false;
-
-      for (auto l : ltss_[i]->Labels(s, s_p)) {
-        int c = ltss_[i]->LabelCost(l);
-        bool dominated = false;
-
-        for (auto l_p : ltss_[i]->Labels(t, t_p)) {
-          int c_p = ltss_[i]->LabelCost(l_p);
-
-          if (c_p > c) continue;
-
-          bool label_dominance = true;
-
-          for (int j=0, n=ltss_.size(); j<n; ++j) {
-            if (i == j || LabelDominance(j, l, l_p)) continue;
-            label_dominance = false;
-            break;
-          }
-
-          if (label_dominance) {
-            dominated = true;
-            break;
-          }
-        }
-
-        if (!dominated) return false;
+      if (!TransisionDominance(i, s, s_p, t, t_p)) {
+        dominated = false;
+        break;
       }
     }
+
+    if (!dominated && !TransisionDominance(i, s, s_p, t, t))
+      return false;
+  }
+
+  return true;
+}
+
+bool QDF::TransisionDominance(int i, int s, int s_p, int t, int t_p) const {
+  return false;
+  int c_min = ltss_[i]->TransitionCost(s, s_p);
+  int c_p_min = ltss_[i]->TransitionCost(t, t_p);
+
+  if (c_p_min > c_min || !Dominance(i, s_p, t_p)) return false;
+
+  for (auto l : ltss_[i]->Labels(s, s_p)) {
+    int c = ltss_[i]->LabelCost(l);
+    bool dominated = false;
+
+    for (auto l_p : ltss_[i]->Labels(t, t_p)) {
+      int c_p = ltss_[i]->LabelCost(l_p);
+
+      if (c_p > c) continue;
+
+      bool label_dominance = true;
+
+      for (int j=0, n=ltss_.size(); j<n; ++j) {
+        if (i == j || LabelDominance(j, l, l_p)) continue;
+        label_dominance = false;
+        break;
+      }
+
+      if (label_dominance) {
+        dominated = true;
+        break;
+      }
+    }
+
+    if (!dominated) return false;
   }
 
   return true;

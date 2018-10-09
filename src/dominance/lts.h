@@ -64,6 +64,8 @@ class AtomicLTS {
 
   const std::vector<int>& Labels(int s, int t) const { return labels_[s][t]; }
 
+  const std::vector<int>& Loops(int s, int t) const { return labels_[s][t]; }
+
   void Dump() const;
 
   static constexpr int kInfinity = std::numeric_limits<int>::max();

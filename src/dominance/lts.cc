@@ -141,10 +141,8 @@ vector<shared_ptr<AtomicLTS> > InitializeLTSs(shared_ptr<const SASPlus> problem)
     to[i].resize(range);
     labels[i].resize(range, vector<vector<int> >(range));
 
-    for (int v=0; v<range; ++v) {
-      to[i][v].push_back(v);
+    for (int v=0; v<range; ++v)
       labels[i][v][v].push_back(-1);
-    }
   }
 
   vector<int> precondition(n_variables);
@@ -163,31 +161,30 @@ vector<shared_ptr<AtomicLTS> > InitializeLTSs(shared_ptr<const SASPlus> problem)
       label_to[j][i] = effect_value;
 
       if (precondition_value == -1) {
-        /** if i has no precondition value on varj,
-         *  i is applicable at all states in LTS_j and
-         *  executing i always results in the transition to a state e.
-         *  There is no need to compare s ->^i e with other transitions from t
-         *  because t ->^i e always holds.
-         *  Thus we do not add these labels.
-         */
-        if (effect_value == -1) continue;
+        if (effect_value == -1) {
+          for (int k=0; k<problem->VarRange(j); ++k)
+            labels[j][k][k].push_back(i);
+        } else {
+          for (int k=0; k<problem->VarRange(j); ++k) {
+            labels[j][k][effect_value].push_back(i);
+            auto itr = std::find(to[j][k].begin(), to[j][k].end(),
+                                 effect_value);
 
-        for (int k=0; k<problem->VarRange(j); ++k) {
-          int e = effect_value == -1 ? k : effect_value;
-          //labels[j][k][e].push_back(i);
-          auto itr = std::find(to[j][k].begin(), to[j][k].end(), e);
-
-          if (itr == to[j][k].end())
-            to[j][k].push_back(e);
+            if (itr == to[j][k].end())
+              to[j][k].push_back(effect_value);
+          }
         }
       } else {
-        int e = effect_value == -1 ? precondition_value : effect_value;
-        labels[j][precondition_value][e].push_back(i);
-        auto itr = std::find(to[j][precondition_value].begin(),
-                             to[j][precondition_value].end(), e);
+        if (effect_value == -1) {
+          labels[j][precondition_value][precondition_value].push_back(i);
+        } else {
+          labels[j][precondition_value][effect_value].push_back(i);
+          auto itr = std::find(to[j][precondition_value].begin(),
+                               to[j][precondition_value].end(), effect_value);
 
-        if (itr == to[j][precondition_value].end())
-          to[j][precondition_value].push_back(e);
+          if (itr == to[j][precondition_value].end())
+            to[j][precondition_value].push_back(effect_value);
+        }
       }
     }
   }

@@ -33,12 +33,14 @@ class QDF {
 
   bool LabelDominance(int j, int l, int l_p) const;
 
+  bool TransisionDominance(int i, int s, int s_p, int t, int t_p) const;
+
   void Dump() const;
 
  private:
   void Init(int limit) {
     ComputeRelations();
-    ComputeFunctions(limit);
+    //ComputeFunctions(limit);
   }
 
   void ComputeFunctions(int limit);
