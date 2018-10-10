@@ -1,5 +1,6 @@
 #include "mpi_search_factory.h"
 
+#include "search/hddehc.h"
 #include "search/hdgbfs.h"
 #include "search/pddsgbfs.h"
 #include "search/pigbfs.h"
@@ -31,6 +32,9 @@ std::unique_ptr<Search> MpiSearchFactory(
 
   if (search.get() == "sbpddsgbfs")
     return std::unique_ptr<SBPDDSGBFS>(new SBPDDSGBFS(problem, option.get()));
+
+  if (search.get() == "hddehc")
+    return std::unique_ptr<HDDEHC>(new HDDEHC(problem, option.get()));
 
   throw std::runtime_error("No such search algorithm.");
 }

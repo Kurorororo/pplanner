@@ -139,9 +139,12 @@ int DEHC::Expand(int node, vector<int> &state, vector<int> &child,
     if (child_node == -1) continue;
     ++generated_;
 
-    if (aggressive_ && lds_->Dominance(initial, state)) {
+    bool dominated = false;
+
+    if (aggressive_ && lds_->Dominance(initial, child)) {
       open_list_->Clear();
-      initial = state;
+      initial = child;
+      dominated = true;
     }
 
     int h = open_list_->EvaluateAndPush(child, child_node, is_preferred);
@@ -161,6 +164,8 @@ int DEHC::Expand(int node, vector<int> &state, vector<int> &child,
 
       if (use_preferred_) open_list_->Boost();
     }
+
+    if (dominated) break;
   }
 
   return -1;

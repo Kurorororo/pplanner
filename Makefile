@@ -43,6 +43,7 @@ mpi_planner: \
 	$(SRC_DIR)/mpi_search_factory.cc \
 	$(SRC_DIR)/search/pddsgbfs.cc \
 	$(SRC_DIR)/search/pigbfs.cc \
+	$(SRC_DIR)/search/hddehc.cc \
 	$(SRC_DIR)/search/hdgbfs.cc \
 	$(SRC_DIR)/search/symmetry_breaking_pddsgbfs.cc \
 	$(SRC_DIR)/search/symmetry_breaking_hdgbfs.cc \
@@ -55,12 +56,14 @@ mpi_planner: \
 	$(BIN_DIR)/liblandmark.a \
 	$(BIN_DIR)/libff.a \
 	$(BIN_DIR)/libsearch_graph.a \
+	$(BIN_DIR)/libdominance.a \
 	$(BIN_DIR)/libsas_plus.a
 	$(MPIXX) $(INCS) $(RELEASE_FLAG) -o $(BIN_DIR)/mpi_planner \
 		$(SRC_DIR)/mpi_planner.cc \
 		$(SRC_DIR)/mpi_search_factory.cc \
 		$(SRC_DIR)/search/pddsgbfs.cc \
 		$(SRC_DIR)/search/pigbfs.cc \
+		$(SRC_DIR)/search/hddehc.cc \
 		$(SRC_DIR)/search/hdgbfs.cc \
 		$(SRC_DIR)/search/symmetry_breaking_pddsgbfs.cc \
 		$(SRC_DIR)/search/symmetry_breaking_hdgbfs.cc \
@@ -73,6 +76,7 @@ mpi_planner: \
 		$(BIN_DIR)/liblandmark.a \
 		$(BIN_DIR)/libff.a \
 		$(BIN_DIR)/libsearch_graph.a \
+		$(BIN_DIR)/libdominance.a \
 		$(BIN_DIR)/libsas_plus.a \
 		$(LIBS)
 
