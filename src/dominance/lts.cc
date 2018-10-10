@@ -164,15 +164,16 @@ vector<shared_ptr<AtomicLTS> > InitializeLTSs(shared_ptr<const SASPlus> problem)
       label_to[j][i] = effect_value;
 
       if (precondition_value == -1) {
+       /** Ignore always applicable labels other than noop for fast computation.
+        * These labels are always dominated by themselfvs,
+        * but possibly dominate other labels.
+        * Thus ignoring these labels is safe, but may result in
+        * weaker dominance relation/function.
+        */
+        continue;
         if (effect_value == -1) {
-          /** Ignore irrelevant labels other than noop for fast computation.
-           * Irrelevant labels are always dominated by themselfvs,
-           * but possibly dominate other labels.
-           * Thus ignoring these labels is safe, but may result in
-           * weaker dominance relation/function.
-           */
-          //for (int k=0; k<problem->VarRange(j); ++k)
-          //  labels[j][k][k].push_back(i);
+          for (int k=0; k<problem->VarRange(j); ++k)
+            labels[j][k][k].push_back(i);
         } else {
           for (int k=0; k<problem->VarRange(j); ++k) {
             labels[j][k][effect_value].push_back(i);
