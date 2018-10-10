@@ -2,6 +2,7 @@
 #define ATOMIC_LTS_H_
 
 #include <memory>
+#include <numeric>
 #include <queue>
 #include <utility>
 #include <vector>
