@@ -1,8 +1,8 @@
 #ifndef ATOMIC_LTS_H_
 #define ATOMIC_LTS_H_
 
+#include <limits>
 #include <memory>
-#include <numeric>
 #include <queue>
 #include <utility>
 #include <vector>
