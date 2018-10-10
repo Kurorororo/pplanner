@@ -141,8 +141,10 @@ vector<shared_ptr<AtomicLTS> > InitializeLTSs(shared_ptr<const SASPlus> problem)
     to[i].resize(range);
     labels[i].resize(range, vector<vector<int> >(range));
 
-    for (int v=0; v<range; ++v)
+    for (int v=0; v<range; ++v) {
+      to[i][v].push_back(v);
       labels[i][v][v].push_back(-1);
+    }
   }
 
   vector<int> precondition(n_variables);
@@ -162,8 +164,14 @@ vector<shared_ptr<AtomicLTS> > InitializeLTSs(shared_ptr<const SASPlus> problem)
 
       if (precondition_value == -1) {
         if (effect_value == -1) {
-          for (int k=0; k<problem->VarRange(j); ++k)
-            labels[j][k][k].push_back(i);
+          /** Ignore irrelevant labels other than noop for fast computation.
+           * Irrelevant labels are always dominated by themselfvs,
+           * but possibly dominate other labels.
+           * Thus ignoring these labels is safe, but may result in
+           * weaker dominance relation/function.
+           */
+          //for (int k=0; k<problem->VarRange(j); ++k)
+          //  labels[j][k][k].push_back(i);
         } else {
           for (int k=0; k<problem->VarRange(j); ++k) {
             labels[j][k][effect_value].push_back(i);

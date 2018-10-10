@@ -132,6 +132,17 @@ sas_lts: \
 		$(BIN_DIR)/libdominance.a \
 		$(BIN_DIR)/libsas_plus.a
 
+sas_lds: \
+	$(TEST_DIR)/sas_lds.cc \
+	$(BIN_DIR)/utils/file_utils.o \
+	$(BIN_DIR)/libdominance.a \
+	$(BIN_DIR)/libsas_plus.a
+	$(CXX) $(INCS) $(RELEASE_FLAG) -o $(BIN_DIR)/sas_lds \
+		$(TEST_DIR)/sas_lds.cc \
+		$(BIN_DIR)/utils/file_utils.o \
+		$(BIN_DIR)/libdominance.a \
+		$(BIN_DIR)/libsas_plus.a
+
 sas_qdf: \
 	$(TEST_DIR)/sas_qdf.cc \
 	$(BIN_DIR)/utils/file_utils.o \
@@ -269,9 +280,11 @@ $(BIN_DIR)/liblandmark.a: \
 		$(BIN_DIR)/landmark/generating_orderings.o
 
 $(BIN_DIR)/libdominance.a: \
+	$(BIN_DIR)/dominance/lds.o \
 	$(BIN_DIR)/dominance/qdf.o \
 	$(BIN_DIR)/dominance/lts.o
 	ar rcs $(BIN_DIR)/libdominance.a \
+		$(BIN_DIR)/dominance/lds.o \
 		$(BIN_DIR)/dominance/qdf.o \
 		$(BIN_DIR)/dominance/lts.o
 
