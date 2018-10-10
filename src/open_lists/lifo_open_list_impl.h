@@ -36,6 +36,8 @@ class LIFOOpenListImpl : public OpenListImpl {
 
   int MinimumValue(int i) const override { return buckets_.begin()->first[i]; }
 
+  void Clear() override { buckets_.clear(); }
+
  private:
   size_t size_;
   std::map<std::vector<int>, std::stack<int> > buckets_;

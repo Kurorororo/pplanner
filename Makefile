@@ -21,6 +21,7 @@ planner: \
 	$(BIN_DIR)/liblandmark.a \
 	$(BIN_DIR)/libff.a \
 	$(BIN_DIR)/libsearch_graph.a \
+	$(BIN_DIR)/libdominance.a \
 	$(BIN_DIR)/libsas_plus.a
 	$(CXX) $(INCS) $(RELEASE_FLAG) -o $(BIN_DIR)/planner \
 		$(BIN_DIR)/planner.o \
@@ -33,6 +34,7 @@ planner: \
 		$(BIN_DIR)/liblandmark.a \
 		$(BIN_DIR)/libff.a \
 		$(BIN_DIR)/libsearch_graph.a \
+		$(BIN_DIR)/libdominance.a \
 		$(BIN_DIR)/libsas_plus.a \
 		$(LIBS)
 
@@ -237,6 +239,7 @@ $(BIN_DIR)/libsearch.a: \
 	$(BIN_DIR)/search_factory.o \
 	$(BIN_DIR)/search/kgbfs.o \
 	$(BIN_DIR)/search/gbfs.o \
+	$(BIN_DIR)/search/dehc.o \
 	$(BIN_DIR)/search/lazy_gbfs.o \
 	$(BIN_DIR)/search/orbit_gbfs.o \
 	$(BIN_DIR)/search/symmetry_breaking_gbfs.o \
@@ -247,6 +250,7 @@ $(BIN_DIR)/libsearch.a: \
 		$(BIN_DIR)/search_factory.o \
 		$(BIN_DIR)/search/kgbfs.o \
 		$(BIN_DIR)/search/gbfs.o \
+		$(BIN_DIR)/search/dehc.o \
 		$(BIN_DIR)/search/lazy_gbfs.o \
 		$(BIN_DIR)/search/orbit_gbfs.o \
 		$(BIN_DIR)/search/symmetry_breaking_gbfs.o \

@@ -52,6 +52,8 @@ class SingleOpenList : public OpenList {
 
   int MinimumValue(int i) const override { return list_->MinimumValue(i); }
 
+  void Clear() override { list_->Clear(); }
+
   void Boost() override {}
 
  private:

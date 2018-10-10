@@ -45,6 +45,11 @@ class PreferredOpenList : public OpenList {
 
   int MinimumValue(int i) const override { return lists_[0]->MinimumValue(i); }
 
+  void Clear() override {
+    lists_[0]->Clear();
+    lists_[1]->Clear();
+  }
+
   void Boost() override { priorities_[1] += boost_; }
 
  private:

@@ -1,5 +1,6 @@
 #include "search_factory.h"
 
+#include "search/dehc.h"
 #include "search/gbfs.h"
 #include "search/kgbfs.h"
 #include "search/lazy_gbfs.h"
@@ -36,6 +37,9 @@ std::unique_ptr<Search> SearchFactory(std::shared_ptr<const SASPlus> problem,
 
   if (search.get() == "sbgbfs")
     return std::unique_ptr<SBGBFS>(new SBGBFS(problem, option.get()));
+
+  if (search.get() == "dehc")
+    return std::unique_ptr<DEHC>(new DEHC(problem, option.get()));
 
   throw std::runtime_error("No such search algorithm.");
 }
