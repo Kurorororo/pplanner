@@ -1,5 +1,6 @@
 #include "lts.h"
 
+#include <algorithm>
 #include <iostream>
 
 namespace pplanner {
