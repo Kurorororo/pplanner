@@ -30,6 +30,7 @@ class HDDEHC : public Search {
       runup_(false),
       limit_expansion_(false),
       use_sss_(false),
+      aggressive_(false),
       max_expansion_(0),
       generated_(0),
       expanded_(0),

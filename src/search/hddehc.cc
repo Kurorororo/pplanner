@@ -228,14 +228,14 @@ int HDDEHC::Expand(int node, vector<int> &state, bool eager_dd) {
 
       bool dominated = false;
 
-      int h = Evaluate(child, child_node, values);
-      if (h != -1) Push(values, child_node);
-
       if (aggressive_ && lds_->Dominance(current_initial_, child)) {
         open_list_->Clear();
         current_initial_ = child;
         dominated = true;
       }
+
+      int h = Evaluate(child, child_node, values);
+      if (h != -1) Push(values, child_node);
 
       if (dominated) break;
     } else {
