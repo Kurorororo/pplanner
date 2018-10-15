@@ -151,14 +151,21 @@ bool SSSApproximater::PreconditionsMutex(int a, int b) const {
     int b_value = *b_value_itr;
 
     if ((b_var == a_var && b_value != a_value)
-        || problem_->IsMutex(a_var, a_value, b_var, b_value))
+       || problem_->IsMutex(a_var, a_value, b_var, b_value))
       return true;
 
-    ++a_var_itr;
-    ++a_value_itr;
-
-    ++b_var_itr;
-    ++b_value_itr;
+    if (a_var < b_var) {
+      ++a_var_itr;
+      ++a_value_itr;
+    } else if (b_var < a_var) {
+      ++b_var_itr;
+      ++b_value_itr;
+    } else {
+      ++a_var_itr;
+      ++a_value_itr;
+      ++b_var_itr;
+      ++b_value_itr;
+    }
   }
 
   return false;
@@ -177,11 +184,18 @@ bool SSSApproximater::Disable(int a, int b) const {
     if (*b_var_itr == *a_var_itr && *b_value_itr != *a_value_itr)
       return true;
 
-    ++a_var_itr;
-    ++a_value_itr;
-
-    ++b_var_itr;
-    ++b_value_itr;
+    if (*a_var_itr < *b_var_itr) {
+      ++a_var_itr;
+      ++a_value_itr;
+    } else if (*b_var_itr < *a_var_itr) {
+      ++b_var_itr;
+      ++b_value_itr;
+    } else {
+      ++a_var_itr;
+      ++a_value_itr;
+      ++b_var_itr;
+      ++b_value_itr;
+    }
   }
 
   return false;
@@ -200,11 +214,18 @@ bool SSSApproximater::Conflict(int a, int b) const {
     if (*b_var_itr == *a_var_itr && *b_value_itr != *a_value_itr)
       return true;
 
-    ++a_var_itr;
-    ++a_value_itr;
-
-    ++b_var_itr;
-    ++b_value_itr;
+    if (*a_var_itr < *b_var_itr) {
+      ++a_var_itr;
+      ++a_value_itr;
+    } else if (*b_var_itr < *a_var_itr) {
+      ++b_var_itr;
+      ++b_value_itr;
+    } else {
+      ++a_var_itr;
+      ++a_value_itr;
+      ++b_var_itr;
+      ++b_value_itr;
+    }
   }
 
   return false;

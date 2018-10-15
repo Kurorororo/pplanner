@@ -13,6 +13,8 @@ void MutexGroups::AddGroup(const std::vector<int> &group) {
 }
 
 bool MutexGroups::IsMutex(int f, int g) const {
+  if (f == g) return false;
+
   for (auto &group : groups_)
     if (group.find(f) != group.end() && group.find(g) != group.end())
       return true;
