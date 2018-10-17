@@ -35,9 +35,7 @@ class SSSApproximater {
   void ComputeInterfere(int a);
 
   bool AreInterfere(int a, int b) const {
-    // This makes some instances in sokoban unsolvable.
     if (a == b || PreconditionsMutex(a, b)) return false;
-    //if (a == b) return false;
 
     return Disable(a, b) || Disable(b, a) || Conflict(a, b);
   }

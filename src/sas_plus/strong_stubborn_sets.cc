@@ -92,7 +92,7 @@ void SSSApproximater::ComputeInterfere(int a) {
 }
 
 void SSSApproximater::FDOrderGoal(const vector<int> &state, int *goal_var,
-                                 int *goal_value) const {
+                                  int *goal_value) const {
   *goal_var = -1;
   *goal_value = -1;
 
@@ -110,7 +110,8 @@ void SSSApproximater::FDOrderGoal(const vector<int> &state, int *goal_var,
 }
 
 void SSSApproximater::FDOrderPrecondition(const vector<int> &state, int a,
-                                         int *goal_var, int *goal_value) const {
+                                          int *goal_var, int *goal_value)
+  const {
   *goal_var = -1;
   *goal_value = -1;
 

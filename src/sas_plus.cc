@@ -31,10 +31,10 @@ int SASPlus::AddAction(int cost, const string &name,
   action_names_.push_back(name);
   auto sorted_precondition = precondition;
   std::sort(sorted_precondition.begin(), sorted_precondition.end());
-  preconditions_->Add(precondition);
+  preconditions_->Add(sorted_precondition);
   auto sorted_effect = effect;
   std::sort(sorted_effect.begin(), sorted_effect.end());
-  effects_->Add(effect);
+  effects_->Add(sorted_effect);
 
   return a;
 }
