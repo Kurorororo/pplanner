@@ -27,6 +27,7 @@ class GBFS : public Search {
       exhaust_(false),
       limit_expansion_(false),
       use_sss_(false),
+      sss_checked_(false),
       max_expansion_(0),
       generated_(0),
       expanded_(0),
@@ -35,6 +36,9 @@ class GBFS : public Search {
       n_preferred_evaluated_(0),
       n_branching_(0),
       n_preferreds_(0),
+      n_pruned_(0),
+      n_pruning_disable_(1000),
+      min_pruning_ratio_(0.0),
       problem_(problem),
       preferring_(nullptr),
       generator_(std::unique_ptr<SuccessorGenerator>(
@@ -71,6 +75,7 @@ class GBFS : public Search {
   bool exhaust_;
   bool limit_expansion_;
   bool use_sss_;
+  bool sss_checked_;
   int max_expansion_;
   int generated_;
   int expanded_;
@@ -80,6 +85,9 @@ class GBFS : public Search {
   int n_branching_;
   int n_preferreds_;
   int best_h_;
+  int n_pruned_;
+  int n_pruning_disable_;
+  double min_pruning_ratio_;
   std::shared_ptr<const SASPlus> problem_;
   std::shared_ptr<Evaluator> preferring_;
   std::unique_ptr<SuccessorGenerator> generator_;
