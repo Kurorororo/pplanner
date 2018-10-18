@@ -111,9 +111,10 @@ int GBFS::Expand(int node, vector<int> &state, vector<int> &child,
 
   if (use_sss_ && !sss_checked_ && expanded_ > n_pruning_disable_) {
     double ratio = static_cast<double>(n_pruned_)
-      / static_cast<double>(n_branching_ - n_pruned_);
+      / static_cast<double>(n_branching_);
 
     std::cout << "ratio=" << ratio << std::endl;
+    std::cout << "#pruned=" << n_pruned_ << std::endl;
 
     if (ratio < min_pruning_ratio_) use_sss_ = false;
 
