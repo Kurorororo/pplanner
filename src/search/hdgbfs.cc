@@ -82,10 +82,16 @@ void HDGBFS::Init(const boost::property_tree::ptree &pt) {
   else
     graph_->ReserveByRAMSize(5000000000);
 
-  if (auto opt = pt.get_optional<int>("sss")) {
+  if (auto opt = pt.get_child_optional("sss")) {
     use_sss_ = true;
     sss_aproximater_ = std::unique_ptr<SSSApproximater>(
         new SSSApproximater(problem_));
+
+    if (auto n_disable = opt.get().get_optional<int>("n_pruning_disable"))
+      n_pruning_disable_ = n_disable.get();
+
+    if (auto min_ratio = opt.get().get_optional<double>("min_pruning_ratio"))
+      min_pruning_ratio_ = min_ratio.get();
   }
 
   std::string abstraction = "none";
@@ -177,6 +183,20 @@ int HDGBFS::Expand(int node, vector<int> &state, bool eager_dd) {
 
   if (problem_->IsGoal(state)) return node;
 
+  if (use_sss_ && !sss_checked_ && expanded_ > n_pruning_disable_) {
+    double ratio = static_cast<double>(n_pruned_)
+      / static_cast<double>(n_branching_);
+
+    std::cout << "#pruned=" << n_pruned_ << std::endl;
+    std::cout << "#branching=" << n_branching_ << std::endl;
+    std::cout << "ratio=" << ratio << std::endl;
+
+    if (n_pruned_ == 0) use_sss_ = false;
+    //if (ratio < min_pruning_ratio_) use_sss_ = false;
+
+    sss_checked_ = true;
+  }
+
   generator_->Generate(state, applicable);
 
   if (applicable.empty()) {
@@ -194,7 +214,10 @@ int HDGBFS::Expand(int node, vector<int> &state, bool eager_dd) {
     sss_aproximater_->ApproximateSSS(state, applicable, sss);
 
   for (auto o : applicable) {
-    if (use_sss_ && !sss[o]) continue;
+    if (use_sss_ && !sss[o]) {
+      ++n_pruned_;
+      continue;
+    }
 
     child = state;
     problem_->ApplyEffect(o, child);

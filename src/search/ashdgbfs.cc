@@ -112,6 +112,7 @@ int ASHDGBFS::Search() {
     ReceiveNodes();
     if (NoNode()) continue;
 
+    //std::cout << "rank=" << rank_ << ", h=" << MinimumValues()[0] << std::endl;
     int node = Pop();
     int goal = Expand(node, state);
 
