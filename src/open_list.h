@@ -24,6 +24,8 @@ class OpenList {
 
   virtual int MinimumValue(int i) const = 0;
 
+  virtual const std::vector<int>& MinimumValues() const = 0;
+
   virtual void Clear() = 0;
 
   virtual void Boost() = 0;

@@ -52,6 +52,10 @@ class SingleOpenList : public OpenList {
 
   int MinimumValue(int i) const override { return list_->MinimumValue(i); }
 
+  const std::vector<int>& MinimumValues() const override {
+    return list_->MinimumValues();
+  }
+
   void Clear() override { list_->Clear(); }
 
   void Boost() override {}

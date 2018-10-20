@@ -49,6 +49,8 @@ class DistributedSearchGraphWithLandmarks : public DistributedSearchGraph {
   virtual int GenerateNodeFromBytes(const unsigned char *d,
                                     std::vector<int> &values) override;
 
+  virtual void BufferNode(int i, unsigned char *buffer) override;
+
   virtual void BufferNode(int action, int parent_node,
                           const std::vector<int> &parent,
                           const std::vector<int> &state,

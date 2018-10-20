@@ -45,6 +45,10 @@ class PreferredOpenList : public OpenList {
 
   int MinimumValue(int i) const override { return lists_[0]->MinimumValue(i); }
 
+  const std::vector<int>& MinimumValues() const override {
+    return lists_[0]->MinimumValues();
+  }
+
   void Clear() override {
     lists_[0]->Clear();
     lists_[1]->Clear();

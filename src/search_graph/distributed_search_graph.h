@@ -50,6 +50,8 @@ class DistributedSearchGraph : public SearchGraph {
   virtual int GenerateNodeFromBytes(const unsigned char *d,
                                     std::vector<int> &values);
 
+  virtual void BufferNode(int i, unsigned char *buffer);
+
   virtual void BufferNode(int action, int parent_node,
                           const std::vector<int> &parent,
                           const std::vector<int> &state, unsigned char *buffer);

@@ -126,6 +126,18 @@ int DistributedSearchGraph::GenerateNodeFromBytes(const unsigned char *d,
   return GenerateNode(action, parent_node, hash_value, packed, parent_rank);
 }
 
+void DistributedSearchGraph::BufferNode(int i, unsigned char *buffer) {
+  int info[3];
+  info[0] = Action(i);
+  info[1] = Parent(i);
+  info[2] = ParentRank(i);
+  memcpy(buffer, info, 3 * sizeof(int));
+  uint32_t hash_value = HashValue(i);
+  memcpy(buffer + 3 * sizeof(int), &hash_value, sizeof(uint32_t));
+  memcpy(buffer + 3 * sizeof(int) + sizeof(uint32_t), PackedState(i),
+         state_size());
+}
+
 void DistributedSearchGraph::BufferNode(int action, int parent_node,
                                         const vector<int> &parent,
                                         const vector<int> &state,

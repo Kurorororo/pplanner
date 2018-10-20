@@ -36,6 +36,10 @@ class FIFOOpenListImpl : public OpenListImpl {
 
   int MinimumValue(int i) const override { return buckets_.begin()->first[i]; }
 
+  const std::vector<int>& MinimumValues() const override {
+    return buckets_.begin()->first;
+  }
+
   void Clear() override { buckets_.clear(); }
 
  private:

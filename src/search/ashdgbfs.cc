@@ -1,4 +1,4 @@
-#include "search/hdgbfs.h"
+#include "search/ashdgbfs.h"
 
 #include <algorithm>
 #include <iostream>
@@ -24,8 +24,6 @@ void ASHDGBFS::Init(const boost::property_tree::ptree &pt) {
     limit_expansion_ = true;
     max_expansion_ = opt.get();
   }
-
-  if (auto opt = pt.get_optional<int>("runup")) runup_ = true;
 
   int closed_exponent = 22;
 
@@ -88,6 +86,9 @@ void ASHDGBFS::Init(const boost::property_tree::ptree &pt) {
         new SSSApproximater(problem_));
   }
 
+  if (auto opt = pt.get_optional<int>("send_once"))
+    if (opt.get() == 0) send_once_ = false;
+
   std::string abstraction = "none";
 
   if (auto opt = pt.get_optional<std::string>("abstraction"))
@@ -101,26 +102,11 @@ void ASHDGBFS::Init(const boost::property_tree::ptree &pt) {
   mpi_buffer_ = new unsigned char[buffer_size];
   MPI_Buffer_attach((void*)mpi_buffer_, buffer_size);
 
-  outgoing_buffers_.resize(world_size_);
+  outgoing_buffers_.resize(world_size_, std::make_shared<BestFirstBuffer>());
 }
 
 int ASHDGBFS::Search() {
   auto state = InitialEvaluate();
-
-  if (runup() && rank() == initial_rank()) {
-    while (n_open_nodes() < world_size() && !NoNode()) {
-      int node = Pop();
-      int goal = IndependentExpand(node, state);
-
-      if (goal != -1) {
-        SendTermination();
-
-        return goal;
-      }
-    }
-
-    Distribute();
-  }
 
   while (!ReceiveTermination()) {
     ReceiveNodes();
@@ -134,24 +120,21 @@ int ASHDGBFS::Search() {
 
       return goal;
     }
+
+    SendNodes(kNodeTag);
   }
 
   return -1;
 }
 
-vector<int> ASHDGBFS::InitialEvaluate(bool eager_dd) {
+vector<int> ASHDGBFS::InitialEvaluate() {
   auto state = problem_->initial();
   uint32_t world_size = static_cast<uint32_t>(world_size_);
   int initial_rank_ = z_hash_->operator()(state) % world_size;
 
   if (rank_ == initial_rank_) {
     int node = -1;
-
-    if (eager_dd)
-      node = graph_->GenerateAndCloseNode(-1, -1, state, -1);
-    else
-      node = graph_->GenerateNode(-1, -1, state, -1);
-
+    node = graph_->GenerateNode(-1, -1, state, -1);
     IncrementGenerated();
     int h = open_list_->EvaluateAndPush(state, node, true);
     graph_->SetH(node, h);
@@ -163,14 +146,14 @@ vector<int> ASHDGBFS::InitialEvaluate(bool eager_dd) {
   return state;
 }
 
-int ASHDGBFS::Expand(int node, vector<int> &state, bool eager_dd) {
+int ASHDGBFS::Expand(int node, vector<int> &state) {
   static vector<int> values;
   static vector<int> child;
   static vector<int> applicable;
   static unordered_set<int> preferred;
   static vector<bool> sss;
 
-  if (!eager_dd && !graph_->CloseIfNot(node)) return -1;
+  if (!graph_->CloseIfNot(node)) return -1;
 
   ++expanded_;
   graph_->Expand(node, state);
@@ -210,25 +193,23 @@ int ASHDGBFS::Expand(int node, vector<int> &state, bool eager_dd) {
     if (to_rank == rank_) {
       int child_node = -1;
 
-      if (eager_dd) {
-        child_node = graph_->GenerateAndCloseNode(o, node, state, child, rank_);
-      } else {
-        child_node = graph_->GenerateNodeIfNotClosed(
-            o, node, state, child, rank_);
-      }
+      child_node = graph_->GenerateNodeIfNotClosed(
+          o, node, state, child, rank_);
 
       if (child_node == -1) continue;
       IncrementGenerated();
       int h = Evaluate(child, child_node, values);
       if (h != -1) Push(values, child_node);
     } else {
-      unsigned char *buffer = ExtendOutgoingBuffer(to_rank, node_size());
-      graph_->BufferNode(o, node, state, child, buffer);
-      ++n_sent_;
+      int child_node = graph_->GenerateNode(o, node, state, child, rank_);
+      int h = Evaluate(child, child_node, values);
+      if (h == -1) continue;
+
+      unsigned char *buffer = outgoing_buffers_[to_rank]->Extend(
+          values, node_size());
+      graph_->BufferNode(child_node, buffer);
     }
   }
-
-  SendNodes(kNodeTag);
 
   return -1;
 }
@@ -243,7 +224,7 @@ int ASHDGBFS::Evaluate(const vector<int> &state, int node, vector<int> &values) 
 
     if (value == -1) {
       IncrementDeadEnds();
-      graph_->SetH(node , value);
+      graph_->SetH(node, value);
 
       return value;
     }
@@ -274,126 +255,28 @@ void ASHDGBFS::Push(std::vector<int> &values, int node) {
   }
 }
 
-int ASHDGBFS::IndependentExpand(int node, vector<int> &state, bool eager_dd) {
-  static vector<int> values;
-  static vector<int> child;
-  static vector<int> applicable;
-  static unordered_set<int> preferred;
-
-  if (!eager_dd && !graph_->CloseIfNot(node)) return -1;
-
-  ++expanded_;
-  graph_->Expand(node, state);
-
-  if (problem_->IsGoal(state)) return node;
-
-  generator_->Generate(state, applicable);
-
-  if (applicable.empty()) {
-    IncrementDeadEnds();
-
-    return -1;
-  }
-
-  if (use_preferred_)
-    preferring_->Evaluate(state, node, applicable, preferred);
-
-  ++n_preferred_evaluated_;
-  n_branching_ += applicable.size();
-
-  for (auto o : applicable) {
-    child = state;
-    problem_->ApplyEffect(o, child);
-
-    bool is_preferred = use_preferred_ && preferred.find(o) != preferred.end();
-    if (is_preferred) ++n_preferreds_;
-
-    int child_node = -1;
-
-    if (eager_dd) {
-      child_node = graph_->GenerateAndCloseNode(o, node, state, child, rank_);
-    } else {
-      child_node = graph_->GenerateNodeIfNotClosed(
-          o, node, state, child, rank_);
-    }
-
-    if (child_node == -1) continue;
-    IncrementGenerated();
-    int h = Evaluate(child, child_node, values);
-    if (h != -1) Push(values, child_node);
-  }
-
-  return -1;
-}
-
-int ASHDGBFS::Distribute(bool eager_dd) {
-  static vector<int> state(problem_->n_variables());
-  static vector<int> values;
-  static vector<int> child;
-  static vector<int> applicable;
-  static unordered_set<int> preferred;
-
-  int to_rank = 0;
-  int i = 1;
-
-  while (i < world_size_ && !NoNode()) {
-    int node = Pop();
-    if (!eager_dd && !graph_->CloseIfNot(node)) continue;
-
-    ++expanded_;
-    graph_->Expand(node, state);
-
-    if (problem_->IsGoal(state)) {
-      SendTermination();
-
-      return node;
-    }
-
-    generator_->Generate(state, applicable);
-
-    if (applicable.empty()) {
-      IncrementDeadEnds();
-      continue;
-    }
-
-    if (use_preferred_)
-      preferring_->Evaluate(state, node, applicable, preferred);
-
-    ++n_preferred_evaluated_;
-    n_branching_ += applicable.size();
-
-    for (auto o : applicable) {
-      child = state;
-      problem_->ApplyEffect(o, child);
-
-      bool is_preferred = use_preferred_
-        && preferred.find(o) != preferred.end();
-      if (is_preferred) ++n_preferreds_;
-
-      if (to_rank == rank()) to_rank = (to_rank + 1) % world_size_;
-
-      unsigned char *buffer = ExtendOutgoingBuffer(to_rank, node_size());
-      graph_->BufferNode(o, node, state, child, buffer);
-      ++i;
-      to_rank = (to_rank + 1) % world_size_;
-    }
-  }
-
-  SendNodes(kNodeTag);
-
-  return -1;
-}
-
 void ASHDGBFS::SendNodes(int tag) {
   for (int i=0; i<world_size_; ++i) {
-    if (i == rank_ || IsOutgoingBufferEmpty(i)) continue;
-    const unsigned char *d = OutgoingBuffer(i);
-    MPI_Bsend(d, OutgoingBufferSize(i), MPI_BYTE, i, tag, MPI_COMM_WORLD);
-    ClearOutgoingBuffer(i);
+    if (i == rank_) continue;
+
+    auto buffer = outgoing_buffers_[i]->MinBuffer();
+    auto end = outgoing_buffers_[i]->BufferEnd();
+
+    while (buffer != end && (NoNode() || buffer->first < MinimumValues())) {
+      const unsigned char *d = buffer->second.data();
+      size_t size = buffer->second.size();
+      MPI_Bsend(d, size, MPI_BYTE, i, tag, MPI_COMM_WORLD);
+      n_sent_ += (size - sizeof(int) * n_evaluators()) / node_size();
+      buffer = outgoing_buffers_[i]->Erase(buffer);
+
+      if (send_once_) break;
+    }
   }
 }
 
 void ASHDGBFS::ReceiveNodes() {
+  static vector<int> values(n_evaluators());
+
   int has_received = 0;
   size_t unit_size = node_size();
   MPI_Status status;
@@ -408,39 +291,24 @@ void ASHDGBFS::ReceiveNodes() {
     ResizeIncomingBuffer(d_size);
     MPI_Recv(IncomingBuffer(), d_size, MPI_BYTE, source, kNodeTag,
              MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    memcpy(values.data(), IncomingBuffer(), sizeof(int) * n_evaluators());
+    size_t n_nodes = (d_size - sizeof(int) * n_evaluators()) / unit_size;
+    auto buffer = IncomingBuffer() + sizeof(int) * n_evaluators();
 
-    size_t n_nodes = d_size / unit_size;
-    bool no_node = NoNode();
+    for (size_t i=0; i<n_nodes; ++i) {
+      int node = graph_->GenerateNodeIfNotClosedFromBytes(buffer);
 
-    for (size_t i=0; i<n_nodes; ++i)
-      CallbackOnReceiveNode(source, IncomingBuffer() + i * unit_size, no_node);
+      if (node != -1) {
+        IncrementGenerated();
+        Push(values, node);
+      }
+
+      buffer += unit_size;
+    }
 
     has_received = 0;
     MPI_Iprobe(
         MPI_ANY_SOURCE, kNodeTag, MPI_COMM_WORLD, &has_received, &status);
-  }
-
-  CallbackOnReceiveAllNodes();
-}
-
-void ASHDGBFS::CallbackOnReceiveNode(int source, const unsigned char *d,
-                                   bool no_node) {
-  static vector<int> values;
-
-  int node = graph_->GenerateNodeIfNotClosedFromBytes(d);
-
-  if (node != -1) {
-    IncrementGenerated();
-    graph_->State(node, tmp_state_);
-    int h = Evaluate(tmp_state_, node, values);
-
-    if (h == -1) {
-      IncrementDeadEnds();
-
-      return;
-    }
-
-    Push(values, node);
   }
 }
 

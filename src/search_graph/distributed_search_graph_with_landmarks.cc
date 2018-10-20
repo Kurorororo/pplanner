@@ -17,6 +17,14 @@ uint8_t* DistributedSearchGraphWithLandmarks::ParentLandmark(int i) {
   return parent_landmark_.data();
 }
 
+void DistributedSearchGraphWithLandmarks::BufferNode(int i,
+                                                     unsigned char *buffer) {
+  DistributedSearchGraph::BufferNode(i, buffer);
+  uint8_t *landmark = reinterpret_cast<uint8_t*>(
+      buffer + DistributedSearchGraph::node_size());
+  memcpy(landmark, Landmark(i), n_landmarks_bytes_ * sizeof(uint8_t));
+}
+
 void DistributedSearchGraphWithLandmarks::BufferNode(int action,
                                                      int parent_node,
                                                      const vector<int> &parent,
