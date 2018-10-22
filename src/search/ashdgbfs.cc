@@ -102,7 +102,14 @@ void ASHDGBFS::Init(const boost::property_tree::ptree &pt) {
   mpi_buffer_ = new unsigned char[buffer_size];
   MPI_Buffer_attach((void*)mpi_buffer_, buffer_size);
 
-  outgoing_buffers_.resize(world_size_, std::make_shared<BestFirstBuffer>());
+  open_min_h_in_proc_.resize(world_size_, -1);
+  outgoing_buffers_.resize(world_size_,
+                           std::vector<unsigned char>(sizeof(int)));
+
+  for (auto &buffer : outgoing_buffers_) {
+    int h = -1;
+    memcpy(buffer.data(), &h, sizeof(int));
+  }
 }
 
 int ASHDGBFS::Search() {
@@ -138,6 +145,7 @@ vector<int> ASHDGBFS::InitialEvaluate() {
     node = graph_->GenerateNode(-1, -1, state, -1);
     IncrementGenerated();
     int h = open_list_->EvaluateAndPush(state, node, true);
+    open_min_h_in_proc_[rank_] = h;
     graph_->SetH(node, h);
     set_best_h(h);
     std::cout << "Initial heuristic value: " << best_h() << std::endl;
@@ -145,6 +153,26 @@ vector<int> ASHDGBFS::InitialEvaluate() {
   }
 
   return state;
+}
+
+int ASHDGBFS::FindEmptyProcess() const {
+  for (int i=0; i<world_size_; ++i)
+    if (open_min_h_in_proc_[i] == -1) return i;
+
+  return -1;
+}
+
+int ASHDGBFS::GlobalMinH() const {
+  int min_h = -1;
+
+  for (int i=0; i<world_size_; ++i) {
+    int h = open_min_h_in_proc_[i];
+
+    if (h != -1 && (h < min_h || min_h == -1))
+      min_h = h;
+  }
+
+  return min_h;
 }
 
 int ASHDGBFS::Expand(int node, vector<int> &state) {
@@ -183,32 +211,42 @@ int ASHDGBFS::Expand(int node, vector<int> &state) {
     child = state;
     problem_->ApplyEffect(o, child);
 
-    bool is_preferred = use_preferred_ && preferred.find(o) != preferred.end();
-    if (is_preferred) ++n_preferreds_;
+    int child_node = graph_->GenerateNodeIfNotClosed(
+        o, node, state, child, rank_);
 
-    uint32_t hash = z_hash_->operator()(child);
-    int to_rank = hash % static_cast<uint32_t>(world_size_);
+    if (child_node == -1) continue;
+
+    IncrementGenerated();
+    int h = Evaluate(child, child_node, values);
+
+    if (h == -1) {
+      IncrementDeadEnds();
+      continue;
+    }
 
     ++n_sent_or_generated_;
+    int global_h_min = GlobalMinH();
+    int to_rank = FindEmptyProcess();
+
+    if (global_h_min != -1 && h >= global_h_min && to_rank == -1) {
+      Push(values, child_node);
+      continue;
+    }
+
+    if (to_rank == -1) {
+      uint32_t hash = z_hash_->operator()(child);
+      to_rank = hash % static_cast<uint32_t>(world_size_);
+    }
 
     if (to_rank == rank_) {
-      int child_node = -1;
-
-      child_node = graph_->GenerateNodeIfNotClosed(
-          o, node, state, child, rank_);
-
-      if (child_node == -1) continue;
-      IncrementGenerated();
-      int h = Evaluate(child, child_node, values);
-      if (h != -1) Push(values, child_node);
+      Push(values, child_node);
     } else {
-      int child_node = graph_->GenerateNode(o, node, state, child, rank_);
-      int h = Evaluate(child, child_node, values);
-      if (h == -1) continue;
-
-      unsigned char *buffer = outgoing_buffers_[to_rank]->Extend(
-          values, node_size());
-      graph_->BufferNode(child_node, buffer);
+      unsigned char *buffer = ExtendOutgoingBuffer(
+          to_rank, node_size() + values.size() * sizeof(int));
+      memcpy(buffer, values.data(), values.size() * sizeof(int));
+      graph_->BufferNode(child_node, buffer + values.size() * sizeof(int));
+      UpdateOpenMinH(to_rank, h);
+      ++n_sent_;
     }
   }
 
@@ -242,6 +280,7 @@ int ASHDGBFS::Evaluate(const vector<int> &state, int node, vector<int> &values) 
 void ASHDGBFS::Push(std::vector<int> &values, int node) {
   int h = values[0];
   open_list_->Push(values, node, false);
+  UpdateOpenMinH(rank_, h);
 
   if (best_h() == -1 || h < best_h()) {
     set_best_h(h);
@@ -257,21 +296,15 @@ void ASHDGBFS::Push(std::vector<int> &values, int node) {
 }
 
 void ASHDGBFS::SendNodes(int tag) {
+  if (NoNode()) open_min_h_in_proc_[rank_] = -1;
+
   for (int i=0; i<world_size_; ++i) {
-    if (i == rank_) continue;
+    if (i == rank_ || outgoing_buffers_[i].size() == sizeof(int)) continue;
 
-    auto buffer = outgoing_buffers_[i]->MinBuffer();
-    auto end = outgoing_buffers_[i]->BufferEnd();
-
-    while (buffer != end && (NoNode() || buffer->first < MinimumValues())) {
-      const unsigned char *d = buffer->second.data();
-      size_t size = buffer->second.size();
-      MPI_Bsend(d, size, MPI_BYTE, i, tag, MPI_COMM_WORLD);
-      n_sent_ += (size - sizeof(int) * n_evaluators()) / node_size();
-      buffer = outgoing_buffers_[i]->Erase(buffer);
-
-      if (send_once_) break;
-    }
+    unsigned char *d = outgoing_buffers_[i].data();
+    memcpy(d, open_min_h_in_proc_.data() + rank_, sizeof(int));
+    MPI_Bsend(d, outgoing_buffers_[i].size(), MPI_BYTE, i, tag, MPI_COMM_WORLD);
+    ClearOutgoingBuffer(i);
   }
 }
 
@@ -279,7 +312,7 @@ void ASHDGBFS::ReceiveNodes() {
   static vector<int> values(n_evaluators());
 
   int has_received = 0;
-  size_t unit_size = node_size();
+  size_t unit_size = node_size() + values.size() * sizeof(int);
   MPI_Status status;
   MPI_Iprobe(MPI_ANY_SOURCE, kNodeTag, MPI_COMM_WORLD, &has_received, &status);
 
@@ -292,11 +325,17 @@ void ASHDGBFS::ReceiveNodes() {
     ResizeIncomingBuffer(d_size);
     MPI_Recv(IncomingBuffer(), d_size, MPI_BYTE, source, kNodeTag,
              MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    memcpy(values.data(), IncomingBuffer(), sizeof(int) * n_evaluators());
-    size_t n_nodes = (d_size - sizeof(int) * n_evaluators()) / unit_size;
-    auto buffer = IncomingBuffer() + sizeof(int) * n_evaluators();
+
+    auto buffer = IncomingBuffer();
+
+    memcpy(open_min_h_in_proc_.data() + source, buffer, sizeof(int));
+    buffer += sizeof(int);
+
+    size_t n_nodes = (d_size - sizeof(int)) / unit_size;
 
     for (size_t i=0; i<n_nodes; ++i) {
+      memcpy(values.data(), buffer, values.size() * sizeof(int));
+      buffer += values.size() * sizeof(int);
       int node = graph_->GenerateNodeIfNotClosedFromBytes(buffer);
 
       if (node != -1) {
@@ -304,7 +343,7 @@ void ASHDGBFS::ReceiveNodes() {
         Push(values, node);
       }
 
-      buffer += unit_size;
+      buffer += node_size();
     }
 
     has_received = 0;

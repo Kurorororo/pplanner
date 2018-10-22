@@ -14,7 +14,6 @@
 #include "sas_plus.h"
 #include "sas_plus/strong_stubborn_sets.h"
 #include "search.h"
-#include "search/best_first_buffer.h"
 #include "search_graph/distributed_search_graph.h"
 #include "successor_generator.h"
 #include "open_list.h"
@@ -118,9 +117,27 @@ class ASHDGBFS : public Search {
 
   size_t n_open_nodes() const { return open_list_->size(); }
 
+  void UpdateOpenMinH(int rank, int h) {
+    if (open_min_h_in_proc_[rank] == -1 || h < open_min_h_in_proc_[rank])
+      open_min_h_in_proc_[rank] = h;
+  }
+
+  int FindEmptyProcess() const;
+
+  int GlobalMinH() const;
+
   unsigned char* IncomingBuffer() { return incoming_buffer_.data(); }
 
   void ResizeIncomingBuffer(size_t size) { incoming_buffer_.resize(size); }
+
+  unsigned char* ExtendOutgoingBuffer(int i, size_t size) {
+    size_t index = outgoing_buffers_[i].size();
+    outgoing_buffers_[i].resize(index + size);
+
+    return outgoing_buffers_[i].data() + index;
+  }
+
+  void ClearOutgoingBuffer(int i) { outgoing_buffers_[i].resize(sizeof(int)); }
 
   void SendNodes(int tag);
 
@@ -168,7 +185,8 @@ class ASHDGBFS : public Search {
   size_t n_evaluators_;
   unsigned char *mpi_buffer_;
   std::vector<unsigned char> incoming_buffer_;
-  std::vector<std::shared_ptr<BestFirstBuffer> > outgoing_buffers_;
+  std::vector<int> open_min_h_in_proc_;
+  std::vector<std::vector<unsigned char> > outgoing_buffers_;
   std::shared_ptr<const SASPlus> problem_;
   std::vector<std::shared_ptr<Evaluator> > evaluators_;
   std::shared_ptr<Evaluator> preferring_;
