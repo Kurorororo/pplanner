@@ -99,6 +99,9 @@ void HDGBFS::Init(const boost::property_tree::ptree &pt) {
   if (auto opt = pt.get_optional<std::string>("abstraction"))
     abstraction = opt.get();
 
+  if (auto opt = pt.get_optional<int>("send_threshold"))
+    send_threshold_ = opt.get();
+
   z_hash_ = DistributionHashFactory(problem_, 2886379259, abstraction);
 
   MPI_Comm_size(MPI_COMM_WORLD, &world_size_);
@@ -108,6 +111,7 @@ void HDGBFS::Init(const boost::property_tree::ptree &pt) {
   MPI_Buffer_attach((void*)mpi_buffer_, buffer_size);
 
   outgoing_buffers_.resize(world_size_);
+  n_in_out_going_buffer_.resize(world_size_, 0);
 }
 
 int HDGBFS::Search() {
@@ -248,6 +252,7 @@ int HDGBFS::Expand(int node, vector<int> &state, bool eager_dd) {
       unsigned char *buffer = ExtendOutgoingBuffer(to_rank, node_size());
       graph_->BufferNode(o, node, state, child, buffer);
       ++n_sent_;
+      ++n_in_out_going_buffer_[to_rank];
     }
   }
 
@@ -410,9 +415,13 @@ int HDGBFS::Distribute(bool eager_dd) {
 void HDGBFS::SendNodes(int tag) {
   for (int i=0; i<world_size_; ++i) {
     if (i == rank_ || IsOutgoingBufferEmpty(i)) continue;
-    const unsigned char *d = OutgoingBuffer(i);
-    MPI_Bsend(d, OutgoingBufferSize(i), MPI_BYTE, i, tag, MPI_COMM_WORLD);
-    ClearOutgoingBuffer(i);
+
+    if (NoNode() || n_in_out_going_buffer_[i] > send_threshold_) {
+      const unsigned char *d = OutgoingBuffer(i);
+      MPI_Bsend(d, OutgoingBufferSize(i), MPI_BYTE, i, tag, MPI_COMM_WORLD);
+      ClearOutgoingBuffer(i);
+      n_in_out_going_buffer_[i] = 0;
+    }
   }
 }
 

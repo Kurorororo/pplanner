@@ -47,6 +47,7 @@ class HDGBFS : public Search {
       initial_rank_(0),
       world_size_(2),
       rank_(0),
+      send_threshold_(0),
       n_evaluators_(0),
       mpi_buffer_(nullptr),
       min_pruning_ratio_(0.0),
@@ -206,9 +207,11 @@ class HDGBFS : public Search {
   int initial_rank_;
   int world_size_;
   int rank_;
+  int send_threshold_;
   size_t n_evaluators_;
   unsigned char *mpi_buffer_;
   double min_pruning_ratio_;
+  std::vector<int> n_in_out_going_buffer_;
   std::vector<int> tmp_state_;
   std::vector<unsigned char> incoming_buffer_;
   std::vector<std::vector<unsigned char> > outgoing_buffers_;
