@@ -181,6 +181,9 @@ int ASHDGBFS::Expand(int node, vector<int> &state) {
   static vector<int> applicable;
   static unordered_set<int> preferred;
   static vector<bool> sss;
+  static vector<int> node_array;
+  static vector<vector<int> > state_array;
+  static vector<vector<int> > value_array;
 
   if (!graph_->CloseIfNot(node)) return -1;
 
@@ -205,6 +208,10 @@ int ASHDGBFS::Expand(int node, vector<int> &state) {
   if (use_sss_)
     sss_aproximater_->ApproximateSSS(state, applicable, sss);
 
+  node_array.clear();
+  state_array.clear();
+  value_array.clear();
+
   for (auto o : applicable) {
     if (use_sss_ && !sss[o]) continue;
 
@@ -224,11 +231,39 @@ int ASHDGBFS::Expand(int node, vector<int> &state) {
       continue;
     }
 
-    ++n_sent_or_generated_;
-    int global_h_min = GlobalMinH();
-    int to_rank = FindEmptyProcess();
+    node_array.push_back(child_node);
+    state_array.push_back(child);
+    value_array.push_back(values);
+  }
 
-    if (global_h_min != -1 && h >= global_h_min && to_rank == -1) {
+  int expand_to_next = -1;
+
+  if (NoNode()) {
+    expand_to_next = 0;
+  } else {
+    auto local_minimum = MinimumValues();
+
+    for (int i=0, n=value_array.size(); i<n; ++i) {
+      if (value_array[i] < local_minimum) {
+        local_minimum = value_array[i];
+        expand_to_next = i;
+      }
+    }
+  }
+
+  for (int i=0, n=state_array.size(); i<n; ++i) {
+    ++n_sent_or_generated_;
+    //int global_h_min = GlobalMinH();
+    //int to_rank = FindEmptyProcess();
+    int to_rank = -1;
+
+    auto &child = state_array[i];
+    auto &values = value_array[i];
+    int child_node = node_array[i];
+    //int h = values[0];
+
+    if (i == expand_to_next) {
+        //|| (global_h_min != -1 && h > global_h_min && to_rank == -1)) {
       Push(values, child_node);
       continue;
     }
@@ -245,7 +280,7 @@ int ASHDGBFS::Expand(int node, vector<int> &state) {
           to_rank, node_size() + values.size() * sizeof(int));
       memcpy(buffer, values.data(), values.size() * sizeof(int));
       graph_->BufferNode(child_node, buffer + values.size() * sizeof(int));
-      UpdateOpenMinH(to_rank, h);
+      //UpdateOpenMinH(to_rank, h);
       ++n_sent_;
     }
   }
@@ -280,7 +315,7 @@ int ASHDGBFS::Evaluate(const vector<int> &state, int node, vector<int> &values) 
 void ASHDGBFS::Push(std::vector<int> &values, int node) {
   int h = values[0];
   open_list_->Push(values, node, false);
-  UpdateOpenMinH(rank_, h);
+  //UpdateOpenMinH(rank_, h);
 
   if (best_h() == -1 || h < best_h()) {
     set_best_h(h);
