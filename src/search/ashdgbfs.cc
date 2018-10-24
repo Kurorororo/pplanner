@@ -86,8 +86,11 @@ void ASHDGBFS::Init(const boost::property_tree::ptree &pt) {
         new SSSApproximater(problem_));
   }
 
-  if (auto opt = pt.get_optional<int>("send_once"))
-    if (opt.get() == 0) send_once_ = false;
+  if (auto opt = pt.get_optional<int>("take_all_"))
+    take_all_ = true;
+
+  if (auto opt = pt.get_optional<int>("take_best_"))
+    take_best_ = true;
 
   std::string abstraction = "none";
 
@@ -184,6 +187,7 @@ int ASHDGBFS::Expand(int node, vector<int> &state) {
   static vector<int> node_array;
   static vector<vector<int> > state_array;
   static vector<vector<int> > value_array;
+  static vector<int> minimum_values;
 
   if (!graph_->CloseIfNot(node)) return -1;
 
@@ -238,15 +242,20 @@ int ASHDGBFS::Expand(int node, vector<int> &state) {
 
   int expand_to_next = -1;
 
-  if (NoNode()) {
-    expand_to_next = 0;
-  } else {
-    auto local_minimum = MinimumValues();
+  if (!take_all_) {
+    if (NoNode()) {
+      expand_to_next = 0;
+    } else {
+      if (take_best_)
+        minimum_values = best_values_;
+      else
+        minimum_values = MinimumValues();
 
-    for (int i=0, n=value_array.size(); i<n; ++i) {
-      if (value_array[i] < local_minimum) {
-        local_minimum = value_array[i];
-        expand_to_next = i;
+      for (int i=0, n=value_array.size(); i<n; ++i) {
+        if (value_array[i] < minimum_values) {
+          minimum_values = value_array[i];
+          expand_to_next = i;
+        }
       }
     }
   }
@@ -262,7 +271,9 @@ int ASHDGBFS::Expand(int node, vector<int> &state) {
     int child_node = node_array[i];
     //int h = values[0];
 
-    if (i == expand_to_next) {
+    if (i == expand_to_next
+        || (take_all_ && take_best_ && values < best_values_)
+        || (take_all_ && !take_best_ && values < MinimumValues())) {
         //|| (global_h_min != -1 && h > global_h_min && to_rank == -1)) {
       Push(values, child_node);
       continue;
@@ -316,6 +327,9 @@ void ASHDGBFS::Push(std::vector<int> &values, int node) {
   int h = values[0];
   open_list_->Push(values, node, false);
   //UpdateOpenMinH(rank_, h);
+
+  if (best_values_.empty() || values < best_values_)
+    best_values_ = values;
 
   if (best_h() == -1 || h < best_h()) {
     set_best_h(h);

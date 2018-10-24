@@ -28,7 +28,8 @@ class ASHDGBFS : public Search {
     : use_preferred_(false),
       limit_expansion_(false),
       use_sss_(false),
-      send_once_(true),
+      take_all_(false),
+      take_best_(false),
       max_expansion_(0),
       generated_(0),
       expanded_(0),
@@ -166,7 +167,8 @@ class ASHDGBFS : public Search {
   bool use_preferred_;
   bool limit_expansion_;
   bool use_sss_;
-  bool send_once_;
+  bool take_all_;
+  bool take_best_;
   int max_expansion_;
   int generated_;
   int expanded_;
@@ -184,6 +186,7 @@ class ASHDGBFS : public Search {
   int rank_;
   size_t n_evaluators_;
   unsigned char *mpi_buffer_;
+  std::vector<int> best_values_;
   std::vector<unsigned char> incoming_buffer_;
   std::vector<int> open_min_h_in_proc_;
   std::vector<std::vector<unsigned char> > outgoing_buffers_;
