@@ -17,8 +17,8 @@ using namespace pplanner;
 bool Run(std::shared_ptr<const SASPlus> sas,
          const boost::property_tree::ptree &pt,
          bool postprocess) {
-  auto chrono_start = std::chrono::system_clock::now();
   auto search = MpiSearchFactory(sas, pt);
+  auto chrono_start = std::chrono::system_clock::now();
   auto result = search->Plan();
   auto chrono_end = std::chrono::system_clock::now();
   auto ns = std::chrono::duration_cast<std::chrono::nanoseconds>(

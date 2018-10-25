@@ -36,6 +36,10 @@ class WeightedEvaluator : public Evaluator {
     return search_graph_->Cost(node) + weight_ * h;
   }
 
+  int Evaluate(const std::vector<int> &state, int node, int parent) override {
+    return Evaluate(state, node);
+  }
+
   int Evaluate(const std::vector<int> &state, int node,
                const std::vector<int> &applicable,
                std::unordered_set<int> &preferred) override {
@@ -43,6 +47,12 @@ class WeightedEvaluator : public Evaluator {
     cache_ = h;
 
     return search_graph_->Cost(node) + weight_ * h;
+  }
+
+  int Evaluate(const std::vector<int> &state, int node, int parent,
+               const std::vector<int> &applicable,
+               std::unordered_set<int> &preferred) override {
+    return Evaluate(state, node, applicable, preferred);
   }
 
   int HeuristicCache() const { return cache_; }
@@ -65,10 +75,20 @@ class WeightedHeuristicCache : public Evaluator {
     return evaluator_->HeuristicCache();
   }
 
+  int Evaluate(const std::vector<int> &state, int node, int parent) override {
+    return Evaluate(state, node);
+  }
+
   int Evaluate(const std::vector<int> &state, int node,
                const std::vector<int> &applicable,
                std::unordered_set<int> &preferred) override {
-    return evaluator_->HeuristicCache();
+    return Evaluate(state, node);
+  }
+
+  int Evaluate(const std::vector<int> &state, int node, int parent,
+               const std::vector<int> &applicable,
+               std::unordered_set<int> &preferred) override {
+    return Evaluate(state, node, applicable, preferred);
   }
 
  private:

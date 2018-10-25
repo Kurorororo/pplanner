@@ -50,8 +50,8 @@ int main(int argc, char *argv[]) {
   int max_expansion = -1;
   if (vm.count("max_expansion")) max_expansion = vm["max_expansion"].as<int>();
 
-  auto chrono_start = std::chrono::system_clock::now();
   auto search = SearchFactory(sas, child.get(), max_expansion);
+  auto chrono_start = std::chrono::system_clock::now();
   auto result = search->Plan();
   auto chrono_end = std::chrono::system_clock::now();
   auto ns = std::chrono::duration_cast<std::chrono::nanoseconds>(

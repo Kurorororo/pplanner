@@ -1,4 +1,4 @@
-#include "search/ashdgbfs.h"
+#include "search/hdgbfs1.h"
 
 #include <algorithm>
 #include <iostream>
@@ -17,7 +17,7 @@ using std::make_shared;
 using std::unordered_set;
 using std::vector;
 
-void ASHDGBFS::Init(const boost::property_tree::ptree &pt) {
+void HDGBFS1::Init(const boost::property_tree::ptree &pt) {
   MPI_Comm_rank(MPI_COMM_WORLD, &rank_);
 
   if (auto opt = pt.get_optional<int>("max_expansion")) {
@@ -86,9 +86,6 @@ void ASHDGBFS::Init(const boost::property_tree::ptree &pt) {
         new SSSApproximater(problem_));
   }
 
-  if (auto opt = pt.get_optional<int>("take_all_"))
-    take_all_ = true;
-
   if (auto opt = pt.get_optional<int>("take_best_"))
     take_best_ = true;
 
@@ -105,24 +102,16 @@ void ASHDGBFS::Init(const boost::property_tree::ptree &pt) {
   mpi_buffer_ = new unsigned char[buffer_size];
   MPI_Buffer_attach((void*)mpi_buffer_, buffer_size);
 
-  open_min_h_in_proc_.resize(world_size_, -1);
-  outgoing_buffers_.resize(world_size_,
-                           std::vector<unsigned char>(sizeof(int)));
-
-  for (auto &buffer : outgoing_buffers_) {
-    int h = -1;
-    memcpy(buffer.data(), &h, sizeof(int));
-  }
+  outgoing_buffers_.resize(world_size_);
 }
 
-int ASHDGBFS::Search() {
+int HDGBFS1::Search() {
   auto state = InitialEvaluate();
 
   while (!ReceiveTermination()) {
     ReceiveNodes();
     if (NoNode()) continue;
 
-    //std::cout << "rank=" << rank_ << ", h=" << MinimumValues()[0] << std::endl;
     int node = Pop();
     int goal = Expand(node, state);
 
@@ -138,17 +127,16 @@ int ASHDGBFS::Search() {
   return -1;
 }
 
-vector<int> ASHDGBFS::InitialEvaluate() {
+vector<int> HDGBFS1::InitialEvaluate() {
   auto state = problem_->initial();
   uint32_t world_size = static_cast<uint32_t>(world_size_);
-  int initial_rank_ = z_hash_->operator()(state) % world_size;
+  initial_rank_ = z_hash_->operator()(state) % world_size;
 
   if (rank_ == initial_rank_) {
     int node = -1;
     node = graph_->GenerateNode(-1, -1, state, -1);
     IncrementGenerated();
     int h = open_list_->EvaluateAndPush(state, node, true);
-    open_min_h_in_proc_[rank_] = h;
     graph_->SetH(node, h);
     set_best_h(h);
     std::cout << "Initial heuristic value: " << best_h() << std::endl;
@@ -158,27 +146,7 @@ vector<int> ASHDGBFS::InitialEvaluate() {
   return state;
 }
 
-int ASHDGBFS::FindEmptyProcess() const {
-  for (int i=0; i<world_size_; ++i)
-    if (open_min_h_in_proc_[i] == -1) return i;
-
-  return -1;
-}
-
-int ASHDGBFS::GlobalMinH() const {
-  int min_h = -1;
-
-  for (int i=0; i<world_size_; ++i) {
-    int h = open_min_h_in_proc_[i];
-
-    if (h != -1 && (h < min_h || min_h == -1))
-      min_h = h;
-  }
-
-  return min_h;
-}
-
-int ASHDGBFS::Expand(int node, vector<int> &state) {
+int HDGBFS1::Expand(int node, vector<int> &state) {
   static vector<int> values;
   static vector<int> child;
   static vector<int> applicable;
@@ -242,39 +210,31 @@ int ASHDGBFS::Expand(int node, vector<int> &state) {
 
   int expand_to_next = -1;
 
-  if (!take_all_) {
-    if (NoNode()) {
-      expand_to_next = 0;
-    } else {
-      if (take_best_)
-        minimum_values = best_values_;
-      else
-        minimum_values = MinimumValues();
+  if (NoNode()) {
+    expand_to_next = 0;
+  } else {
+    if (take_best_)
+      minimum_values = best_values_;
+    else
+      minimum_values = MinimumValues();
 
-      for (int i=0, n=value_array.size(); i<n; ++i) {
-        if (value_array[i] < minimum_values) {
-          minimum_values = value_array[i];
-          expand_to_next = i;
-        }
+    for (int i=0, n=value_array.size(); i<n; ++i) {
+      if (value_array[i] < minimum_values) {
+        minimum_values = value_array[i];
+        expand_to_next = i;
       }
     }
   }
 
   for (int i=0, n=state_array.size(); i<n; ++i) {
     ++n_sent_or_generated_;
-    //int global_h_min = GlobalMinH();
-    //int to_rank = FindEmptyProcess();
     int to_rank = -1;
 
     auto &child = state_array[i];
     auto &values = value_array[i];
     int child_node = node_array[i];
-    //int h = values[0];
 
-    if (i == expand_to_next
-        || (take_all_ && take_best_ && values < best_values_)
-        || (take_all_ && !take_best_ && values < MinimumValues())) {
-        //|| (global_h_min != -1 && h > global_h_min && to_rank == -1)) {
+    if (i == expand_to_next) {
       Push(values, child_node);
       continue;
     }
@@ -291,7 +251,6 @@ int ASHDGBFS::Expand(int node, vector<int> &state) {
           to_rank, node_size() + values.size() * sizeof(int));
       memcpy(buffer, values.data(), values.size() * sizeof(int));
       graph_->BufferNode(child_node, buffer + values.size() * sizeof(int));
-      //UpdateOpenMinH(to_rank, h);
       ++n_sent_;
     }
   }
@@ -299,7 +258,7 @@ int ASHDGBFS::Expand(int node, vector<int> &state) {
   return -1;
 }
 
-int ASHDGBFS::Evaluate(const vector<int> &state, int node, vector<int> &values) {
+int HDGBFS1::Evaluate(const vector<int> &state, int node, vector<int> &values) {
   ++evaluated_;
 
   values.clear();
@@ -323,10 +282,9 @@ int ASHDGBFS::Evaluate(const vector<int> &state, int node, vector<int> &values) 
 }
 
 
-void ASHDGBFS::Push(std::vector<int> &values, int node) {
+void HDGBFS1::Push(std::vector<int> &values, int node) {
   int h = values[0];
   open_list_->Push(values, node, false);
-  //UpdateOpenMinH(rank_, h);
 
   if (best_values_.empty() || values < best_values_)
     best_values_ = values;
@@ -344,20 +302,17 @@ void ASHDGBFS::Push(std::vector<int> &values, int node) {
   }
 }
 
-void ASHDGBFS::SendNodes(int tag) {
-  if (NoNode()) open_min_h_in_proc_[rank_] = -1;
-
+void HDGBFS1::SendNodes(int tag) {
   for (int i=0; i<world_size_; ++i) {
     if (i == rank_ || outgoing_buffers_[i].size() == sizeof(int)) continue;
 
     unsigned char *d = outgoing_buffers_[i].data();
-    memcpy(d, open_min_h_in_proc_.data() + rank_, sizeof(int));
     MPI_Bsend(d, outgoing_buffers_[i].size(), MPI_BYTE, i, tag, MPI_COMM_WORLD);
     ClearOutgoingBuffer(i);
   }
 }
 
-void ASHDGBFS::ReceiveNodes() {
+void HDGBFS1::ReceiveNodes() {
   static vector<int> values(n_evaluators());
 
   int has_received = 0;
@@ -376,11 +331,7 @@ void ASHDGBFS::ReceiveNodes() {
              MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
     auto buffer = IncomingBuffer();
-
-    memcpy(open_min_h_in_proc_.data() + source, buffer, sizeof(int));
-    buffer += sizeof(int);
-
-    size_t n_nodes = (d_size - sizeof(int)) / unit_size;
+    size_t n_nodes = d_size / unit_size;
 
     for (size_t i=0; i<n_nodes; ++i) {
       memcpy(values.data(), buffer, values.size() * sizeof(int));
@@ -401,14 +352,14 @@ void ASHDGBFS::ReceiveNodes() {
   }
 }
 
-void ASHDGBFS::SendTermination() {
+void HDGBFS1::SendTermination() {
   for (int i=0; i<world_size_; ++i) {
     if (i == rank_) continue;
     MPI_Bsend(NULL, 0, MPI_BYTE, i,kTerminationTag, MPI_COMM_WORLD);
   }
 }
 
-bool ASHDGBFS::ReceiveTermination() {
+bool HDGBFS1::ReceiveTermination() {
   int has_received = 0;
   MPI_Iprobe(MPI_ANY_SOURCE, kTerminationTag, MPI_COMM_WORLD, &has_received,
              MPI_STATUS_IGNORE);
@@ -416,13 +367,13 @@ bool ASHDGBFS::ReceiveTermination() {
   return has_received == 1;
 }
 
-vector<int> ASHDGBFS::ExtractPath(int node) {
+vector<int> HDGBFS1::ExtractPath(int node) {
   vector<int> rec_buffer(world_size_);
   MPI_Gather(
       &node, 1, MPI_INT, rec_buffer.data(), 1, MPI_INT, 0, MPI_COMM_WORLD);
   int goal_process = -1;
 
-  if (rank_ == initial_rank_) {
+  if (rank_ == 0) {
     for (int i=0; i<world_size_; ++i) {
       if (rec_buffer[i] != -1) {
         goal_process = i;
@@ -506,7 +457,7 @@ vector<int> ASHDGBFS::ExtractPath(int node) {
   return vector<int>(0);
 }
 
-void ASHDGBFS::Flush(int tag) {
+void HDGBFS1::Flush(int tag) {
   MPI_Status status;
   int has_received = 0;
 
@@ -525,7 +476,7 @@ void ASHDGBFS::Flush(int tag) {
   }
 }
 
-void ASHDGBFS::DumpStatistics() const {
+void HDGBFS1::DumpStatistics() const {
   int expanded = 0;
   int evaluated = 0;
   int generated = 0;

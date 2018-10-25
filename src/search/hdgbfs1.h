@@ -1,5 +1,5 @@
-#ifndef ASHDGBFS_H_
-#define ASHDGBFS_H_
+#ifndef HDGBFS1_H_
+#define HDGBFS1_H_
 
 #include <memory>
 #include <random>
@@ -21,14 +21,13 @@
 
 namespace pplanner {
 
-class ASHDGBFS : public Search {
+class HDGBFS1 : public Search {
  public:
-  ASHDGBFS(std::shared_ptr<const SASPlus> problem,
+  HDGBFS1(std::shared_ptr<const SASPlus> problem,
          const boost::property_tree::ptree &pt)
     : use_preferred_(false),
       limit_expansion_(false),
       use_sss_(false),
-      take_all_(false),
       take_best_(false),
       max_expansion_(0),
       generated_(0),
@@ -56,7 +55,7 @@ class ASHDGBFS : public Search {
       z_hash_(nullptr),
       sss_aproximater_(nullptr) { Init(pt); }
 
-  virtual ~ASHDGBFS() {
+  virtual ~HDGBFS1() {
     Flush(kNodeTag);
     int detach_size;
     MPI_Buffer_detach(&mpi_buffer_, &detach_size);
@@ -103,7 +102,7 @@ class ASHDGBFS : public Search {
 
   int Expand(int node, std::vector<int> &state);
 
-  int Evaluate(const std::vector<int> &state, int node,
+  int Evaluate(const std::vector<int> &state, int node, int parent,
                std::vector<int> &values);
 
   void Push(std::vector<int> &values, int node);
@@ -116,16 +115,9 @@ class ASHDGBFS : public Search {
     return open_list_->MinimumValues();
   }
 
+  int ExpandToNext(const std::vector<std::vector<int> > &value_array) const;
+
   size_t n_open_nodes() const { return open_list_->size(); }
-
-  void UpdateOpenMinH(int rank, int h) {
-    if (open_min_h_in_proc_[rank] == -1 || h < open_min_h_in_proc_[rank])
-      open_min_h_in_proc_[rank] = h;
-  }
-
-  int FindEmptyProcess() const;
-
-  int GlobalMinH() const;
 
   unsigned char* IncomingBuffer() { return incoming_buffer_.data(); }
 
@@ -138,7 +130,7 @@ class ASHDGBFS : public Search {
     return outgoing_buffers_[i].data() + index;
   }
 
-  void ClearOutgoingBuffer(int i) { outgoing_buffers_[i].resize(sizeof(int)); }
+  void ClearOutgoingBuffer(int i) { outgoing_buffers_[i].clear(); }
 
   void SendNodes(int tag);
 
@@ -167,7 +159,6 @@ class ASHDGBFS : public Search {
   bool use_preferred_;
   bool limit_expansion_;
   bool use_sss_;
-  bool take_all_;
   bool take_best_;
   int max_expansion_;
   int generated_;
@@ -188,7 +179,6 @@ class ASHDGBFS : public Search {
   unsigned char *mpi_buffer_;
   std::vector<int> best_values_;
   std::vector<unsigned char> incoming_buffer_;
-  std::vector<int> open_min_h_in_proc_;
   std::vector<std::vector<unsigned char> > outgoing_buffers_;
   std::shared_ptr<const SASPlus> problem_;
   std::vector<std::shared_ptr<Evaluator> > evaluators_;
@@ -202,4 +192,4 @@ class ASHDGBFS : public Search {
 
 } // namespace pplanner
 
-#endif // ASHDGBFS_H_
+#endif // HDGBFS1_H_

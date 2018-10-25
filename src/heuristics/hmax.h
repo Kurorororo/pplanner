@@ -35,12 +35,20 @@ class Hmax : public Evaluator {
     return rpg_->HmaxCost(facts_, unit_cost_);
   }
 
+  int Evaluate(const std::vector<int> &state, int node, int parent) override {
+    return Evaluate(state, node);
+  }
+
   int Evaluate(const std::vector<int> &state, int node,
                const std::vector<int> &applicable,
                std::unordered_set<int> &preferred) override {
-    StateToFactVector(*problem_, state, facts_);
+    return Evaluate(state, node);
+  }
 
-    return rpg_->HmaxCost(facts_, unit_cost_);
+  int Evaluate(const std::vector<int> &state, int node, int parent,
+               const std::vector<int> &applicable,
+               std::unordered_set<int> &preferred) override {
+    return Evaluate(state, node, applicable, preferred);
   }
 
  private:

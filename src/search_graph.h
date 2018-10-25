@@ -187,6 +187,15 @@ class SearchGraph {
     return closed_[Find(hash_value, packed)];
   }
 
+  int GetClosed(int action, int parent_node, const std::vector<int> &parent,
+                const std::vector<int> &state, uint32_t *packed,
+                uint32_t *hash_value) {
+    *hash_value = HashByDifference(action, parent_node, parent, state);
+    packer_->Pack(state, packed);
+
+    return GetClosed(*hash_value, packed);
+  }
+
   bool CloseIfNotInner(int node, bool reopen_closed);
 
   void Close(int i) { Close(Find(i), i); }

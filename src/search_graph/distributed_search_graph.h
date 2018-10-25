@@ -59,9 +59,24 @@ class DistributedSearchGraph : public SearchGraph {
   virtual void BufferNode(int action, int parent_node,
                           const std::vector<int> &state, unsigned char *buffer);
 
+  virtual void BufferNode(int action, int parent_node, uint32_t hash_value,
+                          const uint32_t *packed, unsigned char *buffer);
+
   virtual void BufferNode(int i, const unsigned char *base,
                           unsigned char *buffer) {
     memcpy(buffer, base, DistributedSearchGraph::node_size());
+  }
+
+  virtual int GenerateEvaluatedNode(int index, int action, int parent_node,
+                                    uint32_t hash_value, const uint32_t *packed,
+                                    int parent_rank) {
+    return GenerateNode(action, parent_node, hash_value, packed, parent_rank);
+  }
+
+  virtual void BufferEvaluatedNode(int index, int action, int parent_node,
+                                   uint32_t hash_value, const uint32_t *packed,
+                                   unsigned char *buffer) {
+    BufferNode(action, parent_node, hash_value, packed, buffer);
   }
 
   int n_evaluators() const { return n_evaluators_; }

@@ -169,4 +169,18 @@ void DistributedSearchGraph::BufferNode(int action, int parent_node,
   Pack(state, packed);
 }
 
+void DistributedSearchGraph::BufferNode(int action, int parent_node,
+                                        uint32_t hash_value,
+                                        const uint32_t *packed,
+                                        unsigned char *buffer) {
+  int info[3];
+  info[0] = action;
+  info[1] = parent_node;
+  info[2] = rank_;
+  memcpy(buffer, info, 3 * sizeof(int));
+  memcpy(buffer + 3 * sizeof(int), &hash_value, sizeof(uint32_t));
+  memcpy(buffer + 3 * sizeof(int) + sizeof(uint32_t), packed,
+         state_size());
+}
+
 } // namespace pplanner

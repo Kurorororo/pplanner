@@ -39,11 +39,29 @@ class LandmarkCount : public Evaluator {
     return lmcount_->Evaluate(state, parent_accepted, accepted);
   }
 
+  int Evaluate(const std::vector<int> &state, int node, int parent_node)
+    override {
+    uint8_t *accepted = search_graph_->Landmark(node);
+    uint8_t *parent_accepted = search_graph_->Landmark(parent_node);
+
+    return lmcount_->Evaluate(state, parent_accepted, accepted);
+  }
+
   int Evaluate(const std::vector<int> &state, int node,
                const std::vector<int> &applicable,
                std::unordered_set<int> &preferred) override {
     uint8_t *accepted = search_graph_->Landmark(node);
     uint8_t *parent_accepted = search_graph_->ParentLandmark(node);
+
+    return lmcount_->Evaluate(
+        state, applicable, parent_accepted, accepted, preferred);
+  }
+
+  int Evaluate(const std::vector<int> &state, int node, int parent_node,
+               const std::vector<int> &applicable,
+               std::unordered_set<int> &preferred) override {
+    uint8_t *accepted = search_graph_->Landmark(node);
+    uint8_t *parent_accepted = search_graph_->Landmark(parent_node);
 
     return lmcount_->Evaluate(
         state, applicable, parent_accepted, accepted, preferred);

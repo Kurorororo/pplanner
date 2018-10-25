@@ -21,9 +21,19 @@ class NewOperator: public Evaluator {
 
   int Evaluate(const std::vector<int> &state, int node) override { return 1; }
 
+  int Evaluate(const std::vector<int> &state, int node, int parent) override {
+    return Evaluate(state, node);
+  }
+
   int Evaluate(const std::vector<int> &state, int node,
                const std::vector<int> &applicable,
                std::unordered_set<int> &preferred) override;
+
+  int Evaluate(const std::vector<int> &state, int node, int parent,
+               const std::vector<int> &applicable,
+               std::unordered_set<int> &preferred) override {
+    return Evaluate(state, node, applicable, preferred);
+  }
 
  private:
   std::vector<bool> is_new_;

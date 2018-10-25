@@ -12,7 +12,13 @@ class Evaluator {
 
   virtual int Evaluate(const std::vector<int> &state, int node) = 0;
 
+  virtual int Evaluate(const std::vector<int> &state, int node, int parent) = 0;
+
   virtual int Evaluate(const std::vector<int> &state, int node,
+                       const std::vector<int> &applicable,
+                       std::unordered_set<int> &preferred) = 0;
+
+  virtual int Evaluate(const std::vector<int> &state, int node, int parent,
                        const std::vector<int> &applicable,
                        std::unordered_set<int> &preferred) = 0;
 };

@@ -60,6 +60,10 @@ class DistributedSearchGraphWithLandmarks : public DistributedSearchGraph {
                           const std::vector<int> &state,
                           unsigned char *buffer) override;
 
+  virtual void BufferNode(int action, int parent_node, uint32_t hash_value,
+                          const uint32_t *packed, unsigned char *buffer)
+    override;
+
   virtual void BufferNode(int i, const unsigned char *base,
                           unsigned char *buffer) override {
     DistributedSearchGraph::BufferNode(i, base, buffer);
@@ -67,9 +71,15 @@ class DistributedSearchGraphWithLandmarks : public DistributedSearchGraph {
            n_landmarks_bytes_ * sizeof(uint8_t));
   }
 
-  uint8_t* Landmark(int i) override {
-    return landmarks_.data() + static_cast<size_t>(i) * n_landmarks_bytes_;
-  }
+  virtual int GenerateEvaluatedNode(int index, int action, int parent_node,
+                                    uint32_t hash_value, const uint32_t *packed,
+                                    int parent_rank) override;
+
+  virtual void BufferEvaluatedNode(int index, int action, int parent_node,
+                                   uint32_t hash_value, const uint32_t *packed,
+                                   unsigned char *buffer) override;
+
+  uint8_t* Landmark(int i) override;
 
   uint8_t* ParentLandmark(int i) override;
 
@@ -77,6 +87,7 @@ class DistributedSearchGraphWithLandmarks : public DistributedSearchGraph {
   size_t n_landmarks_bytes_;
   std::vector<uint8_t> parent_landmark_;
   std::vector<uint8_t> landmarks_;
+  std::vector<uint8_t> tmp_landmarks_;
 };
 
 } // namespace pplanner
