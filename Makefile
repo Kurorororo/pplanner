@@ -84,12 +84,14 @@ mpi_planner: \
 
 sas_relaxed_graphplan: \
 	$(TEST_DIR)/heuristics/sas_relaxed_graphplan.cc \
+	$(BIN_DIR)/heuristics/hn_rpg.o \
 	$(BIN_DIR)/heuristics/rpg.o \
 	$(BIN_DIR)/heuristics/relaxed_sas_plus.o \
 	$(BIN_DIR)/utils/file_utils.o \
 	$(BIN_DIR)/libsas_plus.a
 	$(CXX) $(INCS) $(RELEASE_FLAG) -o $(BIN_DIR)/sas_relaxed_graphplan \
 		$(TEST_DIR)/heuristics/sas_relaxed_graphplan.cc \
+		$(BIN_DIR)/heuristics/hn_rpg.o \
 		$(BIN_DIR)/heuristics/rpg.o \
 		$(BIN_DIR)/heuristics/relaxed_sas_plus.o \
 		$(BIN_DIR)/utils/file_utils.o \

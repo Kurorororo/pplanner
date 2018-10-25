@@ -52,14 +52,27 @@ void SetPossibleAchievers(const Landmark &psi,
   }
 }
 
-void RRPG(const vector<int> &possible_achievers,
-          const vector<int> &initial,
-          vector<bool> &black_list,
-          shared_ptr<RPG> rrpg) {
+void RRPG(const Landmark &psi, shared_ptr<const SASPlus> problem,
+          shared_ptr<const RelaxedSASPlus> r_problem,
+          const vector<int> &initial, shared_ptr<RPG> rrpg) {
+  static vector<bool> black_list(r_problem->n_actions(), false);
+
   std::fill(black_list.begin(), black_list.end(), false);
 
-  for (auto o : possible_achievers)
-    black_list[o] = true;
+  for (int i=0, n=psi.size(); i<n; ++i) {
+    int f = problem->Fact(psi.VarValue(i));
+
+    for (auto o : r_problem->EffectMap(f)) {
+      if (r_problem->IsConditional(o)) {
+        black_list[o] = true;
+      } else {
+        int a = r_problem->ActionId(o);
+
+        for (auto p : r_problem->IdToActions(a))
+          black_list[p] = true;
+      }
+    }
+  }
 
   rrpg->ConstructRRPG(initial, black_list);
 }
@@ -83,6 +96,30 @@ vector<pair<int, int> > ExtendedPreconditions(const Landmark &psi,
   vector<pair<int, int> > precondition;
   problem->CopyPrecondition(action, precondition);
 
+  if (problem->HasConditionalEffects(action)) {
+    // Add effect conditions of psi to the precondition.
+    vector<vector<pair<int, int> > > effect_conditions;
+    problem->CopyEffectConditions(action, effect_conditions);
+    vector<pair<int, int> > conditional_effects;
+    problem->CopyConditionalEffects(action, conditional_effects);
+
+    for (int i=0, n=effect_conditions.size(); i<n; ++i) {
+      auto e = conditional_effects[i];
+
+      for (int j=0, m=psi.size(); j<m; ++j) {
+        if (psi.Var(j) == e.first && psi.Value(j) == e.second) {
+          for (auto p : effect_conditions[i])
+            precondition.push_back(p);
+
+          break;
+        }
+      }
+    }
+  }
+
+  // Add the initial assignment of a variable in psi to the precondition
+  // if the variable takes only two values and initialy takes different value
+  // from that of psi, and the action has an effect on the variable.
   for (auto p : precondition)
     has_precondition[p.first] = true;
 
@@ -292,7 +329,6 @@ void IdentifyLandmarks(shared_ptr<const SASPlus> problem,
   unordered_map<int, pair_set> potential_orderings;
 
   shared_ptr<RPG> rrpg = RPGFactory(problem, r_problem, use_rpg_table);
-  vector<bool> black_list(problem->n_actions(), false);
 
   auto dtgs = InitializeDTGs(problem);
 
@@ -312,8 +348,7 @@ void IdentifyLandmarks(shared_ptr<const SASPlus> problem,
       continue;
     }
 
-    auto &p_achievers = graph->GetPossibleAchievers(psi_id);
-    RRPG(p_achievers, initial_facts, black_list, rrpg);
+    RRPG(psi, problem, r_problem, initial_facts, rrpg);
     SetFirstAchievers(psi, rrpg, graph);
     auto &pre_shared = PreShared(psi, problem, graph);
 

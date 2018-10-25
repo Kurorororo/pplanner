@@ -16,17 +16,21 @@ void SuccessorGenerator::Init(std::shared_ptr<const SASPlus> problem) {
   problem_ = problem;
 
   to_child_.resize(problem->n_facts(), -1);
-  to_data_.resize(problem->n_facts(), -1);
 
   vector<pair<int, int> > precondition;
+  vector<int> to_data(problem->n_facts(), -1);
+  vector<vector<int> > data;
 
   for (int i=0, n=static_cast<int>(problem->n_actions()); i<n; ++i)
-    Insert(i, precondition);
+    Insert(i, precondition, to_data, data);
+
+  ConvertToData(to_data, data);
 }
 
-
 void SuccessorGenerator::Insert(int query,
-                                vector<pair<int, int> > &precondition) {
+                                vector<pair<int, int> > &precondition,
+                                vector<int> &to_data,
+                                vector<vector<int> > &data) {
   assert(nullptr != problem_);
 
   problem_->CopyPrecondition(query, precondition);
@@ -42,7 +46,7 @@ void SuccessorGenerator::Insert(int query,
     int index = offset + problem_->Fact(var, value) - n_ommited;
 
     if (i == n - 1) {
-      AddQuery(index, query);
+      AddQuery(index, query, to_data, data);
       return;
     }
 
@@ -53,36 +57,57 @@ void SuccessorGenerator::Insert(int query,
       to_child_[index] = static_cast<int>(old_size);
       size_t new_size = old_size + n_facts - static_cast<size_t>(n_ommited);
       to_child_.resize(new_size, -1);
-      to_data_.resize(new_size, -1);
+      to_data.resize(new_size, -1);
     }
 
     offset = to_child_[index];
   }
 }
 
-void SuccessorGenerator::AddQuery(int index, int query) {
-  if (to_data_[index] == -1) {
-    size_t old_size = data_.size();
-    data_.resize(old_size + 1);
-    to_data_[index] = static_cast<int>(old_size);
+void SuccessorGenerator::AddQuery(int index, int query, vector<int> &to_data,
+                                  vector<vector<int> > &data) {
+  if (to_data[index] == -1) {
+    size_t old_size = data.size();
+    data.resize(old_size + 1);
+    to_data[index] = static_cast<int>(old_size);
   }
 
-  int data_index = to_data_[index];
-  data_[data_index].push_back(query);
+  int data_index = to_data[index];
+  data[data_index].push_back(query);
 }
 
-void SuccessorGenerator::DFS(const vector<int> &state, int index,
-                             size_t current, vector<int> &result) const {
+void SuccessorGenerator::ConvertToData(const vector<int> &to_data,
+                                       const vector<vector<int> > &data) {
+  to_data_.reserve(1 + to_data.size());
+
+  size_t size = 0;
+
+  for (auto &v : data)
+    size += v.size();
+
+  data_.reserve(size);
+
+  for (auto &v : to_data) {
+    if (v == -1) {
+      to_data_.push_back(to_data_.back() + 0);
+    } else {
+      to_data_.push_back(to_data_.back() + data[v].size());
+
+      for (auto d : data[v])
+        data_.push_back(d);
+    }
+  }
+}
+
+void SuccessorGenerator::DFS(const vector<int> &state, int index, int current,
+                             vector<int> &result) const {
   int offset = index - problem_->VarBegin(current);
 
-  for (size_t i=current, n=state.size(); i<n; ++i) {
+  for (int i=current, n=n_variables_; i<n; ++i) {
     int next = problem_->Fact(i, state[i]) + offset;
-    int data_index = to_data_[next];
 
-    if (data_index != -1) {
-      result.insert(result.end(), data_[data_index].begin(),
-                    data_[data_index].end());
-    }
+    for (int j=to_data_[next], m=to_data_[next + 1]; j<m; ++j)
+      result.push_back(data_[j]);
 
     int child = to_child_[next];
     if (child == -1) continue;
@@ -92,18 +117,15 @@ void SuccessorGenerator::DFS(const vector<int> &state, int index,
 }
 
 void SuccessorGenerator::DFSample(const vector<int> &state, int index,
-                                  size_t current, unsigned int &k, int &result) {
+                                  int current, unsigned int &k, int &result) {
   int offset = index - problem_->VarBegin(current);
 
-  for (size_t i=current, n=state.size(); i<n; ++i) {
+  for (int i=current, n=n_variables_; i<n; ++i) {
     int next = problem_->Fact(i, state[i]) + offset;
-    int data_index = to_data_[next];
 
-    if (data_index != -1) {
-      for (auto d : data_[data_index]) {
-        if (engine_() % k == 0) result = d;
-        ++k;
-      }
+    for (int j=to_data_[next], m=to_data_[next + 1]; j<m; ++j) {
+      if (engine_() % k == 0) result = data_[j];
+      ++k;
     }
 
     int child = to_child_[next];
@@ -128,12 +150,10 @@ void SuccessorGenerator::Dump() const {
   std::cout << std::endl;
   std::cout << "data" << std::endl;
 
-  for (auto d : data_) {
-    for (auto v : d)
-      std::cout << v << " ";
+  for (auto v : data_)
+    std::cout << v << " ";
 
-    std::cout << std::endl;
-  }
+  std::cout << std::endl;
 }
 
 } // namespace rwls

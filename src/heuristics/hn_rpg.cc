@@ -110,7 +110,7 @@ void HNRPG::ActionLayer() {
   }
 }
 
-void HNRPG::ConstructRRPG(const std::vector<int> &state,
+void HNRPG::ConstructRRPG(const vector<int> &state,
                           const vector<bool> &black_list) {
   SetUp();
 
@@ -134,9 +134,8 @@ void HNRPG::RistrictedFactLayer(const vector<bool> &black_list) {
 
     for (auto o : problem_->PreconditionMap(f)) {
       if (--precondition_counter_[o] == 0) {
-        int a = problem_->ActionId(o);
-        is_applicable_[a] = true;
-        if (!black_list[a]) scheduled_actions_.push_back(o);
+        is_applicable_[problem_->ActionId(o)] = true;
+        if (!black_list[o]) scheduled_actions_.push_back(o);
       }
     }
   }
@@ -208,9 +207,11 @@ int HNRPG::ExtractAction(int i, int g) {
   int id = problem_->ActionId(o);
 
   for (auto a : problem_->IdToActions(id)) {
-    int f = problem_->Effect(a);
-    marked_[0][f] = true;
-    marked_[1][f] = true;
+    if (a == o || !problem_->IsConditional(a)) {
+      int f = problem_->Effect(a);
+      marked_[0][f] = true;
+      marked_[1][f] = true;
+    }
   }
 
   return o;

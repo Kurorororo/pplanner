@@ -15,14 +15,14 @@ namespace pplanner {
 
 class PreferredOpenList : public OpenList {
  public:
-  PreferredOpenList() : boost_(1000) {}
+  PreferredOpenList() : boost_(0) {}
 
   PreferredOpenList(const std::string &tie_breaking, int boost=0)
       : boost_(boost) { Init(tie_breaking); }
 
   PreferredOpenList(const std::string &tie_breaking,
                     const std::vector<std::shared_ptr<Evaluator> > &evaluators,
-                    int boost=1000)
+                    int boost=0)
       : boost_(boost), evaluators_(evaluators) { Init(tie_breaking); }
 
   ~PreferredOpenList() {}

@@ -128,8 +128,9 @@ void RPGTable::SetUp(const vector<int> &state, bool unit_cost) {
   std::fill(is_applicable_.begin(), is_applicable_.end(), false);
   q_ = PQueue();
 
-  for (int i=0, n=r_problem_->n_facts(); i<n; ++i)
-    supporters_[i].clear();
+  if (more_helpful_)
+    for (int i=0, n=r_problem_->n_facts(); i<n; ++i)
+      supporters_[i].clear();
 
   for (int i=0, n=r_problem_->n_actions(); i<n; ++i) {
     precondition_counter_[i] = r_problem_->PreconditionSize(i);
@@ -162,9 +163,8 @@ void RPGTable::ConstructRRPG(const vector<int> &state,
 
   for (int i=0, n=r_problem_->n_actions(); i<n; ++i) {
     if (precondition_counter_[i] == 0) {
-      int a_id = r_problem_->ActionId(i);
-      is_applicable_[a_id] = true;
-      if (!black_list[a_id]) MayPush(r_problem_->Effect(i), i);
+      is_applicable_[r_problem_->ActionId(i)] = true;
+      if (!black_list[i]) MayPush(r_problem_->Effect(i), i);
     }
   }
 
@@ -188,9 +188,8 @@ void RPGTable::ConstructRRPG(const vector<int> &state,
       op_cost_[a] = std::max(r_problem_->ActionCost(a) + c, op_cost_[a]);
 
       if (--precondition_counter_[a] == 0) {
-        int a_id = r_problem_->ActionId(a);
-        is_applicable_[a_id] = true;
-        if (!black_list[a_id]) MayPush(r_problem_->Effect(a), a);
+        is_applicable_[r_problem_->ActionId(a)] = true;
+        if (!black_list[a]) MayPush(r_problem_->Effect(a), a);
       }
     }
   }

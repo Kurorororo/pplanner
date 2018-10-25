@@ -129,6 +129,22 @@ class SASPlus {
     effects_->Copy(i, effect);
   }
 
+  bool HasConditionalEffects(int i) const {
+    return effects_->HasConditionalEffects(i);
+  }
+
+  void CopyEffectConditions(
+      int i,
+      std::vector<std::vector<std::pair<int, int> > > &conditions) const {
+    effects_->CopyEffectConditions(i, conditions);
+  }
+
+  void CopyConditionalEffects(
+      int i,
+      std::vector<std::pair<int, int> > &effects) const {
+    effects_->CopyConditionalEffects(i, effects);
+  }
+
   void ApplyEffect(int i, std::vector<int> &state) const {
     effects_->Apply(i, state);
   }
@@ -150,9 +166,13 @@ class SASPlus {
  private:
   void CreateActions(int n);
 
-  int AddAction(int cost, const std::string &name,
-                const std::vector<std::pair<int, int> > &precondition,
-                const std::vector<std::pair<int, int> > &effect);
+  int AddAction(
+      int cost,
+      const std::string &name,
+      const std::vector<std::pair<int, int> > &precondition,
+      const std::vector<std::pair<int, int> > &effect,
+      const std::vector<std::vector<std::pair<int, int> > > &effect_conditions,
+      const std::vector<std::pair<int, int> > &conditional_effects);
 
   int metric_;
   std::shared_ptr<Facts> facts_;

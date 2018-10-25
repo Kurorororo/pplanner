@@ -13,10 +13,12 @@ namespace pplanner {
 
 class SuccessorGenerator {
  public:
-  SuccessorGenerator() : problem_(nullptr) {}
+  SuccessorGenerator() : problem_(nullptr), to_data_(1, 0) {}
 
   explicit SuccessorGenerator(std::shared_ptr <const SASPlus> problem)
-    : problem_(nullptr) { Init(problem); }
+    : n_variables_(problem->n_variables()), problem_(nullptr), to_data_(1, 0) {
+      Init(problem);
+  }
 
   void Init(std::shared_ptr<const SASPlus> problem);
 
@@ -39,23 +41,29 @@ class SuccessorGenerator {
 
   const int* to_data() const { return to_data_.data(); }
 
-  const std::vector<std::vector<int> >& data() const { return data_; }
+  const int* data() const { return data_.data(); }
 
  private:
-  void Insert(int query, std::vector<std::pair<int, int> > &precondition);
+  void Insert(int query, std::vector<std::pair<int, int> > &precondition,
+              std::vector<int> &to_data, std::vector<std::vector<int> > &data);
 
-  void AddQuery(int index, int query);
+  void AddQuery(int index, int query, std::vector<int> &to_data,
+                std::vector<std::vector<int> > &data);
 
-  void DFS(const std::vector<int> &state, int index, size_t current,
+  void ConvertToData(const std::vector<int> &to_data,
+                     const std::vector<std::vector<int> > &data);
+
+  void DFS(const std::vector<int> &state, int index, int current,
            std::vector<int> &result) const;
 
-  void DFSample(const std::vector<int> &state, int index, size_t current,
+  void DFSample(const std::vector<int> &state, int index, int current,
                 unsigned int &k, int &result);
 
+  int n_variables_;
   std::shared_ptr<const SASPlus> problem_;
   std::vector<int> to_child_;
   std::vector<int> to_data_;
-  std::vector<std::vector<int> > data_;
+  std::vector<int> data_;
   std::mt19937 engine_;
 };
 
