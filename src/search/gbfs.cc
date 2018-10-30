@@ -219,6 +219,14 @@ void GBFS::DumpStatistics() const {
     / static_cast<double>(n_branching_);
   std::cout << "Preferred ratio " << p_p_b  << std::endl;
 
+  if (n_plan_step_ != -1 && expanded_ > 1) {
+    double plan_length_per_expansion = static_cast<double>(n_plan_step_)
+      / static_cast<double>(expanded_ - 1);
+    std::cout << "Plan steps ratio " << plan_length_per_expansion << std::endl;
+  } else {
+    std::cout << "Plan steps ratio " << 0 << std::endl;
+  }
+
   graph_->Dump();
 }
 

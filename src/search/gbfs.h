@@ -38,6 +38,7 @@ class GBFS : public Search {
       n_preferreds_(0),
       n_pruned_(0),
       n_pruning_disable_(1000),
+      n_plan_step_(-1),
       min_pruning_ratio_(0.0),
       problem_(problem),
       preferring_(nullptr),
@@ -51,8 +52,10 @@ class GBFS : public Search {
 
   std::vector<int> Plan() override {
     int goal = Search();
+    auto plan = ExtractPath(graph_, goal);
+    n_plan_step_ = plan.size();
 
-    return ExtractPath(graph_, goal);
+    return plan;
   }
 
   void DumpStatistics() const override;
@@ -87,6 +90,7 @@ class GBFS : public Search {
   int best_h_;
   int n_pruned_;
   int n_pruning_disable_;
+  int n_plan_step_;
   double min_pruning_ratio_;
   std::shared_ptr<const SASPlus> problem_;
   std::shared_ptr<Evaluator> preferring_;
