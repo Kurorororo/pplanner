@@ -28,7 +28,7 @@ class HDGBFS1 : public Search {
     : use_preferred_(false),
       limit_expansion_(false),
       use_sss_(false),
-      take_best_(false),
+      take_(0),
       max_expansion_(0),
       generated_(0),
       expanded_(0),
@@ -159,7 +159,8 @@ class HDGBFS1 : public Search {
   bool use_preferred_;
   bool limit_expansion_;
   bool use_sss_;
-  bool take_best_;
+  // 0: better 1: best 2: none
+  int take_;
   int max_expansion_;
   int generated_;
   int expanded_;

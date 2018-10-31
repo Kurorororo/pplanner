@@ -86,8 +86,8 @@ void HDGBFS1::Init(const boost::property_tree::ptree &pt) {
         new SSSApproximater(problem_));
   }
 
-  if (auto opt = pt.get_optional<int>("take_best_"))
-    take_best_ = true;
+  if (auto opt = pt.get_optional<int>("take"))
+    take_= opt.get();
 
   std::string abstraction = "none";
 
@@ -149,12 +149,14 @@ vector<int> HDGBFS1::InitialEvaluate() {
 int HDGBFS1::ExpandToNext(const vector<vector<int> > &value_array) const {
   static vector<int> minimum_values;
 
+  if (take_ == 2) return -1;
+
   int expand_to_next = -1;
 
   if (NoNode()) {
     expand_to_next = 0;
   } else {
-    if (take_best_)
+    if (take_ == 1)
       minimum_values = best_values_;
     else
       minimum_values = MinimumValues();
