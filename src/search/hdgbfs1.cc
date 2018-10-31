@@ -178,6 +178,7 @@ int HDGBFS1::Expand(int node, vector<int> &state) {
   static vector<bool> sss;
   static vector<vector<int> > state_array;
   static vector<vector<uint32_t> > packed_array;
+  static vector<int> actione_array;
   static vector<uint32_t> hash_array;
   static vector<vector<int> > value_array;
 
@@ -206,6 +207,7 @@ int HDGBFS1::Expand(int node, vector<int> &state) {
 
   state_array.resize(applicable.size());
   packed_array.resize(applicable.size());
+  actione_array.resize(applicable.size());
   hash_array.resize(applicable.size());
   value_array.resize(applicable.size());
 
@@ -235,11 +237,13 @@ int HDGBFS1::Expand(int node, vector<int> &state) {
       continue;
     }
 
+    actione_array[index] = o;
     index++;
   }
 
   state_array.resize(index);
   packed_array.resize(index);
+  actione_array.resize(index);
   hash_array.resize(index);
   value_array.resize(index);
 
@@ -250,7 +254,7 @@ int HDGBFS1::Expand(int node, vector<int> &state) {
 
     auto &child = state_array[i];
     auto &values = value_array[i];
-    int action = applicable[i];
+    int action = actione_array[i];
 
     int to_rank = i == expand_to_next ? rank_ : -1;
 
