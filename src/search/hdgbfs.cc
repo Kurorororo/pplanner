@@ -77,11 +77,6 @@ void HDGBFS::Init(const boost::property_tree::ptree &pt) {
   auto open_list_option = pt.get_child("open_list");
   open_list_ = OpenListFactory(open_list_option, evaluators_);
 
-  if (auto ram = pt.get_optional<size_t>("ram"))
-    graph_->ReserveByRAMSize(ram.get());
-  else
-    graph_->ReserveByRAMSize(5000000000);
-
   if (auto opt = pt.get_child_optional("sss")) {
     use_sss_ = true;
     sss_aproximater_ = std::unique_ptr<SSSApproximater>(
@@ -94,10 +89,18 @@ void HDGBFS::Init(const boost::property_tree::ptree &pt) {
       min_pruning_ratio_ = min_ratio.get();
   }
 
+  size_t ram = 5000000000;
+
+  if (auto opt = pt.get_optional<size_t>("ram"))
+    ram = opt.get();
+
   if (auto opt = pt.get_optional<int>("dominance")) {
     use_dominance_ = true;
     lds_ = std::unique_ptr<LDS>(new LDS(problem_));
+    ram -= lds_->n_bytes();
   }
+
+  graph_->ReserveByRAMSize(ram);
 
   std::string abstraction = "none";
 

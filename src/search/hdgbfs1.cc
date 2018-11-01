@@ -94,11 +94,6 @@ void HDGBFS1::Init(const boost::property_tree::ptree &pt) {
         new SSSApproximater(problem_));
   }
 
-  if (auto opt = pt.get_optional<int>("dominance")) {
-    use_dominance_ = true;
-    lds_ = std::unique_ptr<LDS>(new LDS(problem_));
-  }
-
   if (auto opt = pt.get_optional<int>("take"))
     take_= opt.get();
 
