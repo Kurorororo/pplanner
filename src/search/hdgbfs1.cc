@@ -86,6 +86,11 @@ void HDGBFS1::Init(const boost::property_tree::ptree &pt) {
         new SSSApproximater(problem_));
   }
 
+  if (auto opt = pt.get_optional<int>("dominance")) {
+    use_dominance_ = true;
+    lds_ = std::unique_ptr<LDS>(new LDS(problem_));
+  }
+
   if (auto opt = pt.get_optional<int>("take"))
     take_= opt.get();
 
@@ -219,6 +224,10 @@ int HDGBFS1::Expand(int node, vector<int> &state) {
     auto &child = state_array[index];
     child = state;
     problem_->ApplyEffect(o, child);
+
+    if (use_dominance_ && (lds_->Dominance(child, state)
+          || lds_->Dominance(child, problem_->initial())))
+      continue;
 
     auto &packed = packed_array[index];
     packed.resize(graph_->block_size());
