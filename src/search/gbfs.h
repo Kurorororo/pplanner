@@ -28,6 +28,7 @@ class GBFS : public Search {
       exhaust_(false),
       limit_expansion_(false),
       use_sss_(false),
+      use_dominance_(false),
       sss_checked_(false),
       max_expansion_(0),
       generated_(0),
