@@ -17,24 +17,32 @@ class AtomicLTS {
             const std::vector<int> &label_to,
             const std::vector<bool> &is_tau_label,
             const std::vector<std::vector<int> > &to,
-            const std::vector<std::vector<std::vector<int> > > &labels)
+            const std::vector<std::vector<std::vector<int> > > &labels,
+            bool use_tau=false)
     : initial_(initial),
       goal_(goal),
-      is_tau_label_(is_tau_label),
       label_from_(label_from),
       label_to_(label_to),
       to_(to),
-      tau_cost_(labels.size(), std::vector<int>(labels.size(), kInfinity)),
-      labels_(labels),
-      h_star_cache_(labels.size(), std::vector<int>(labels.size(), -1)),
-      h_tau_cache_(labels.size(), std::vector<int>(labels.size(), -1)),
-      closed_(labels.size(), -1) { InitTauCost(is_tau_label); }
+      labels_(labels) {
+    if (use_tau) {
+      is_tau_label_ = is_tau_label;
+      tau_cost_.resize(labels.size(),
+                       std::vector<int>(labels.size(), kInfinity)),
+      h_star_cache_.resize(labels.size(),
+                           std::vector<int>(labels.size(), -1));
+      h_tau_cache_.resize(labels.size(),
+                          std::vector<int>(labels.size(), -1));
+      closed_.resize(labels.size(), -1);
+      InitTauCost(is_tau_label);
+    }
+  }
 
   ~AtomicLTS() {}
 
   int n_states() const { return labels_.size(); }
 
-  int n_labels() const { return is_tau_label_.size(); }
+  int n_labels() const { return label_from_.size(); }
 
   int initial() const { return initial_; }
 
