@@ -27,6 +27,8 @@ class LDS {
 
   void Dump() const;
 
+  size_t n_bytes() const;
+
  private:
   void Init() { ComputeRelations(); }
 

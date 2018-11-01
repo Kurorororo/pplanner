@@ -278,6 +278,31 @@ void AtomicLTS::Dump() const {
   }
 }
 
+size_t AtomicLTS::n_bytes() const {
+  size_t size = is_tau_label_.size() * sizeof(bool);
+  size += (label_from_.size() + label_to_.size()) * sizeof(int);
+
+  for (auto &v : to_)
+    size += v.size() * sizeof(int);
+
+  for (auto &v : tau_cost_)
+    size += v.size() * sizeof(int);
+
+  for (auto &v : h_star_cache_)
+    size += v.size() * sizeof(int);
+
+  for (auto &v : h_tau_cache_)
+    size += v.size() * sizeof(int);
+
+  for (auto &vs : labels_)
+    for (auto &v : vs)
+      size += v.size() * sizeof(int);
+
+  size += closed_.size() * sizeof(int);
+
+  return size;
+}
+
 bool AddRecursiveTauLabel(int l, vector<shared_ptr<AtomicLTS> > &ltss) {
   auto &kInfinity = AtomicLTS::kInfinity;
 
@@ -328,6 +353,7 @@ void AddRecursiveTauLabels(vector<shared_ptr<AtomicLTS> > &ltss) {
     for (int l=0, n=ltss[0]->n_labels(); l<n; ++l)
       condition = AddRecursiveTauLabel(l, ltss) || condition;
   }
+
 }
 
 } // namespace pplanner

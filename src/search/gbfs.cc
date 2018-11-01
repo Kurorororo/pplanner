@@ -67,10 +67,18 @@ void GBFS::Init(const boost::property_tree::ptree &pt) {
   auto open_list_option = pt.get_child("open_list");
   open_list_ = OpenListFactory(open_list_option, evaluators);
 
-  if (auto ram = pt.get_optional<size_t>("ram"))
-    graph_->ReserveByRAMSize(ram.get());
-  else
-    graph_->ReserveByRAMSize(5000000000);
+  size_t ram = 5000000000;
+
+  if (auto opt = pt.get_optional<size_t>("ram"))
+    ram = opt.get();
+
+  if (auto opt = pt.get_optional<int>("dominance")) {
+    use_dominance_ = true;
+    lds_ = std::unique_ptr<LDS>(new LDS(problem_));
+    ram -= lds_->n_bytes();
+  }
+
+  graph_->ReserveByRAMSize(ram);
 
   if (auto opt = pt.get_child_optional("sss")) {
     use_sss_ = true;
@@ -82,11 +90,6 @@ void GBFS::Init(const boost::property_tree::ptree &pt) {
 
     if (auto min_ratio = opt.get().get_optional<double>("min_pruning_ratio"))
       min_pruning_ratio_ = min_ratio.get();
-  }
-
-  if (auto opt = pt.get_optional<int>("dominance")) {
-    use_dominance_ = true;
-    lds_ = std::unique_ptr<LDS>(new LDS(problem_));
   }
 }
 

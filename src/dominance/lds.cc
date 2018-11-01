@@ -167,4 +167,16 @@ void LDS::Dump() const {
   }
 }
 
+size_t LDS::n_bytes() const {
+  size_t size = 0;
+
+  for (auto v : ltss_)
+    size += v->n_bytes();
+
+  for (auto &v : r_)
+    size += v.size() * v.size() * sizeof(bool);
+
+  return size;
+}
+
 } // namespace pplanner
