@@ -94,6 +94,11 @@ void HDGBFS::Init(const boost::property_tree::ptree &pt) {
       min_pruning_ratio_ = min_ratio.get();
   }
 
+  if (auto opt = pt.get_optional<int>("dominance")) {
+    use_dominance_ = true;
+    lds_ = std::unique_ptr<LDS>(new LDS(problem_));
+  }
+
   std::string abstraction = "none";
 
   if (auto opt = pt.get_optional<std::string>("abstraction"))
@@ -225,6 +230,10 @@ int HDGBFS::Expand(int node, vector<int> &state, bool eager_dd) {
 
     child = state;
     problem_->ApplyEffect(o, child);
+
+    if (use_dominance_ && (lds_->Dominance(child, state)
+          || lds_->Dominance(child, problem_->initial())))
+      continue;
 
     bool is_preferred = use_preferred_ && preferred.find(o) != preferred.end();
     if (is_preferred) ++n_preferreds_;

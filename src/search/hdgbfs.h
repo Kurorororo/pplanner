@@ -11,6 +11,7 @@
 #include <boost/property_tree/ptree.hpp>
 
 #include "evaluator.h"
+#include "dominance/lds.h"
 #include "sas_plus.h"
 #include "sas_plus/strong_stubborn_sets.h"
 #include "search.h"
@@ -30,6 +31,7 @@ class HDGBFS : public Search {
       limit_expansion_(false),
       use_sss_(false),
       sss_checked_(false),
+      use_dominance_(false),
       max_expansion_(0),
       generated_(0),
       expanded_(0),
@@ -59,7 +61,8 @@ class HDGBFS : public Search {
       graph_(nullptr),
       open_list_(nullptr),
       z_hash_(nullptr),
-      sss_aproximater_(nullptr) { Init(pt); }
+      sss_aproximater_(nullptr),
+      lds_(nullptr) { Init(pt); }
 
   virtual ~HDGBFS() {
     Flush(kNodeTag);
@@ -190,6 +193,7 @@ class HDGBFS : public Search {
   bool limit_expansion_;
   bool use_sss_;
   bool sss_checked_;
+  bool use_dominance_;
   int max_expansion_;
   int generated_;
   int expanded_;
@@ -223,6 +227,7 @@ class HDGBFS : public Search {
   std::unique_ptr<OpenList> open_list_;
   std::shared_ptr<DistributionHash> z_hash_;
   std::unique_ptr<SSSApproximater> sss_aproximater_;
+  std::unique_ptr<LDS> lds_;
 };
 
 } // namespace pplanner
