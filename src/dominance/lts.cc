@@ -294,9 +294,8 @@ size_t AtomicLTS::n_bytes() const {
   for (auto &v : h_tau_cache_)
     size += v.size() * sizeof(int);
 
-  for (auto &vs : labels_)
-    for (auto &v : vs)
-      size += v.size() * sizeof(int);
+  for (auto &v : labels_)
+    size += v.size() * v.size() * sizeof(int);
 
   size += closed_.size() * sizeof(int);
 
