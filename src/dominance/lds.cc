@@ -170,6 +170,8 @@ void LDS::Dump() const {
 size_t LDS::n_bytes() const {
   size_t size = 0;
 
+  return 1000000000;
+
   for (auto v : ltss_)
     size += v->n_bytes();
 
