@@ -83,6 +83,11 @@ void GBFS::Init(const boost::property_tree::ptree &pt) {
     if (auto min_ratio = opt.get().get_optional<double>("min_pruning_ratio"))
       min_pruning_ratio_ = min_ratio.get();
   }
+
+  if (auto opt = pt.get_optional<int>("dominance")) {
+    use_dominance_ = true;
+    lds_ = std::unique_ptr<LDS>(new LDS(problem_));
+  }
 }
 
 vector<int> GBFS::InitialExpand() {
@@ -147,6 +152,10 @@ int GBFS::Expand(int node, vector<int> &state, vector<int> &child,
 
     child = state;
     problem_->ApplyEffect(o, child);
+
+    if (use_dominance_ && (lds_->Dominance(child, state)
+          || lds_->Dominance(child, problem_->initial())))
+      continue;
 
     bool is_preferred = use_preferred_ && preferred.find(o) != preferred.end();
     if (is_preferred) ++n_preferreds_;
