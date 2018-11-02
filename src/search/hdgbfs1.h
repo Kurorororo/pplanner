@@ -29,6 +29,7 @@ class HDGBFS1 : public Search {
     : use_preferred_(false),
       limit_expansion_(false),
       use_sss_(false),
+      sss_checked_(false),
       use_dominance_(false),
       take_(0),
       max_expansion_(0),
@@ -39,6 +40,8 @@ class HDGBFS1 : public Search {
       n_preferred_evaluated_(0),
       n_branching_(0),
       n_preferreds_(0),
+      n_pruned_(0),
+      n_pruning_disable_(1000),
       n_sent_(0),
       n_sent_or_generated_(0),
       n_received_(0),
@@ -48,6 +51,7 @@ class HDGBFS1 : public Search {
       rank_(0),
       n_evaluators_(0),
       mpi_buffer_(nullptr),
+      min_pruning_ratio_(0.0),
       problem_(problem),
       preferring_(nullptr),
       generator_(std::unique_ptr<SuccessorGenerator>(
@@ -162,6 +166,7 @@ class HDGBFS1 : public Search {
   bool use_preferred_;
   bool limit_expansion_;
   bool use_sss_;
+  bool sss_checked_;
   bool use_dominance_;
   // 0: better 1: best 2: none
   int take_;
@@ -173,6 +178,8 @@ class HDGBFS1 : public Search {
   int n_preferred_evaluated_;
   int n_branching_;
   int n_preferreds_;
+  int n_pruned_;
+  int n_pruning_disable_;
   int n_sent_;
   int n_sent_or_generated_;
   int n_received_;
@@ -182,6 +189,7 @@ class HDGBFS1 : public Search {
   int rank_;
   size_t n_evaluators_;
   unsigned char *mpi_buffer_;
+  double min_pruning_ratio_;
   std::vector<int> best_values_;
   std::vector<unsigned char> incoming_buffer_;
   std::vector<std::vector<unsigned char> > outgoing_buffers_;
