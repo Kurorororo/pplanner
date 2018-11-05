@@ -639,6 +639,10 @@ void HDGBFS::DumpStatistics() const {
   MPI_Allreduce(
       &n_received_, &n_received, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 
+  int expanded_array[world_size_];
+  MPI_Gather(&expanded_, 1, MPI_INT, expanded_array, 1, MPI_INT, initial_rank_,
+             MPI_COMM_WORLD);
+
   if (rank_ == initial_rank_) {
     std::cout << "Expanded " << expanded << " state(s)" << std::endl;
     std::cout << "Evaluated " << evaluated << " state(s)" << std::endl;
@@ -669,6 +673,25 @@ void HDGBFS::DumpStatistics() const {
       / static_cast<double>(n_sent_or_generated);
 
     std::cout << "CO " << co << std::endl;
+
+    double mean = 0.0;
+
+    for (int i=0; i<world_size_; ++i)
+      mean += static_cast<double>(expanded_array[i]);
+
+    mean /= static_cast<double>(world_size_);
+
+    double var = 0.0;
+
+    for (int i=0; i<world_size_; ++i) {
+      double diff = static_cast<double>(expanded_array[i]) - mean;
+      var += diff * diff;
+    }
+
+    var /= static_cast<double>(world_size_);
+
+    std::cout << "Expansion mean " << mean << std::endl;
+    std::cout << "Expansion variance " << var << std::endl;
   }
 
   graph_->Dump();
