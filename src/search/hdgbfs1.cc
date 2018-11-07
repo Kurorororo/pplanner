@@ -630,7 +630,7 @@ void HDGBFS1::DumpStatistics() const {
     std::cout << "Expansion mean " << mean << std::endl;
     std::cout << "Expansion variance " << var << std::endl;
 
-    std::cout << "Loacl node to expand " << n_pushed_next << std::endl;
+    std::cout << "Local node to expand " << n_pushed_next << std::endl;
     std::cout << "Remote node to expand " << n_sent_next << std::endl;
 
     double pnpe = static_cast<double>(n_pushed_next)
