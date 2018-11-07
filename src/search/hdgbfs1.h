@@ -28,9 +28,12 @@ class HDGBFS1 : public Search {
          const boost::property_tree::ptree &pt)
     : use_preferred_(false),
       limit_expansion_(false),
+      push_and_send_(false),
       use_sss_(false),
       sss_checked_(false),
       use_dominance_(false),
+      use_lock_(false),
+      lock_(false),
       take_(0),
       max_expansion_(0),
       generated_(0),
@@ -49,6 +52,8 @@ class HDGBFS1 : public Search {
       initial_rank_(0),
       world_size_(1),
       rank_(0),
+      n_pushed_next_(0),
+      n_sent_next_(0),
       n_evaluators_(0),
       mpi_buffer_(nullptr),
       min_pruning_ratio_(0.0),
@@ -122,7 +127,7 @@ class HDGBFS1 : public Search {
     return open_list_->MinimumValues();
   }
 
-  int ExpandToNext(const std::vector<std::vector<int> > &value_array) const;
+  bool ExpandToNext(const std::vector<int> &values) const;
 
   size_t n_open_nodes() const { return open_list_->size(); }
 
@@ -165,9 +170,12 @@ class HDGBFS1 : public Search {
 
   bool use_preferred_;
   bool limit_expansion_;
+  bool push_and_send_;
   bool use_sss_;
   bool sss_checked_;
   bool use_dominance_;
+  bool use_lock_;
+  bool lock_;
   // 0: better 1: best 2: none
   int take_;
   int max_expansion_;
@@ -187,6 +195,8 @@ class HDGBFS1 : public Search {
   int initial_rank_;
   int world_size_;
   int rank_;
+  int n_pushed_next_;
+  int n_sent_next_;
   size_t n_evaluators_;
   unsigned char *mpi_buffer_;
   double min_pruning_ratio_;

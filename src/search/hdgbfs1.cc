@@ -100,6 +100,12 @@ void HDGBFS1::Init(const boost::property_tree::ptree &pt) {
       min_pruning_ratio_ = min_ratio.get();
   }
 
+  if (auto opt = pt.get_optional<int>("push_and_send"))
+    push_and_send_ = true;
+
+  if (auto opt = pt.get_optional<int>("lock"))
+    use_lock_ = true;
+
   if (auto opt = pt.get_optional<int>("take"))
     take_= opt.get();
 
@@ -124,7 +130,7 @@ int HDGBFS1::Search() {
 
   while (!ReceiveTermination()) {
     ReceiveNodes();
-    if (NoNode()) continue;
+    if (NoNode() || lock_) continue;
 
     int node = Pop();
     int goal = Expand(node, state);
@@ -160,30 +166,11 @@ vector<int> HDGBFS1::InitialEvaluate() {
   return state;
 }
 
-int HDGBFS1::ExpandToNext(const vector<vector<int> > &value_array) const {
-  static vector<int> minimum_values;
-
-  if (take_ == 2) return -1;
-
-  int expand_to_next = -1;
-
-  if (NoNode()) {
-    expand_to_next = 0;
-  } else {
-    if (take_ == 1)
-      minimum_values = best_values_;
-    else
-      minimum_values = MinimumValues();
-
-    for (int i=0, n=value_array.size(); i<n; ++i) {
-      if (value_array[i] < minimum_values) {
-        minimum_values = value_array[i];
-        expand_to_next = i;
-      }
-    }
-  }
-
-  return expand_to_next;
+bool HDGBFS1::ExpandToNext(const vector<int> &values) const {
+  return take_ != 2 &&
+    ((take_ == 0 && (NoNode() || values < MinimumValues()))
+     || (take_ == 1 && ((NoNode()) || values < best_values_))
+     || (take_ == 3 && values < best_values_));
 }
 
 int HDGBFS1::Expand(int node, vector<int> &state) {
@@ -240,6 +227,7 @@ int HDGBFS1::Expand(int node, vector<int> &state) {
   value_array.resize(applicable.size());
 
   int index = 0;
+  int arg_min = 0;
 
   for (auto o : applicable) {
     if (use_sss_ && !sss[o]) {
@@ -272,6 +260,9 @@ int HDGBFS1::Expand(int node, vector<int> &state) {
       continue;
     }
 
+    if (values < value_array[arg_min])
+      arg_min = index;
+
     actione_array[index] = o;
     index++;
   }
@@ -282,7 +273,9 @@ int HDGBFS1::Expand(int node, vector<int> &state) {
   hash_array.resize(index);
   value_array.resize(index);
 
-  int expand_to_next = ExpandToNext(value_array);
+  if (index == 0) return -1;
+
+  int expand_to_next = ExpandToNext(value_array[arg_min]) ? arg_min : -1;
 
   for (int i=0; i<index; ++i) {
     ++n_sent_or_generated_;
@@ -291,20 +284,20 @@ int HDGBFS1::Expand(int node, vector<int> &state) {
     auto &values = value_array[i];
     int action = actione_array[i];
 
-    int to_rank = i == expand_to_next ? rank_ : -1;
+    int to_rank = -1;
 
-    if (to_rank == -1) {
+    if (i != expand_to_next || push_and_send_) {
       uint32_t hash = z_hash_->operator()(child);
       to_rank = hash % static_cast<uint32_t>(world_size_);
     }
 
-    if (to_rank == rank_) {
-      int child_node = graph_->GenerateEvaluatedNode(
-          i, action, node, hash_array[i], packed_array[i].data(), rank_);
+    if (to_rank != -1 && to_rank != rank_) {
+      if (i == arg_min && (NoNode() || values < MinimumValues())) {
+        ++n_sent_next_;
 
-      Push(values, child_node);
-      IncrementGenerated();
-    } else {
+        if (use_lock_) lock_ = true;
+      }
+
       unsigned char *buffer = ExtendOutgoingBuffer(
           to_rank, values.size() * sizeof(int) + node_size());
       memcpy(buffer, values.data(), values.size() * sizeof(int));
@@ -312,6 +305,17 @@ int HDGBFS1::Expand(int node, vector<int> &state) {
           i, action, node, hash_array[i], packed_array[i].data(),
           buffer + values.size() * sizeof(int));
       ++n_sent_;
+    }
+
+    if (i == expand_to_next || to_rank == rank_) {
+      if (i == arg_min && (NoNode() || values < MinimumValues()))
+        ++n_pushed_next_;
+
+      int child_node = graph_->GenerateEvaluatedNode(
+          i, action, node, hash_array[i], packed_array[i].data(), rank_);
+
+      Push(values, child_node);
+      IncrementGenerated();
     }
   }
 
@@ -379,7 +383,11 @@ void HDGBFS1::ReceiveNodes() {
   MPI_Status status;
   MPI_Iprobe(MPI_ANY_SOURCE, kNodeTag, MPI_COMM_WORLD, &has_received, &status);
 
-  if (has_received) ++n_received_;
+  if (has_received) {
+    ++n_received_;
+
+    if (lock_) lock_ = false;
+  }
 
   while (has_received) {
     int d_size = 0;
@@ -546,6 +554,8 @@ void HDGBFS1::DumpStatistics() const {
   int n_sent = 0;
   int n_sent_or_generated = 0;
   int n_received = 0;
+  int n_pushed_next = 0;
+  int n_sent_next = 0;
   MPI_Allreduce(&expanded_, &expanded, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
   MPI_Allreduce(&evaluated_, &evaluated, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
   MPI_Allreduce(&generated_, &generated, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
@@ -561,6 +571,10 @@ void HDGBFS1::DumpStatistics() const {
                 MPI_SUM, MPI_COMM_WORLD);
   MPI_Allreduce(
       &n_received_, &n_received, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(
+      &n_pushed_next_, &n_pushed_next, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(
+      &n_sent_next_, &n_sent_next, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 
   int expanded_array[world_size_];
   MPI_Gather(&expanded_, 1, MPI_INT, expanded_array, 1, MPI_INT, initial_rank_,
@@ -615,6 +629,17 @@ void HDGBFS1::DumpStatistics() const {
 
     std::cout << "Expansion mean " << mean << std::endl;
     std::cout << "Expansion variance " << var << std::endl;
+
+    std::cout << "Loacl node to expand " << n_pushed_next << std::endl;
+    std::cout << "Remote node to expand " << n_sent_next << std::endl;
+
+    double pnpe = static_cast<double>(n_pushed_next)
+      / static_cast<double>(n_pushed_next + n_sent_next);
+    double snpe = static_cast<double>(n_sent_next)
+      / static_cast<double>(n_pushed_next + n_sent_next);
+
+    std::cout << "Local node to expand ratio " << pnpe << std::endl;
+    std::cout << "Remote node to expand ratio " << snpe << std::endl;
   }
 
   graph_->Dump();
