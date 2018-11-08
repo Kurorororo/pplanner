@@ -28,6 +28,7 @@ class HDGBFS1 : public Search {
          const boost::property_tree::ptree &pt)
     : use_preferred_(false),
       limit_expansion_(false),
+      take_all_(false),
       push_and_send_(false),
       use_sss_(false),
       sss_checked_(false),
@@ -127,8 +128,6 @@ class HDGBFS1 : public Search {
     return open_list_->MinimumValues();
   }
 
-  bool ExpandToNext(const std::vector<int> &values) const;
-
   size_t n_open_nodes() const { return open_list_->size(); }
 
   unsigned char* IncomingBuffer() { return incoming_buffer_.data(); }
@@ -170,6 +169,7 @@ class HDGBFS1 : public Search {
 
   bool use_preferred_;
   bool limit_expansion_;
+  bool take_all_;
   bool push_and_send_;
   bool use_sss_;
   bool sss_checked_;

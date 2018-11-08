@@ -100,6 +100,9 @@ void HDGBFS1::Init(const boost::property_tree::ptree &pt) {
       min_pruning_ratio_ = min_ratio.get();
   }
 
+  if (auto opt = pt.get_optional<int>("take_all"))
+    take_all_ = true;
+
   if (auto opt = pt.get_optional<int>("push_and_send"))
     push_and_send_ = true;
 
@@ -166,13 +169,6 @@ vector<int> HDGBFS1::InitialEvaluate() {
   return state;
 }
 
-bool HDGBFS1::ExpandToNext(const vector<int> &values) const {
-  return take_ != 2 &&
-    ((take_ == 0 && (NoNode() || values < MinimumValues()))
-     || (take_ == 1 && ((NoNode()) || values < best_values_))
-     || (take_ == 3 && values < best_values_));
-}
-
 int HDGBFS1::Expand(int node, vector<int> &state) {
   static vector<int> applicable;
   static unordered_set<int> preferred;
@@ -182,6 +178,7 @@ int HDGBFS1::Expand(int node, vector<int> &state) {
   static vector<int> actione_array;
   static vector<uint32_t> hash_array;
   static vector<vector<int> > value_array;
+  static vector<bool> to_keep;
 
   if (!graph_->CloseIfNot(node)) return -1;
 
@@ -225,9 +222,10 @@ int HDGBFS1::Expand(int node, vector<int> &state) {
   actione_array.resize(applicable.size());
   hash_array.resize(applicable.size());
   value_array.resize(applicable.size());
+  to_keep.resize(applicable.size());
 
   int index = 0;
-  int arg_min = 0;
+  int arg_min = -1;
 
   for (auto o : applicable) {
     if (use_sss_ && !sss[o]) {
@@ -260,22 +258,27 @@ int HDGBFS1::Expand(int node, vector<int> &state) {
       continue;
     }
 
-    if (values < value_array[arg_min])
+    if (arg_min == -1) {
       arg_min = index;
+    } else if (values < value_array[arg_min]) {
+      if (!take_all_) to_keep[arg_min] = false;
+      arg_min = index;
+    }
+
+    if ((take_all_ || index == arg_min)
+        && ((take_ == 0 && (NoNode() || values < MinimumValues()))
+          || (take_ == 1 && (NoNode() || values < best_values_))
+          || (take_ == 3 && values < best_values_))) {
+      to_keep[index] = true;
+    } else {
+      to_keep[index] = false;
+    }
 
     actione_array[index] = o;
     index++;
   }
 
-  state_array.resize(index);
-  packed_array.resize(index);
-  actione_array.resize(index);
-  hash_array.resize(index);
-  value_array.resize(index);
-
   if (index == 0) return -1;
-
-  int expand_to_next = ExpandToNext(value_array[arg_min]) ? arg_min : -1;
 
   for (int i=0; i<index; ++i) {
     ++n_sent_or_generated_;
@@ -286,7 +289,7 @@ int HDGBFS1::Expand(int node, vector<int> &state) {
 
     int to_rank = -1;
 
-    if (i != expand_to_next || push_and_send_) {
+    if (!to_keep[i] || push_and_send_) {
       uint32_t hash = z_hash_->operator()(child);
       to_rank = hash % static_cast<uint32_t>(world_size_);
     }
@@ -307,7 +310,7 @@ int HDGBFS1::Expand(int node, vector<int> &state) {
       ++n_sent_;
     }
 
-    if (i == expand_to_next || to_rank == rank_) {
+    if (to_keep[i] || to_rank == rank_) {
       if (i == arg_min && (NoNode() || values < MinimumValues()))
         ++n_pushed_next_;
 
