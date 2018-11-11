@@ -106,6 +106,9 @@ void HDGBFS1::Init(const boost::property_tree::ptree &pt) {
   if (auto opt = pt.get_optional<int>("push_and_send"))
     push_and_send_ = true;
 
+  if (auto opt = pt.get_optional<int>("prefer_local"))
+    prefer_local_ = true;
+
   if (auto opt = pt.get_optional<int>("lock"))
     use_lock_ = true;
 
@@ -317,7 +320,7 @@ int HDGBFS1::Expand(int node, vector<int> &state) {
       int child_node = graph_->GenerateEvaluatedNode(
           i, action, node, hash_array[i], packed_array[i].data(), rank_);
 
-      Push(values, child_node);
+      Push(values, child_node, prefer_local_);
       IncrementGenerated();
     }
   }
@@ -347,9 +350,9 @@ int HDGBFS1::Evaluate(const vector<int> &state, int node, int parent,
 }
 
 
-void HDGBFS1::Push(std::vector<int> &values, int node) {
+void HDGBFS1::Push(std::vector<int> &values, int node, bool is_preferred) {
   int h = values[0];
-  open_list_->Push(values, node, false);
+  open_list_->Push(values, node, is_preferred);
   graph_->SetH(node, values[0]);
 
   if (best_values_.empty() || values < best_values_)
@@ -410,7 +413,7 @@ void HDGBFS1::ReceiveNodes() {
 
       if (node != -1) {
         IncrementGenerated();
-        Push(values, node);
+        Push(values, node, false);
       }
 
       buffer += node_size();

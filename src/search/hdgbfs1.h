@@ -30,6 +30,7 @@ class HDGBFS1 : public Search {
       limit_expansion_(false),
       take_all_(false),
       push_and_send_(false),
+      prefer_local_(false),
       use_sss_(false),
       sss_checked_(false),
       use_dominance_(false),
@@ -118,7 +119,7 @@ class HDGBFS1 : public Search {
   int Evaluate(const std::vector<int> &state, int node, int parent,
                std::vector<int> &values);
 
-  void Push(std::vector<int> &values, int node);
+  void Push(std::vector<int> &values, int node, bool is_preferred);
 
   int Pop() { return open_list_->Pop(); }
 
@@ -171,6 +172,7 @@ class HDGBFS1 : public Search {
   bool limit_expansion_;
   bool take_all_;
   bool push_and_send_;
+  bool prefer_local_;
   bool use_sss_;
   bool sss_checked_;
   bool use_dominance_;
