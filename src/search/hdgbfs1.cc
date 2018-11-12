@@ -241,8 +241,10 @@ int HDGBFS1::Expand(int node, vector<int> &state) {
     problem_->ApplyEffect(o, child);
 
     if (use_dominance_ && (lds_->Dominance(child, state)
-          || lds_->Dominance(child, problem_->initial())))
+          || lds_->Dominance(child, problem_->initial()))) {
+      ++n_d_pruned_;
       continue;
+    }
 
     auto &packed = packed_array[index];
     packed.resize(graph_->block_size());
@@ -562,6 +564,8 @@ void HDGBFS1::DumpStatistics() const {
   int n_received = 0;
   int n_pushed_next = 0;
   int n_sent_next = 0;
+  int n_d_pruned = 0;
+
   MPI_Allreduce(&expanded_, &expanded, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
   MPI_Allreduce(&evaluated_, &evaluated, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
   MPI_Allreduce(&generated_, &generated, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
@@ -581,6 +585,8 @@ void HDGBFS1::DumpStatistics() const {
       &n_pushed_next_, &n_pushed_next, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
   MPI_Allreduce(
       &n_sent_next_, &n_sent_next, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(
+      &n_d_pruned_, &n_d_pruned, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 
   int expanded_array[world_size_];
   MPI_Gather(&expanded_, 1, MPI_INT, expanded_array, 1, MPI_INT, initial_rank_,
@@ -646,6 +652,9 @@ void HDGBFS1::DumpStatistics() const {
 
     std::cout << "Local node to expand ratio " << pnpe << std::endl;
     std::cout << "Remote node to expand ratio " << snpe << std::endl;
+
+    if (use_dominance_)
+      std::cout << "Pruned by dominance " << n_d_pruned << std::endl;
   }
 
   graph_->Dump();

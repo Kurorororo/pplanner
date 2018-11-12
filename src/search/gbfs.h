@@ -41,6 +41,7 @@ class GBFS : public Search {
       n_pruned_(0),
       n_pruning_disable_(1000),
       n_plan_step_(-1),
+      n_d_pruned_(0),
       min_pruning_ratio_(0.0),
       problem_(problem),
       preferring_(nullptr),
@@ -95,6 +96,7 @@ class GBFS : public Search {
   int n_pruned_;
   int n_pruning_disable_;
   int n_plan_step_;
+  int n_d_pruned_;
   double min_pruning_ratio_;
   std::shared_ptr<const SASPlus> problem_;
   std::shared_ptr<Evaluator> preferring_;

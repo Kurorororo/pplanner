@@ -157,8 +157,10 @@ int GBFS::Expand(int node, vector<int> &state, vector<int> &child,
     problem_->ApplyEffect(o, child);
 
     if (use_dominance_ && (lds_->Dominance(child, state)
-          || lds_->Dominance(child, problem_->initial())))
+          || lds_->Dominance(child, problem_->initial()))) {
+      ++n_d_pruned_;
       continue;
+    }
 
     bool is_preferred = use_preferred_ && preferred.find(o) != preferred.end();
     if (is_preferred) ++n_preferreds_;
@@ -238,6 +240,9 @@ void GBFS::DumpStatistics() const {
   } else {
     std::cout << "Plan steps ratio " << 0 << std::endl;
   }
+
+  if (use_dominance_)
+    std::cout << "Pruned by dominance " << n_d_pruned_ << std::endl;
 
   graph_->Dump();
 }

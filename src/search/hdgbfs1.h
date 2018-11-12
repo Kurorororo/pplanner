@@ -56,6 +56,7 @@ class HDGBFS1 : public Search {
       rank_(0),
       n_pushed_next_(0),
       n_sent_next_(0),
+      n_d_pruned_(0),
       n_evaluators_(0),
       mpi_buffer_(nullptr),
       min_pruning_ratio_(0.0),
@@ -199,6 +200,7 @@ class HDGBFS1 : public Search {
   int rank_;
   int n_pushed_next_;
   int n_sent_next_;
+  int n_d_pruned_;
   size_t n_evaluators_;
   unsigned char *mpi_buffer_;
   double min_pruning_ratio_;
