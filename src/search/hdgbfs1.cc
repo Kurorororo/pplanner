@@ -372,7 +372,8 @@ void HDGBFS1::Push(std::vector<int> &values, int node, bool is_local) {
 
   graph_->SetH(node, values[0]);
 
-  if (best_values_.empty() || values < best_values_)
+  if (best_values_.empty()
+      || ((!use_local_open_ || is_local) && values < best_values_))
     best_values_ = values;
 
   if (best_h() == -1 || h < best_h()) {
