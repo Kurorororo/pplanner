@@ -75,6 +75,11 @@ void HDGBFS1::Init(const boost::property_tree::ptree &pt) {
   auto open_list_option = pt.get_child("open_list");
   open_list_ = OpenListFactory(open_list_option, evaluators_);
 
+  if (auto opt = pt.get_optional<int>("local_open")) {
+    use_local_open_ = true;
+    local_open_list_ = OpenListFactory(open_list_option, evaluators_);
+  }
+
   size_t ram = 5000000000;
 
   if (auto opt = pt.get_optional<size_t>("ram"))
@@ -105,9 +110,6 @@ void HDGBFS1::Init(const boost::property_tree::ptree &pt) {
 
   if (auto opt = pt.get_optional<int>("push_and_send"))
     push_and_send_ = true;
-
-  if (auto opt = pt.get_optional<int>("prefer_local"))
-    prefer_local_ = true;
 
   if (auto opt = pt.get_optional<int>("lock"))
     use_lock_ = true;
@@ -162,7 +164,14 @@ vector<int> HDGBFS1::InitialEvaluate() {
     int node = -1;
     node = graph_->GenerateNode(-1, -1, state, -1);
     IncrementGenerated();
-    int h = open_list_->EvaluateAndPush(state, node, true);
+
+    int h = -1;
+
+    if (use_local_open_)
+      h = local_open_list_->EvaluateAndPush(state, node, true);
+    else
+      h = open_list_->EvaluateAndPush(state, node, true);
+
     graph_->SetH(node, h);
     set_best_h(h);
     std::cout << "Initial heuristic value: " << best_h() << std::endl;
@@ -322,7 +331,8 @@ int HDGBFS1::Expand(int node, vector<int> &state) {
       int child_node = graph_->GenerateEvaluatedNode(
           i, action, node, hash_array[i], packed_array[i].data(), rank_);
 
-      Push(values, child_node, prefer_local_);
+      Push(values, child_node, to_keep[i]);
+
       IncrementGenerated();
     }
   }
@@ -352,9 +362,14 @@ int HDGBFS1::Evaluate(const vector<int> &state, int node, int parent,
 }
 
 
-void HDGBFS1::Push(std::vector<int> &values, int node, bool is_preferred) {
+void HDGBFS1::Push(std::vector<int> &values, int node, bool is_local) {
   int h = values[0];
-  open_list_->Push(values, node, is_preferred);
+
+  if (use_local_open_ && (is_local || h == 0))
+    local_open_list_->Push(values, node, false);
+  else
+    open_list_->Push(values, node, false);
+
   graph_->SetH(node, values[0]);
 
   if (best_values_.empty() || values < best_values_)

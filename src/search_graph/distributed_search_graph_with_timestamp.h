@@ -52,8 +52,8 @@ class DistributedSearchGraphWithTimestamp : public T {
     if (this->rank() == 0) {
       expanded_nodes << "rank_id,parent_rank_id,node_id,parent_node_id,h,timestamp";
 
-      for (int i=0; i<n_variables_; ++i)
-        expanded_nodes << ",v" << i;
+      //for (int i=0; i<n_variables_; ++i)
+      //  expanded_nodes << ",v" << i;
 
       expanded_nodes << std::endl;
     }
@@ -69,8 +69,8 @@ class DistributedSearchGraphWithTimestamp : public T {
       expanded_nodes << hs_[node] << "," << timestamps_[i];
       this->State(node, state);
 
-      for (int i=0; i<n_variables_; ++i)
-        expanded_nodes << "," << state[i];
+      //for (int i=0; i<n_variables_; ++i)
+      //  expanded_nodes << "," << state[i];
 
       expanded_nodes << std::endl;
     }
@@ -84,8 +84,8 @@ class DistributedSearchGraphWithTimestamp : public T {
 
       this->State(i, state);
 
-      for (int i=0; i<n_variables_; ++i)
-        expanded_nodes << "," << state[i];
+      //for (int i=0; i<n_variables_; ++i)
+      //  expanded_nodes << "," << state[i];
 
 
       expanded_nodes << std::endl;

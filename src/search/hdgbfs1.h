@@ -30,7 +30,7 @@ class HDGBFS1 : public Search {
       limit_expansion_(false),
       take_all_(false),
       push_and_send_(false),
-      prefer_local_(false),
+      use_local_open_(false),
       use_sss_(false),
       sss_checked_(false),
       use_dominance_(false),
@@ -66,6 +66,7 @@ class HDGBFS1 : public Search {
             new SuccessorGenerator(problem))),
       graph_(nullptr),
       open_list_(nullptr),
+      local_open_list_(nullptr),
       z_hash_(nullptr),
       sss_aproximater_(nullptr),
       lds_(nullptr) { Init(pt); }
@@ -120,17 +121,28 @@ class HDGBFS1 : public Search {
   int Evaluate(const std::vector<int> &state, int node, int parent,
                std::vector<int> &values);
 
-  void Push(std::vector<int> &values, int node, bool is_preferred);
+  void Push(std::vector<int> &values, int node, bool is_local);
 
-  int Pop() { return open_list_->Pop(); }
+  int Pop() {
+    if (use_local_open_ && !local_open_list_->IsEmpty())
+      return local_open_list_->Pop();
 
-  bool NoNode() const { return open_list_->IsEmpty(); }
-
-  const std::vector<int>& MinimumValues() const {
-    return open_list_->MinimumValues();
+    return open_list_->Pop();
   }
 
-  size_t n_open_nodes() const { return open_list_->size(); }
+  bool NoNode() const {
+    return open_list_->IsEmpty()
+      && (!use_local_open_ || local_open_list_->IsEmpty());
+  }
+
+  const std::vector<int>& MinimumValues() const {
+    if (use_local_open_ && !local_open_list_->IsEmpty()
+        && (open_list_->IsEmpty()
+          || local_open_list_->MinimumValues() < open_list_->MinimumValues()))
+      return local_open_list_->MinimumValues();
+
+    return open_list_->MinimumValues();
+  }
 
   unsigned char* IncomingBuffer() { return incoming_buffer_.data(); }
 
@@ -173,7 +185,7 @@ class HDGBFS1 : public Search {
   bool limit_expansion_;
   bool take_all_;
   bool push_and_send_;
-  bool prefer_local_;
+  bool use_local_open_;
   bool use_sss_;
   bool sss_checked_;
   bool use_dominance_;
@@ -213,6 +225,7 @@ class HDGBFS1 : public Search {
   std::unique_ptr<SuccessorGenerator> generator_;
   std::shared_ptr<DistributedSearchGraph> graph_;
   std::unique_ptr<OpenList> open_list_;
+  std::unique_ptr<OpenList> local_open_list_;
   std::shared_ptr<DistributionHash> z_hash_;
   std::unique_ptr<SSSApproximater> sss_aproximater_;
   std::unique_ptr<LDS> lds_;
