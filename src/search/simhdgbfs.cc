@@ -107,6 +107,8 @@ int SIMHDGBFS::Search() {
 
         if (graphs_[rank_]->GetClosed(node) == -1)
           graphs_[rank_]->Close(node);
+        else
+          node = -1;
       }
 
       if (node == -1) continue;
