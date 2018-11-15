@@ -252,6 +252,7 @@ $(BIN_DIR)/libsearch.a: \
 	$(BIN_DIR)/search/orbit_gbfs.o \
 	$(BIN_DIR)/search/symmetry_breaking_gbfs.o \
 	$(BIN_DIR)/search/mrw13.o \
+	$(BIN_DIR)/search/parallel_gbfs_simulator.o \
 	$(BIN_DIR)/symmetry/symmetry.o
 	ar rcs $(BIN_DIR)/libsearch.a \
 		$(BIN_DIR)/search.o \
@@ -263,6 +264,7 @@ $(BIN_DIR)/libsearch.a: \
 		$(BIN_DIR)/search/orbit_gbfs.o \
 		$(BIN_DIR)/search/symmetry_breaking_gbfs.o \
 		$(BIN_DIR)/search/mrw13.o \
+		$(BIN_DIR)/search/parallel_gbfs_simulator.o \
 		$(BIN_DIR)/symmetry/symmetry.o
 
 $(BIN_DIR)/libff.a: \

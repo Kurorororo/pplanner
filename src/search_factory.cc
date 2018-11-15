@@ -7,6 +7,7 @@
 #include "search/mrw13.h"
 #include "search/orbit_gbfs.h"
 #include "search/symmetry_breaking_gbfs.h"
+#include "search/parallel_gbfs_simulator.h"
 
 namespace pplanner {
 
@@ -40,6 +41,9 @@ std::unique_ptr<Search> SearchFactory(std::shared_ptr<const SASPlus> problem,
 
   if (search.get() == "dehc")
     return std::unique_ptr<DEHC>(new DEHC(problem, option.get()));
+
+  if (search.get() == "pgsim")
+    return std::unique_ptr<PGSimulator>(new PGSimulator(problem, option.get()));
 
   throw std::runtime_error("No such search algorithm.");
 }
