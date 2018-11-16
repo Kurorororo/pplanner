@@ -8,6 +8,7 @@
 #include "search/orbit_gbfs.h"
 #include "search/symmetry_breaking_gbfs.h"
 #include "search/simhdgbfs.h"
+#include "search/simhdgbfs1.h"
 
 namespace pplanner {
 
@@ -44,6 +45,9 @@ std::unique_ptr<Search> SearchFactory(std::shared_ptr<const SASPlus> problem,
 
   if (search.get() == "simhdgbfs")
     return std::unique_ptr<SIMHDGBFS>(new SIMHDGBFS(problem, option.get()));
+
+  if (search.get() == "simhdgbfs1")
+    return std::unique_ptr<SIMHDGBFS1>(new SIMHDGBFS1(problem, option.get()));
 
   throw std::runtime_error("No such search algorithm.");
 }
