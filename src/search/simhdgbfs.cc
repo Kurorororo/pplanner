@@ -85,8 +85,13 @@ void SIMHDGBFS::Init(const boost::property_tree::ptree &pt) {
 
   z_hash_ = DistributionHashFactory(problem_, 2886379259, abstraction);
 
+  if (auto opt = pt.get_optional<int>("delay"))
+    delay_ = opt.get();
+
   outgoing_buffers_.resize(world_size_,
                            vector<vector<unsigned char> >(world_size_));
+  incoming_buffers_.resize(world_size_,
+                           vector<vector<unsigned char> >(delay_));
 }
 
 int SIMHDGBFS::Search() {
@@ -97,6 +102,11 @@ int SIMHDGBFS::Search() {
       rank_ = i;
       CommunicateNodes();
     }
+
+    ++delay_index_;
+
+    if (delay_index_ == delay_)
+      delay_index_ = 0;
 
     for (int i=0; i<world_size_; ++i) {
       rank_ = i;
@@ -228,24 +238,36 @@ void SIMHDGBFS::Push(std::vector<int> &values, int node) {
 }
 
 void SIMHDGBFS::CommunicateNodes() {
-  size_t unit_size = node_size();
+  size_t d_size = 0;
+
+  for (int i=0; i<world_size_; ++i) {
+    if (i == rank_ || outgoing_buffers_[i][rank_].empty()) continue;
+    d_size += outgoing_buffers_[i][rank_].size();
+  }
+
+  incoming_buffers_[rank_][delay_index_].resize(d_size);
+  size_t size_sum = 0;
 
   for (int i=0; i<world_size_; ++i) {
     if (i == rank_ || outgoing_buffers_[i][rank_].empty()) continue;
 
-    size_t d_size = outgoing_buffers_[i][rank_].size();
-    ResizeIncomingBuffer(d_size);
-    memcpy(IncomingBuffer(), outgoing_buffers_[i][rank_].data(), d_size);
+    size_t size = outgoing_buffers_[i][rank_].size();
+    memcpy(incoming_buffers_[rank_][delay_index_].data() + size_sum,
+           outgoing_buffers_[i][rank_].data(), size);
     outgoing_buffers_[i][rank_].clear();
-
-    size_t n_nodes = d_size / unit_size;
-
-    for (size_t j=0; j<n_nodes; ++j)
-      CallbackOnReceiveNode(i, IncomingBuffer() + j * unit_size);
+    size_sum += size;
   }
+
+  size_t unit_size = node_size();
+  size_t n_nodes = incoming_buffers_[rank_][delay_ - delay_index_ - 1].size();
+  n_nodes /= unit_size;
+  auto buffer = incoming_buffers_[rank_][delay_ - delay_index_ - 1].data();
+
+  for (size_t i=0; i<n_nodes; ++i)
+    CallbackOnReceiveNode(buffer + i * unit_size);
 }
 
-void SIMHDGBFS::CallbackOnReceiveNode(int source, const unsigned char *d) {
+void SIMHDGBFS::CallbackOnReceiveNode(const unsigned char *d) {
   static vector<int> values;
 
   int node = graphs_[rank_]->GenerateNodeIfNotClosedFromBytes(d);

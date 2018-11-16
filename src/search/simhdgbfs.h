@@ -33,10 +33,11 @@ class SIMHDGBFS : public Search {
       n_branching_(0),
       n_sent_(0),
       n_sent_or_generated_(0),
-      n_received_(0),
       best_h_(-1),
       world_size_(2),
       rank_(0),
+      delay_(1),
+      delay_index_(0),
       n_evaluators_(0),
       tmp_state_(problem->n_variables()),
       problem_(problem),
@@ -56,7 +57,7 @@ class SIMHDGBFS : public Search {
 
   int Search();
 
-  void CallbackOnReceiveNode(int source, const unsigned char *d);
+  void CallbackOnReceiveNode(const unsigned char *d);
 
   bool limit_expansion() const { return limit_expansion_; }
 
@@ -87,14 +88,6 @@ class SIMHDGBFS : public Search {
 
   void Push(std::vector<int> &values, int node);
 
-  unsigned char* IncomingBuffer() {
-    return incoming_buffer_.data();
-  }
-
-  void ResizeIncomingBuffer(size_t size) {
-    incoming_buffer_.resize(size);
-  }
-
   unsigned char* ExtendOutgoingBuffer(int i, size_t size) {
     size_t index = outgoing_buffers_[rank_][i].size();
     outgoing_buffers_[rank_][i].resize(index + size);
@@ -122,14 +115,15 @@ class SIMHDGBFS : public Search {
   int n_branching_;
   int n_sent_;
   int n_sent_or_generated_;
-  int n_received_;
   int best_h_;
   int world_size_;
   int rank_;
+  int delay_;
+  int delay_index_;
   size_t n_evaluators_;
   std::vector<int> n_in_out_going_buffer_;
   std::vector<int> tmp_state_;
-  std::vector<unsigned char> incoming_buffer_;
+  std::vector<std::vector<std::vector<unsigned char> > > incoming_buffers_;
   std::vector<std::vector<std::vector<unsigned char> > > outgoing_buffers_;
   std::shared_ptr<const SASPlus> problem_;
   std::unique_ptr<SuccessorGenerator> generator_;
