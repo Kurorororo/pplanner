@@ -62,7 +62,13 @@ void SIMHDGBFS::Init(const boost::property_tree::ptree &pt) {
     graphs_[rank_] = DistributedSearchGraphFactory(
         problem_, closed_exponent, n_evaluators_, rank_, keep_cost,
         use_landmark, dump_nodes);
+  }
 
+  auto null_evaluator = EvaluatorFactory(
+      problem_, graphs_[0], nullptr, evaluator_names[0]);
+
+  for (int i=0; i<world_size_; ++i) {
+    rank_ = i;
     std::shared_ptr<Evaluator> friend_evaluator = nullptr;
 
     for (auto e : evaluator_names) {
