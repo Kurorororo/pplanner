@@ -68,12 +68,16 @@ class GBFS : public Search {
 
   bool NoNode() const { return open_list_->IsEmpty(); }
 
-  int NodeToExpand() { return open_list_->Pop(); }
+  int NodeToExpand();
 
   std::vector<int> InitialExpand();
 
   int Expand(int node, std::vector<int> &state, std::vector<int> &child,
              std::vector<int> &applicable, std::unordered_set<int> &preferred);
+
+  bool IsLimit() const {
+    return limit_expansion_ && expanded_ > max_expansion_;
+  }
 
  private:
   void Init(const boost::property_tree::ptree &pt);

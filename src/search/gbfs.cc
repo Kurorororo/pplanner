@@ -106,11 +106,19 @@ vector<int> GBFS::InitialExpand() {
   return state;
 }
 
+int GBFS::NodeToExpand() {
+  while (!NoNode()) {
+    int node = open_list_->Pop();
+
+    if (graph_->CloseIfNot(node)) return node;
+  }
+
+  return -1;
+}
+
 int GBFS::Expand(int node, vector<int> &state, vector<int> &child,
                  vector<int> &applicable, unordered_set<int> &preferred) {
   static vector<bool> sss;
-
-  if (!graph_->CloseIfNot(node)) return -1;
 
   ++expanded_;
   graph_->Expand(node, state);
@@ -198,8 +206,11 @@ int GBFS::Search() {
   unordered_set<int> preferred;
   int last_goal = -1;
 
-  while (!NoNode()) {
+  while (true) {
     int node = NodeToExpand();
+
+    if (node == -1) return last_goal;
+
     int goal = Expand(node, state, child, applicable, preferred);
 
     if (limit_expansion_ && expanded_ > max_expansion_) return last_goal;

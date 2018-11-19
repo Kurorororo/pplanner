@@ -16,9 +16,11 @@ int KGBFS::Search() {
     nodes.clear();
 
     for (int i=0; i<k_; ++i) {
-      if (NoNode()) break;
-
       int node = NodeToExpand();
+
+      if (node == -1)
+        break;
+
       nodes.push_back(node);
     }
 
@@ -26,6 +28,8 @@ int KGBFS::Search() {
       int goal = Expand(node, state, child, applicable, preferred);
 
       if (goal != -1) return goal;
+
+      if (IsLimit()) return -1;
     }
   }
 
