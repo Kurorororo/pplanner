@@ -75,10 +75,16 @@ void HDGBFS1::Init(const boost::property_tree::ptree &pt) {
   auto open_list_option = pt.get_child("open_list");
   open_list_ = OpenListFactory(open_list_option, evaluators_);
 
+  if (auto opt = pt.get_optional<int>("take"))
+    take_= opt.get();
+
   if (auto opt = pt.get_optional<int>("local_open")) {
     use_local_open_ = true;
     local_open_list_ = OpenListFactory(open_list_option, evaluators_);
   }
+
+  if (auto opt = pt.get_optional<int>("reset_best"))
+    reset_best_ = true;
 
   size_t ram = 5000000000;
 
@@ -104,12 +110,6 @@ void HDGBFS1::Init(const boost::property_tree::ptree &pt) {
     if (auto min_ratio = opt.get().get_optional<double>("min_pruning_ratio"))
       min_pruning_ratio_ = min_ratio.get();
   }
-
-  if (auto opt = pt.get_optional<int>("push_and_send"))
-    push_and_send_ = true;
-
-  if (auto opt = pt.get_optional<int>("take"))
-    take_= opt.get();
 
   std::string abstraction = "none";
 
@@ -281,7 +281,13 @@ int HDGBFS1::Expand(int node, vector<int> &state) {
   if (take_ == 1 && value_array[arg_min] < best_values_)
     node_to_keep = arg_min;
 
-  bool no_node = NoNode();
+  if (take_ == 1
+      && use_local_open_
+      && reset_best_
+      && (NoNode() || value_array[arg_min] < MinimumValues())) {
+    best_values_ = value_array[arg_min];
+    node_to_keep = arg_min;
+  }
 
   for (int i=0; i<index; ++i) {
     ++n_sent_or_generated_;
@@ -298,9 +304,6 @@ int HDGBFS1::Expand(int node, vector<int> &state) {
     }
 
     if (to_rank != -1 && to_rank != rank_) {
-      if (i == arg_min && (no_node || values < MinimumValues()))
-        ++n_sent_next_;
-
       unsigned char *buffer = ExtendOutgoingBuffer(
           to_rank, values.size() * sizeof(int) + node_size());
       memcpy(buffer, values.data(), values.size() * sizeof(int));
@@ -311,9 +314,6 @@ int HDGBFS1::Expand(int node, vector<int> &state) {
     }
 
     if (i == node_to_keep || to_rank == rank_) {
-      if (i == arg_min && (no_node || values < MinimumValues()))
-        ++n_pushed_next_;
-
       int child_node = graph_->GenerateEvaluatedNode(
           i, action, node, hash_array[i], packed_array[i].data(), rank_);
       IncrementGenerated();
@@ -560,8 +560,6 @@ void HDGBFS1::DumpStatistics() const {
   int n_sent = 0;
   int n_sent_or_generated = 0;
   int n_received = 0;
-  int n_pushed_next = 0;
-  int n_sent_next = 0;
   int n_d_pruned = 0;
 
   MPI_Allreduce(&expanded_, &expanded, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
@@ -581,10 +579,6 @@ void HDGBFS1::DumpStatistics() const {
                 MPI_SUM, MPI_COMM_WORLD);
   MPI_Allreduce(
       &n_received_, &n_received, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-  MPI_Allreduce(
-      &n_pushed_next_, &n_pushed_next, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-  MPI_Allreduce(
-      &n_sent_next_, &n_sent_next, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
   MPI_Allreduce(
       &n_d_pruned_, &n_d_pruned, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 
@@ -648,17 +642,6 @@ void HDGBFS1::DumpStatistics() const {
 
     std::cout << "Expansion mean " << mean << std::endl;
     std::cout << "Expansion variance " << var << std::endl;
-
-    std::cout << "Local node to expand " << n_pushed_next << std::endl;
-    std::cout << "Remote node to expand " << n_sent_next << std::endl;
-
-    double pnpe = static_cast<double>(n_pushed_next)
-      / static_cast<double>(n_pushed_next + n_sent_next);
-    double snpe = static_cast<double>(n_sent_next)
-      / static_cast<double>(n_pushed_next + n_sent_next);
-
-    std::cout << "Local node to expand ratio " << pnpe << std::endl;
-    std::cout << "Remote node to expand ratio " << snpe << std::endl;
 
     if (use_dominance_)
       std::cout << "Pruned by dominance " << n_d_pruned << std::endl;
