@@ -28,20 +28,18 @@ class HDGBFS1 : public Search {
          const boost::property_tree::ptree &pt)
     : use_preferred_(false),
       limit_expansion_(false),
-      take_all_(false),
       push_and_send_(false),
       use_local_open_(false),
       use_sss_(false),
       sss_checked_(false),
       use_dominance_(false),
-      use_lock_(false),
-      lock_(false),
       take_(0),
       max_expansion_(0),
       generated_(0),
       expanded_(0),
       evaluated_(0),
       dead_ends_(0),
+      expanded_local_(0),
       n_preferred_evaluated_(0),
       n_branching_(0),
       n_preferreds_(0),
@@ -135,10 +133,12 @@ class HDGBFS1 : public Search {
       && (!use_local_open_ || local_open_list_->IsEmpty());
   }
 
+  bool LocalNoNode() const {
+    return !use_local_open_ || local_open_list_->IsEmpty();
+  }
+
   const std::vector<int>& MinimumValues() const {
-    if (use_local_open_ && !local_open_list_->IsEmpty()
-        && (open_list_->IsEmpty()
-          || local_open_list_->MinimumValues() < open_list_->MinimumValues()))
+    if (use_local_open_ && !local_open_list_->IsEmpty())
       return local_open_list_->MinimumValues();
 
     return open_list_->MinimumValues();
@@ -183,14 +183,11 @@ class HDGBFS1 : public Search {
 
   bool use_preferred_;
   bool limit_expansion_;
-  bool take_all_;
   bool push_and_send_;
   bool use_local_open_;
   bool use_sss_;
   bool sss_checked_;
   bool use_dominance_;
-  bool use_lock_;
-  bool lock_;
   // 0: better 1: best 2: none
   int take_;
   int max_expansion_;
@@ -198,6 +195,7 @@ class HDGBFS1 : public Search {
   int expanded_;
   int evaluated_;
   int dead_ends_;
+  int expanded_local_;
   int n_preferred_evaluated_;
   int n_branching_;
   int n_preferreds_;

@@ -105,14 +105,8 @@ void HDGBFS1::Init(const boost::property_tree::ptree &pt) {
       min_pruning_ratio_ = min_ratio.get();
   }
 
-  if (auto opt = pt.get_optional<int>("take_all"))
-    take_all_ = true;
-
   if (auto opt = pt.get_optional<int>("push_and_send"))
     push_and_send_ = true;
-
-  if (auto opt = pt.get_optional<int>("lock"))
-    use_lock_ = true;
 
   if (auto opt = pt.get_optional<int>("take"))
     take_= opt.get();
@@ -138,9 +132,13 @@ int HDGBFS1::Search() {
 
   while (!ReceiveTermination()) {
     ReceiveNodes();
-    if (NoNode() || lock_) continue;
+    if (NoNode()) continue;
 
+    bool local_no_node = LocalNoNode();
     int node = Pop();
+    if (!graph_->CloseIfNot(node)) continue;
+    if (!local_no_node) ++expanded_local_;
+
     int goal = Expand(node, state);
 
     if (goal != -1 || (limit_expansion() && expanded() > max_expansion())) {
@@ -164,18 +162,16 @@ vector<int> HDGBFS1::InitialEvaluate() {
     int node = -1;
     node = graph_->GenerateNode(-1, -1, state, -1);
     IncrementGenerated();
-
-    int h = -1;
+    int h = Evaluate(state, node, -1, best_values_);
 
     if (use_local_open_)
-      h = local_open_list_->EvaluateAndPush(state, node, true);
+      local_open_list_->Push(best_values_, node, true);
     else
-      h = open_list_->EvaluateAndPush(state, node, true);
+      open_list_->Push(best_values_, node, true);
 
     graph_->SetH(node, h);
     set_best_h(h);
     std::cout << "Initial heuristic value: " << best_h() << std::endl;
-    ++evaluated_;
   }
 
   return state;
@@ -190,9 +186,6 @@ int HDGBFS1::Expand(int node, vector<int> &state) {
   static vector<int> actione_array;
   static vector<uint32_t> hash_array;
   static vector<vector<int> > value_array;
-  static vector<bool> to_keep;
-
-  if (!graph_->CloseIfNot(node)) return -1;
 
   ++expanded_;
   graph_->Expand(node, state);
@@ -234,7 +227,6 @@ int HDGBFS1::Expand(int node, vector<int> &state) {
   actione_array.resize(applicable.size());
   hash_array.resize(applicable.size());
   value_array.resize(applicable.size());
-  to_keep.resize(applicable.size());
 
   int index = 0;
   int arg_min = -1;
@@ -272,27 +264,24 @@ int HDGBFS1::Expand(int node, vector<int> &state) {
       continue;
     }
 
-    if (arg_min == -1) {
+    if (arg_min == -1 || values < value_array[arg_min])
       arg_min = index;
-    } else if (values < value_array[arg_min]) {
-      if (!take_all_) to_keep[arg_min] = false;
-      arg_min = index;
-    }
-
-    if ((take_all_ || index == arg_min)
-        && ((take_ == 0 && (NoNode() || values < MinimumValues()))
-          || (take_ == 1 && (NoNode() || values < best_values_))
-          || (take_ == 3 && values < best_values_))) {
-      to_keep[index] = true;
-    } else {
-      to_keep[index] = false;
-    }
 
     actione_array[index] = o;
     index++;
   }
 
   if (index == 0) return -1;
+
+  int node_to_keep = -1;
+
+  if (take_ == 0 && (NoNode() || value_array[arg_min] < MinimumValues()))
+    node_to_keep = arg_min;
+
+  if (take_ == 1 && value_array[arg_min] < best_values_)
+    node_to_keep = arg_min;
+
+  bool no_node = NoNode();
 
   for (int i=0; i<index; ++i) {
     ++n_sent_or_generated_;
@@ -303,17 +292,14 @@ int HDGBFS1::Expand(int node, vector<int> &state) {
 
     int to_rank = -1;
 
-    if (!to_keep[i] || push_and_send_) {
+    if (i != node_to_keep) {
       uint32_t hash = z_hash_->operator()(child);
       to_rank = hash % static_cast<uint32_t>(world_size_);
     }
 
     if (to_rank != -1 && to_rank != rank_) {
-      if (i == arg_min && (NoNode() || values < MinimumValues())) {
+      if (i == arg_min && (no_node || values < MinimumValues()))
         ++n_sent_next_;
-
-        if (use_lock_) lock_ = true;
-      }
 
       unsigned char *buffer = ExtendOutgoingBuffer(
           to_rank, values.size() * sizeof(int) + node_size());
@@ -324,16 +310,15 @@ int HDGBFS1::Expand(int node, vector<int> &state) {
       ++n_sent_;
     }
 
-    if (to_keep[i] || to_rank == rank_) {
-      if (i == arg_min && (NoNode() || values < MinimumValues()))
+    if (i == node_to_keep || to_rank == rank_) {
+      if (i == arg_min && (no_node || values < MinimumValues()))
         ++n_pushed_next_;
 
       int child_node = graph_->GenerateEvaluatedNode(
           i, action, node, hash_array[i], packed_array[i].data(), rank_);
-
-      Push(values, child_node, to_keep[i]);
-
       IncrementGenerated();
+
+      Push(values, child_node, i == node_to_keep);
     }
   }
 
@@ -407,11 +392,7 @@ void HDGBFS1::ReceiveNodes() {
   MPI_Status status;
   MPI_Iprobe(MPI_ANY_SOURCE, kNodeTag, MPI_COMM_WORLD, &has_received, &status);
 
-  if (has_received) {
-    ++n_received_;
-
-    if (lock_) lock_ = false;
-  }
+  if (has_received) ++n_received_;
 
   while (has_received) {
     int d_size = 0;
@@ -572,6 +553,7 @@ void HDGBFS1::DumpStatistics() const {
   int evaluated = 0;
   int generated = 0;
   int dead_ends = 0;
+  int expanded_local = 0;
   int n_preferreds = 0;
   int n_preferred_evaluated = 0;
   int n_branching = 0;
@@ -586,6 +568,8 @@ void HDGBFS1::DumpStatistics() const {
   MPI_Allreduce(&evaluated_, &evaluated, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
   MPI_Allreduce(&generated_, &generated, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
   MPI_Allreduce(&dead_ends_, &dead_ends, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(
+      &expanded_local_, &expanded_local, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
   MPI_Allreduce(
       &n_preferreds_, &n_preferreds, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
   MPI_Allreduce(&n_preferred_evaluated_, &n_preferred_evaluated, 1, MPI_INT,
@@ -613,6 +597,13 @@ void HDGBFS1::DumpStatistics() const {
     std::cout << "Evaluated " << evaluated << " state(s)" << std::endl;
     std::cout << "Generated " << generated << " state(s)" << std::endl;
     std::cout << "Dead ends " << dead_ends << " state(s)" << std::endl;
+    std::cout << "Expanded from local " << expanded_local
+              << " state(s)" << std::endl;
+
+    double local_ratio = static_cast<double>(expanded_local)
+      / static_cast<double>(expanded);
+    std::cout << "Expand from local ratio " << local_ratio << std::endl;
+
     std::cout << "Preferred evaluated " << n_preferred_evaluated_ << " state(s)"
               << std::endl;
     std::cout << "Preferred successors " << n_preferreds_ << " state(s)"
