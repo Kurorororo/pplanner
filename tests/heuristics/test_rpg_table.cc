@@ -75,52 +75,52 @@ TEST_F(RPGTableTest, PlanCostWorks) {
   std::vector<int> state{0, 1, 0};
   std::vector<int> facts;
   StateToFactVector(*sas_, state, facts);
-  int h = table_0_.PlanCost(facts);
+  int h = table_0_.PlanCost(facts, false);
   EXPECT_LT(0, h);
   EXPECT_GE(table_0_.AdditiveCost(facts), h);
   state = {0, 0, 2};
   StateToFactVector(*sas_, state, facts);
-  h = table_0_.PlanCost(facts);
+  h = table_0_.PlanCost(facts, false);
   EXPECT_LT(0, h);
   EXPECT_GE(table_0_.AdditiveCost(facts), h);
   state = {1, 1, 0};
   StateToFactVector(*sas_, state, facts);
-  h = table_0_.PlanCost(facts);
+  h = table_0_.PlanCost(facts, false);
   EXPECT_LT(0, h);
   EXPECT_GE(table_0_.AdditiveCost(facts), h);
   state = {1, 0, 2};
   StateToFactVector(*sas_, state, facts);
-  h = table_0_.PlanCost(facts);
+  h = table_0_.PlanCost(facts, false);
   EXPECT_LT(0, h);
   EXPECT_GE(table_0_.AdditiveCost(facts), h);
   state = {1, 1, 1};
   StateToFactVector(*sas_, state, facts);
-  h = table_0_.PlanCost(facts);
+  h = table_0_.PlanCost(facts, false);
   EXPECT_EQ(0, h);
 
   state = {0, 1, 0};
   StateToFactVector(*sas_, state, facts);
-  h = table_1_.PlanCost(facts);
+  h = table_1_.PlanCost(facts, false);
   EXPECT_LT(0, h);
   EXPECT_GE(table_1_.AdditiveCost(facts), h);
   state = {0, 0, 2};
   StateToFactVector(*sas_, state, facts);
-  h = table_1_.PlanCost(facts);
+  h = table_1_.PlanCost(facts, false);
   EXPECT_LT(0, h);
   EXPECT_GE(table_1_.AdditiveCost(facts), h);
   state = {1, 1, 0};
   StateToFactVector(*sas_, state, facts);
-  h = table_1_.PlanCost(facts);
+  h = table_1_.PlanCost(facts, false);
   EXPECT_LT(0, h);
   EXPECT_GE(table_1_.AdditiveCost(facts), h);
   state = {1, 0, 2};
   StateToFactVector(*sas_, state, facts);
-  h = table_1_.PlanCost(facts);
+  h = table_1_.PlanCost(facts, false);
   EXPECT_LT(0, h);
   EXPECT_GE(table_1_.AdditiveCost(facts), h);
   state = {1, 1, 1};
   StateToFactVector(*sas_, state, facts);
-  h = table_1_.PlanCost(facts);
+  h = table_1_.PlanCost(facts, false);
   EXPECT_EQ(0, h);
 }
 
@@ -132,55 +132,55 @@ TEST_F(RPGTableTest, PlanCostWithHelpfulWorks) {
 
   state = {0, 1, 0};
   StateToFactVector(*sas_, state, facts);
-  int h = table_0_.PlanCost(facts, helpful);
+  int h = table_0_.PlanCost(facts, helpful, false);
   EXPECT_LT(0, h);
   EXPECT_GE(table_0_.AdditiveCost(facts), h);
   EXPECT_FALSE(helpful.empty());
 
   state = {0, 0, 2};
   StateToFactVector(*sas_, state, facts);
-  h = table_0_.PlanCost(facts, helpful);
+  h = table_0_.PlanCost(facts, helpful, false);
   EXPECT_LT(0, h);
   EXPECT_GE(table_0_.AdditiveCost(facts), h);
   EXPECT_FALSE(helpful.empty());
 
   state = {1, 0, 2};
   StateToFactVector(*sas_, state, facts);
-  h = table_0_.PlanCost(facts, helpful);
+  h = table_0_.PlanCost(facts, helpful, false);
   EXPECT_LT(0, h);
   EXPECT_GE(table_0_.AdditiveCost(facts), h);
   EXPECT_FALSE(helpful.empty());
 
   state = {1, 1, 1};
   StateToFactVector(*sas_, state, facts);
-  h = table_0_.PlanCost(facts, helpful);
+  h = table_0_.PlanCost(facts, helpful, false);
   EXPECT_EQ(0, h);
   EXPECT_TRUE(helpful.empty());
 
   state = {0, 1, 0};
   StateToFactVector(*sas_, state, facts);
-  h = table_1_.PlanCost(facts, helpful);
+  h = table_1_.PlanCost(facts, helpful, false);
   EXPECT_LT(0, h);
   EXPECT_GE(table_1_.AdditiveCost(facts), h);
   EXPECT_FALSE(helpful.empty());
 
   state = {0, 0, 2};
   StateToFactVector(*sas_, state, facts);
-  h = table_1_.PlanCost(facts, helpful);
+  h = table_1_.PlanCost(facts, helpful, false);
   EXPECT_LT(0, h);
   EXPECT_GE(table_1_.AdditiveCost(facts), h);
   EXPECT_FALSE(helpful.empty());
 
   state = {1, 0, 2};
   StateToFactVector(*sas_, state, facts);
-  h = table_1_.PlanCost(facts, helpful);
+  h = table_1_.PlanCost(facts, helpful, false);
   EXPECT_LT(0, h);
   EXPECT_GE(table_1_.AdditiveCost(facts), h);
   EXPECT_FALSE(helpful.empty());
 
   state = {1, 1, 1};
   StateToFactVector(*sas_, state, facts);
-  h = table_1_.PlanCost(facts, helpful);
+  h = table_1_.PlanCost(facts, helpful, false);
   EXPECT_EQ(0, h);
   EXPECT_TRUE(helpful.empty());
 }
