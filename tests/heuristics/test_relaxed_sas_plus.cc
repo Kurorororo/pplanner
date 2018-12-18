@@ -50,7 +50,6 @@ TEST_F(RelaxedSASPlusTest, IsGoalWorks) {
   EXPECT_FALSE(r_sas_0_.IsGoal(4));
   EXPECT_TRUE(r_sas_0_.IsGoal(5));
   EXPECT_FALSE(r_sas_0_.IsGoal(6));
-  EXPECT_FALSE(r_sas_0_.IsGoal(7));
 
   EXPECT_FALSE(r_sas_1_.IsGoal(0));
   EXPECT_FALSE(r_sas_1_.IsGoal(1));
@@ -59,7 +58,6 @@ TEST_F(RelaxedSASPlusTest, IsGoalWorks) {
   EXPECT_FALSE(r_sas_1_.IsGoal(4));
   EXPECT_TRUE(r_sas_1_.IsGoal(5));
   EXPECT_FALSE(r_sas_1_.IsGoal(6));
-  EXPECT_FALSE(r_sas_1_.IsGoal(7));
 }
 
 TEST_F(RelaxedSASPlusTest, ActionIdWorks) {
@@ -253,11 +251,11 @@ TEST_F(RelaxedSASPlusTest, PreconditionMapWorks) {
 TEST_F(RelaxedSASPlusTest, EffectMapWorks) {
   EXPECT_EQ(std::vector<int>({5}), r_sas_0_.EffectMap(0));
   EXPECT_EQ(std::vector<int>({4}), r_sas_0_.EffectMap(1));
-  EXPECT_EQ(std::vector<int>({7, 9, 10}), r_sas_0_.EffectMap(2));
-  EXPECT_EQ(std::vector<int>({1, 3}), r_sas_0_.EffectMap(3));
-  EXPECT_EQ(std::vector<int>({0}), r_sas_0_.EffectMap(4));
-  EXPECT_EQ(std::vector<int>({2}), r_sas_0_.EffectMap(5));
-  EXPECT_EQ(std::vector<int>({6, 8}), r_sas_0_.EffectMap(6));
+  EXPECT_EQ(std::vector<int>({6, 8, 10}), r_sas_0_.EffectMap(2));
+  EXPECT_EQ(std::vector<int>({0, 2}), r_sas_0_.EffectMap(3));
+  EXPECT_EQ(std::vector<int>({1}), r_sas_0_.EffectMap(4));
+  EXPECT_EQ(std::vector<int>({3}), r_sas_0_.EffectMap(5));
+  EXPECT_EQ(std::vector<int>({7, 9}), r_sas_0_.EffectMap(6));
 
   // Simplify breaks oreder of actions
   //EXPECT_EQ(std::vector<int>({5}), r_sas_1_.EffectMap(0));

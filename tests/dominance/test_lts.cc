@@ -43,7 +43,7 @@ class AtomicLTSTest : public ::testing::Test {
     }
 
     lts_ = std::make_shared<AtomicLTS>(
-        initial, goal, label_from, label_to, is_tau_label, to, labels);
+        initial, goal, label_from, label_to, is_tau_label, to, labels, true);
   }
 
  std::shared_ptr<AtomicLTS> lts_;
