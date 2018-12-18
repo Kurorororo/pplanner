@@ -98,30 +98,57 @@ TEST_F(SearchGraphTest, GenerateNodeWithParentWorks) {
 }
 
 TEST_F(SearchGraphTest, GenerateNodeIfNotClosedWorks) {
-  int i = graph_0_->GenerateNodeIfNotClosed(-1, -1, state_0_);
+  std::vector<uint32_t> tmp_packed(graph_0_->state_size() / sizeof(uint32_t));
+
+  uint32_t hash_value = graph_0_->Hash(state_0_);
+  graph_0_->Pack(state_0_, tmp_packed.data());
+  int i = graph_0_->GenerateNodeIfNotClosed(
+      -1, -1, hash_value, tmp_packed.data());
   EXPECT_EQ(0, i);
+
   graph_0_->Close(i);
-  i = graph_0_->GenerateNodeIfNotClosed(-1, -1, state_0_);
-  EXPECT_EQ(-1, i);
-  std::vector<int> tmp_state_0(state_0_);
-  tmp_state_0[1] = 1;
-  i = graph_0_->GenerateNodeIfNotClosed(-1, -1, tmp_state_0);
-  EXPECT_EQ(1, i);
-  graph_0_->Close(i);
-  i = graph_0_->GenerateNodeIfNotClosed(-1, -1, tmp_state_0);
+  hash_value = graph_0_->Hash(state_0_);
+  graph_0_->Pack(state_0_, tmp_packed.data());
+  i = graph_0_->GenerateNodeIfNotClosed(-1, -1, hash_value, tmp_packed.data());
   EXPECT_EQ(-1, i);
 
-  i = graph_1_->GenerateNodeIfNotClosed(-1, -1, state_1_);
-  EXPECT_EQ(0, i);
-  graph_1_->Close(i);
-  i = graph_1_->GenerateNodeIfNotClosed(-1, -1, state_1_);
+  std::vector<int> tmp_state_0(state_0_);
+  tmp_state_0[1] = 1;
+  hash_value = graph_0_->Hash(tmp_state_0);
+  graph_0_->Pack(tmp_state_0, tmp_packed.data());
+  i = graph_0_->GenerateNodeIfNotClosed(-1, -1, hash_value, tmp_packed.data());
+  EXPECT_EQ(1, i);
+
+  graph_0_->Close(i);
+  hash_value = graph_0_->Hash(tmp_state_0);
+  graph_0_->Pack(tmp_state_0, tmp_packed.data());
+  i = graph_0_->GenerateNodeIfNotClosed(-1, -1, hash_value, tmp_packed.data());
   EXPECT_EQ(-1, i);
+
+  tmp_packed.resize(graph_1_->state_size() / sizeof(uint32_t));
+
+  hash_value = graph_1_->Hash(state_1_);
+  graph_1_->Pack(state_1_, tmp_packed.data());
+  i = graph_1_->GenerateNodeIfNotClosed(-1, -1, hash_value, tmp_packed.data());
+  EXPECT_EQ(0, i);
+
+  graph_1_->Close(i);
+  hash_value = graph_1_->Hash(state_1_);
+  graph_1_->Pack(state_1_, tmp_packed.data());
+  i = graph_1_->GenerateNodeIfNotClosed(-1, -1, hash_value, tmp_packed.data());
+  EXPECT_EQ(-1, i);
+
   std::vector<int> tmp_state_1(state_1_);
   tmp_state_1[1] = 1;
-  i = graph_1_->GenerateNodeIfNotClosed(-1, -1, tmp_state_1);
+  hash_value = graph_1_->Hash(tmp_state_1);
+  graph_1_->Pack(tmp_state_1, tmp_packed.data());
+  i = graph_1_->GenerateNodeIfNotClosed(-1, -1, hash_value, tmp_packed.data());
   EXPECT_EQ(1, i);
+
   graph_1_->Close(i);
-  i = graph_1_->GenerateNodeIfNotClosed(-1, -1, tmp_state_1);
+  hash_value = graph_1_->Hash(tmp_state_1);
+  graph_1_->Pack(tmp_state_1, tmp_packed.data());
+  i = graph_1_->GenerateNodeIfNotClosed(-1, -1, hash_value, tmp_packed.data());
   EXPECT_EQ(-1, i);
 }
 

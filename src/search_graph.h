@@ -137,7 +137,8 @@ class SearchGraph {
 
   int GenerateNodeIfNotClosed(int action, int parent_node,
                               const std::vector<int> &state) {
-    static std::vector<uint32_t> tmp_packed(state_size() / sizeof(uint32_t));
+    thread_local std::vector<uint32_t> tmp_packed(
+        state_size() / sizeof(uint32_t));
 
     uint32_t hash_value = hash_->operator()(state);
     Pack(state, tmp_packed.data());
@@ -149,7 +150,8 @@ class SearchGraph {
   int GenerateNodeIfNotClosed(int action, int parent_node,
                               const std::vector<int> &parent,
                               const std::vector<int> &state) {
-    static std::vector<uint32_t> tmp_packed(state_size() / sizeof(uint32_t));
+    thread_local std::vector<uint32_t> tmp_packed(
+        state_size() / sizeof(uint32_t));
 
     uint32_t hash_value = HashByDifference(action, parent_node, parent, state);
     Pack(state, tmp_packed.data());
@@ -160,7 +162,8 @@ class SearchGraph {
 
   int GenerateAndCloseNode(int action, int parent_node,
                            const std::vector<int> &state) {
-    static std::vector<uint32_t> tmp_packed(state_size() / sizeof(uint32_t));
+    thread_local std::vector<uint32_t> tmp_packed(
+        state_size() / sizeof(uint32_t));
 
     uint32_t hash_value = hash_->operator()(state);
     Pack(state, tmp_packed.data());
@@ -172,7 +175,8 @@ class SearchGraph {
   int GenerateAndCloseNode(int action, int parent_node,
                            const std::vector<int> &parent,
                            const std::vector<int> &state) {
-    static std::vector<uint32_t> tmp_packed(state_size() / sizeof(uint32_t));
+    thread_local std::vector<uint32_t> tmp_packed(
+        state_size() / sizeof(uint32_t));
 
     uint32_t hash_value = HashByDifference(action, parent_node, parent, state);
     Pack(state, tmp_packed.data());

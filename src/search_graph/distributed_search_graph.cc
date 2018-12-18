@@ -21,7 +21,7 @@ int DistributedSearchGraph::GenerateNodeIfNotClosed(int action, int parent_node,
 int DistributedSearchGraph::GenerateNodeIfNotClosed(int action, int parent_node,
                                                     const vector<int> &state,
                                                     int parent_rank) {
-  static vector<uint32_t> tmp_packed(state_size() / sizeof(uint32_t));
+  thread_local vector<uint32_t> tmp_packed(state_size() / sizeof(uint32_t));
 
   uint32_t hash_value = Hash(state);
   Pack(state, tmp_packed.data());
@@ -34,7 +34,7 @@ int DistributedSearchGraph::GenerateNodeIfNotClosed(int action, int parent_node,
                                                     const vector<int> &parent,
                                                     const vector<int> &state,
                                                     int parent_rank) {
-  static vector<uint32_t> tmp_packed(state_size() / sizeof(uint32_t));
+  thread_local vector<uint32_t> tmp_packed(state_size() / sizeof(uint32_t));
 
   uint32_t hash_value = HashByDifference(action, parent_node, parent, state);
   Pack(state, tmp_packed.data());
@@ -70,7 +70,7 @@ int DistributedSearchGraph::GenerateAndCloseNode(int action, int parent_node,
 int DistributedSearchGraph::GenerateAndCloseNode(int action, int parent_node,
                                                  const vector<int> &state,
                                                  int parent_rank) {
-  static vector<uint32_t> tmp_packed(state_size() / sizeof(uint32_t));
+  thread_local vector<uint32_t> tmp_packed(state_size() / sizeof(uint32_t));
 
   uint32_t hash_value = Hash(state);
   Pack(state, tmp_packed.data());
@@ -83,7 +83,7 @@ int DistributedSearchGraph::GenerateAndCloseNode(int action, int parent_node,
                                                  const vector<int> &parent,
                                                  const vector<int> &state,
                                                  int parent_rank) {
-  static vector<uint32_t> tmp_packed(state_size() / sizeof(uint32_t));
+  thread_local vector<uint32_t> tmp_packed(state_size() / sizeof(uint32_t));
 
   uint32_t hash_value = HashByDifference(action, parent_node, parent, state);
   Pack(state, tmp_packed.data());

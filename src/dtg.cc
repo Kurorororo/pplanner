@@ -297,6 +297,8 @@ vector<shared_ptr<DTG> > InitializeDTGs(shared_ptr<const SASPlus> problem) {
   vector<int> effect_table(variables_size);
   vector<pair<int, int> > tmp_precondition;
   vector<pair<int, int> > tmp_effect;
+  vector<vector<pair<int, int> > > tmp_effect_conditions;
+  vector<pair<int, int> > tmp_condtional_effects;
 
   for (int i=0, n=problem->n_actions(); i<n; ++i) {
     std::fill(precondition_table.begin(), precondition_table.end(), -1);
@@ -324,6 +326,31 @@ vector<shared_ptr<DTG> > InitializeDTGs(shared_ptr<const SASPlus> problem) {
         }
       } else {
         ++adjacent_matrixes[j][precondition_value][effect_value];
+      }
+    }
+
+    if (problem->HasConditionalEffects(i)) {
+      problem->CopyEffectConditions(i, tmp_effect_conditions);
+      problem->CopyConditionalEffects(i, tmp_condtional_effects);
+
+      for (int j=0, m=tmp_effect_conditions.size(); j<m; ++j) {
+        int effect_var = tmp_condtional_effects[j].first;
+        int effect_value = tmp_condtional_effects[j].second;
+        int precondition_value = effect_table[effect_var];
+
+        if (precondition_value != -1) {
+          ++adjacent_matrixes[effect_var][precondition_value][effect_value];
+          continue;
+        }
+
+        for (int k=0, l=tmp_effect_conditions.size(); k<l; ++k) {
+          int precondition_var = tmp_effect_conditions[j][k].first;
+
+          if (precondition_var == effect_var) {
+            int precondition_value = tmp_effect_conditions[j][k].second;
+            ++adjacent_matrixes[effect_var][precondition_value][effect_value];
+          }
+        }
       }
     }
   }
