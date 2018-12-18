@@ -435,7 +435,7 @@ std::queue<std::string> RandomSASPlusLines(std::vector<int> &ranges) {
     q.push("var" + std::to_string(i));
     q.push("-1");
 
-    int range = rand() % 20 + 1;
+    int range = rand() % 20 + 2;
     ranges.push_back(range);
     q.push(std::to_string(range));
 

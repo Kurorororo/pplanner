@@ -47,14 +47,16 @@ TEST_F(StatePackerTest, BlockSizeWorks) {
 
 TEST_F(StatePackerTest, PackUnPackWorks) {
   std::vector<int> tmp_state(state_0_.size());
-  std::vector<uint32_t> tmp_packed(packer_0_->block_size());
+  std::vector<uint32_t> tmp_packed(packer_0_->block_size(), 0);
 
   packer_0_->Pack(state_0_, tmp_packed.data());
   packer_0_->Unpack(tmp_packed.data(), tmp_state);
   EXPECT_EQ(state_0_, tmp_state);
 
   tmp_state.resize(state_1_.size());
+  std::fill(tmp_state.begin(), tmp_state.end(), 0);
   tmp_packed.resize(packer_1_->block_size());
+  std::fill(tmp_packed.begin(), tmp_packed.end(), 0);
   packer_1_->Pack(state_1_, tmp_packed.data());
   packer_1_->Unpack(tmp_packed.data(), tmp_state);
   EXPECT_EQ(state_1_, tmp_state);
@@ -207,7 +209,7 @@ std::queue<std::string> RandomSASPlusLines(std::vector<int> &ranges) {
     q.push("var" + std::to_string(i));
     q.push("-1");
 
-    int range = rand() % 20 + 1;
+    int range = rand() % 20 + 2;
     ranges.push_back(range);
     q.push(std::to_string(range));
 
