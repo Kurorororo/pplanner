@@ -4,7 +4,7 @@
 namespace pplanner {
 
 template<typename T>
-ArrayHash<T>::ArrayHash(size_t size) : z_(size) {
+ArrayHash<T>::ArrayHash(std::size_t size) : z_(size) {
   // these can be randomized by using std::random_device.
   std::mt19937 engine(1395437481);
   std::mt19937_64 engine64(866667759);

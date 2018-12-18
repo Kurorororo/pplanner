@@ -12,7 +12,7 @@ uint8_t* DistributedSearchGraphWithLandmarks::Landmark(int i) {
     if (tmp_landmarks_.size() < size)
       tmp_landmarks_.resize(size);
 
-    for (int j=0; j<n_landmarks_bytes_; ++j)
+    for (size_t j=0; j<n_landmarks_bytes_; ++j)
       tmp_landmarks_[size - n_landmarks_bytes_ + j] = 0;
 
     return tmp_landmarks_.data() + size - n_landmarks_bytes_;

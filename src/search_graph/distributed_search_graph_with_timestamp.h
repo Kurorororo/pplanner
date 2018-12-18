@@ -34,7 +34,7 @@ class DistributedSearchGraphWithTimestamp : public T {
   }
 
   void SetH(int i, int h) override {
-    if (hs_.size() <= i)
+    if (static_cast<int>(hs_.size()) <= i)
       hs_.resize(i + 1);
 
     hs_[i] = h;

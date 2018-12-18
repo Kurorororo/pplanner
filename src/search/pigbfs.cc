@@ -6,7 +6,7 @@ int PIGBFS::Search() {
   auto state = InitialEvaluate();
 
   if (!NoNode()) {
-    while (n_open_nodes() < world_size() && !NoNode()) {
+    while (static_cast<int>(n_open_nodes()) < world_size() && !NoNode()) {
       int node = Pop();
       int goal = IndependentExpand(node, state);
 

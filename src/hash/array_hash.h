@@ -15,7 +15,7 @@ class ArrayHash {
  public:
   ArrayHash() {}
 
-  ArrayHash(size_t size);
+  ArrayHash(std::size_t size);
 
   uint32_t operator()(const T *array) const;
 
