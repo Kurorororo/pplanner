@@ -154,6 +154,8 @@ int main() {
   IsGoalTest(problem, cuda_problem);
   ApplyEffectTest(problem, cuda_problem);
 
+  FreeCudaSASPlus(&cuda_problem);
+
   return 0;
 }
 
