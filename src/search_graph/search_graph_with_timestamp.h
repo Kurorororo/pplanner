@@ -38,7 +38,7 @@ class SearchGraphWithTimestamp : public T {
         action, parent_node, hash_value, packed);
 
     if (node == -1) {
-      size_t index = T::Find(hash_value, packed);
+      std::size_t index = T::Find(hash_value, packed);
       int child = T::ClosedEntryAt(index);
       closed_parent_.push_back(std::make_pair(child, parent_node));
     }

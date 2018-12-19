@@ -18,11 +18,11 @@ class DistributedSearchGraphWithCosts : public T {
 
   virtual ~DistributedSearchGraphWithCosts() {}
 
-  virtual size_t node_size() const override {
+  virtual std::size_t node_size() const override {
     return T::node_size() + sizeof(int);
   }
 
-  virtual void Reserve(size_t size) override {
+  virtual void Reserve(std::size_t size) override {
     T::Reserve(size);
     costs_.reserve(size);
   }
@@ -48,7 +48,7 @@ class DistributedSearchGraphWithCosts : public T {
         action, parent_node, hash_value, packed, parent_rank);
 
     if (node == -1 && parent_rank == this->rank()) {
-      size_t index = this->Find(hash_value, packed);
+      std::size_t index = this->Find(hash_value, packed);
       int c = this->ClosedEntryAt(index);
 
       int cost = parent_node == -1 ?
@@ -78,7 +78,7 @@ class DistributedSearchGraphWithCosts : public T {
       const uint32_t *packed = reinterpret_cast<const uint32_t*>(
           d + 4 * sizeof(int) + sizeof(uint32_t));
 
-      size_t index = this->Find(hash_value, packed);
+      std::size_t index = this->Find(hash_value, packed);
       int c = this->ClosedEntryAt(index);
 
       if (cost < Cost(c)) {
@@ -98,7 +98,7 @@ class DistributedSearchGraphWithCosts : public T {
         action, parent_node, hash_value, packed, parent_rank);
 
     if (node == -1 && parent_rank == this->rank()) {
-      size_t index = this->Find(hash_value, packed);
+      std::size_t index = this->Find(hash_value, packed);
       int c = this->ClosedEntryAt(index);
 
       int cost = parent_node == -1 ?
@@ -128,7 +128,7 @@ class DistributedSearchGraphWithCosts : public T {
       const uint32_t *packed = reinterpret_cast<const uint32_t*>(
           d + 4 * sizeof(int) + sizeof(uint32_t));
 
-      size_t index = this->Find(hash_value, packed);
+      std::size_t index = this->Find(hash_value, packed);
       int c = this->ClosedEntryAt(index);
 
       if (cost < Cost(c)) {

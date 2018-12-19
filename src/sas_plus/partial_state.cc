@@ -8,7 +8,7 @@ using std::vector;
 namespace pplanner {
 
 PartialState::PartialState(const vector<pair<int, int> > &v) {
-  size_t size = v.size();
+  int size = v.size();
   vars_.reserve(size);
   values_.reserve(size);
 

@@ -15,6 +15,7 @@ namespace pplanner {
 
 using std::make_shared;
 using std::unordered_set;
+using std::size_t;
 using std::vector;
 
 void SIMHDGBFS1::Init(const boost::property_tree::ptree &pt) {

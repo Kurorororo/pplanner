@@ -14,14 +14,14 @@ class StatePacker {
  public:
   StatePacker(std::shared_ptr<const SASPlus> problem);
 
-  size_t block_size() const { return block_size_; }
+  std::size_t block_size() const { return block_size_; }
 
   void Pack(const std::vector<int> &state, uint32_t *packed) const;
 
   void Unpack(const uint32_t *packed, std::vector<int> &state) const;
 
  private:
-  size_t block_size_;
+  std::size_t block_size_;
   std::vector<int> block_index_;
   std::vector<int> var_per_block_;
   std::vector<int> shift_;

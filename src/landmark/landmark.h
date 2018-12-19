@@ -36,7 +36,7 @@ class Landmark {
     return var_values_ != l.var_values_;
   }
 
-  size_t size() const { return var_values_.size(); }
+  int size() const { return var_values_.size(); }
 
   bool IsEmpty() const { return size() == 0; }
 
@@ -57,7 +57,7 @@ class Landmark {
 
   std::pair<int, int> VarValue(int i) const { return var_values_[i]; }
 
-  size_t Hash() const;
+  std::size_t Hash() const;
 
   bool IsImplicated(const std::vector<int> &state) const;
 
@@ -72,7 +72,7 @@ class Landmark {
 };
 
 struct LandmarkHash {
-  size_t operator()(const Landmark &landmark) const {
+  std::size_t operator()(const Landmark &landmark) const {
     return landmark.Hash();
   }
 };

@@ -118,10 +118,10 @@ vector<int> ParseMutexGroup(const Facts &facts, queue<std::string> &lines) {
 vector<int> ParseInitial(const Facts &facts, queue<string> &lines) {
   CheckString("begin_state", lines);
 
-  size_t n = facts.n_variables();
+  int n = facts.n_variables();
   vector<int> initial(n);
 
-  for (size_t i=0; i<n; ++i)
+  for (int i=0; i<n; ++i)
     initial[i] = ParseN(lines);
 
   CheckString("end_state", lines);

@@ -278,8 +278,8 @@ void AtomicLTS::Dump() const {
   }
 }
 
-size_t AtomicLTS::n_bytes() const {
-  size_t size = is_tau_label_.size() * sizeof(bool);
+std::size_t AtomicLTS::n_bytes() const {
+  std::size_t size = is_tau_label_.size() * sizeof(bool);
   size += (label_from_.size() + label_to_.size()) * sizeof(int);
 
   for (auto &v : to_)

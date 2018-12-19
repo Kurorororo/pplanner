@@ -87,7 +87,7 @@ class RWLandmarkCount : public RandomWalkEvaluator {
                               more_helpful));
 
     auto graph = lmcount_->landmark_graph();
-    size_t id_max = graph->landmark_id_max();
+    int id_max = graph->landmark_id_max();
     best_accepted_.resize(id_max, false);
     accepted_[0].resize(id_max, false);
     accepted_[1].resize(id_max, false);

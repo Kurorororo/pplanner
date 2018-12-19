@@ -8,9 +8,9 @@ namespace pplanner {
 
 class MutexGroups {
  public:
-  void Reserve(size_t size) { groups_.reserve(size); }
+  void Reserve(int size) { groups_.reserve(size); }
 
-  size_t size() const { return groups_.size(); };
+  int size() const { return groups_.size(); };
 
   void AddGroup(const std::vector<int> &group);
 

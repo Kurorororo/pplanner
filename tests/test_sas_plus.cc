@@ -238,7 +238,7 @@ TEST_F(SASPlusTest, StateToFactSetWorks) {
   std::vector<bool> s;
   auto state = sas_1_.initial();
   StateToFactSet(sas_1_, state, s);
-  ASSERT_TRUE(sas_1_.n_facts() == s.size());
+  ASSERT_TRUE(sas_1_.n_facts() == static_cast<int>(s.size()));
   EXPECT_TRUE(s[0]);
   EXPECT_FALSE(s[1]);
   EXPECT_FALSE(s[2]);
@@ -247,7 +247,7 @@ TEST_F(SASPlusTest, StateToFactSetWorks) {
   EXPECT_FALSE(s[5]);
   state[0] = 1;
   StateToFactSet(sas_1_, state, s);
-  ASSERT_TRUE(sas_1_.n_facts() == s.size());
+  ASSERT_TRUE(sas_1_.n_facts() == static_cast<int>(s.size()));
   EXPECT_FALSE(s[0]);
   EXPECT_TRUE(s[1]);
   EXPECT_FALSE(s[2]);

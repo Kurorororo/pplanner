@@ -18,11 +18,11 @@ class SearchGraphWithCosts : public T {
 
   ~SearchGraphWithCosts() {}
 
-  size_t node_size() const override {
+  std::size_t node_size() const override {
     return T::node_size() + sizeof(int);
   }
 
-  void Reserve(size_t size) override {
+  void Reserve(std::size_t size) override {
     T::Reserve(size);
     costs_.reserve(size);
   }
@@ -37,7 +37,7 @@ class SearchGraphWithCosts : public T {
 
   int GenerateNodeIfNotClosed(int action, int parent_node, uint32_t hash_value,
                               const uint32_t *packed) override {
-    size_t index = this->Find(hash_value, packed);
+    std::size_t index = this->Find(hash_value, packed);
     int c = this->ClosedEntryAt(index);
 
     if (c != -1) {
@@ -54,7 +54,7 @@ class SearchGraphWithCosts : public T {
 
   int GenerateAndCloseNode(int action, int parent_node, uint32_t hash_value,
                            const uint32_t *packed) override {
-    size_t index = this->Find(hash_value, packed);
+    std::size_t index = this->Find(hash_value, packed);
     int c = this->ClosedEntryAt(index);
 
     if (c != -1) {

@@ -15,9 +15,9 @@ class RelaxedSASPlus {
     Init(problem, simplify);
   }
 
-  size_t n_facts() const { return is_goal_.size(); }
+  int n_facts() const { return is_goal_.size(); }
 
-  size_t n_actions() const { return ids_.size(); }
+  int n_actions() const { return ids_.size(); }
 
   int n_goal_facts() const { return goal_.size(); }
 

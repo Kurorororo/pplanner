@@ -21,11 +21,11 @@ class SearchGraphWithLandmarks : public SearchGraph {
     n_landmarks_bytes_ = (graph->landmark_id_max() + 7) / 8;
   }
 
-  virtual size_t node_size() const override {
+  virtual std::size_t node_size() const override {
     return n_landmarks_bytes_ * sizeof(uint8_t) + SearchGraph::node_size();
   }
 
-  virtual void Reserve(size_t size) override {
+  virtual void Reserve(std::size_t size) override {
     SearchGraph::Reserve(size);
     landmarks_.reserve(n_landmarks_bytes_ * size);
   }
@@ -49,7 +49,7 @@ class SearchGraphWithLandmarks : public SearchGraph {
   }
 
  private:
-  size_t n_landmarks_bytes_;
+  std::size_t n_landmarks_bytes_;
   std::vector<uint8_t> landmarks_;
 };
 

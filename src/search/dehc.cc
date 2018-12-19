@@ -12,6 +12,7 @@
 namespace pplanner {
 
 using std::make_shared;
+using std::size_t;
 using std::unordered_set;
 using std::vector;
 

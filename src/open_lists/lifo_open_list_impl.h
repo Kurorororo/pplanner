@@ -14,7 +14,7 @@ class LIFOOpenListImpl : public OpenListImpl {
 
   ~LIFOOpenListImpl() {}
 
-  size_t size() const override { return size_; }
+  std::size_t size() const override { return size_; }
 
   void Push(const std::vector<int> &values, int node) override {
     buckets_[values].push(node);
@@ -43,7 +43,7 @@ class LIFOOpenListImpl : public OpenListImpl {
   void Clear() override { buckets_.clear(); }
 
  private:
-  size_t size_;
+  std::size_t size_;
   std::map<std::vector<int>, std::stack<int> > buckets_;
 };
 

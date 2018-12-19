@@ -5,6 +5,7 @@
 namespace pplanner {
 
 using std::vector;
+using std::size_t;
 
 int PDDSGBFS::Search() {
   auto state = InitialEvaluate(true);

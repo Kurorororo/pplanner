@@ -5,6 +5,7 @@
 #include <random>
 
 using std::pair;
+using std::size_t;
 using std::vector;
 
 namespace pplanner {
@@ -36,11 +37,11 @@ void SuccessorGenerator::Insert(int query,
   problem_->CopyPrecondition(query, precondition);
   std::sort(precondition.begin(), precondition.end());
 
-  size_t n_facts = problem_->n_facts();
+  int n_facts = problem_->n_facts();
   int offset = 0;
   int n_ommited = 0;
 
-  for (size_t i=0, n=precondition.size(); i<n; ++i) {
+  for (int i=0, n=precondition.size(); i<n; ++i) {
     int var = precondition[i].first;
     int value = precondition[i].second;
     int index = offset + problem_->Fact(var, value) - n_ommited;
@@ -55,7 +56,7 @@ void SuccessorGenerator::Insert(int query,
     if (to_child_[index] == -1) {
       size_t old_size = to_child_.size();
       to_child_[index] = static_cast<int>(old_size);
-      size_t new_size = old_size + n_facts - static_cast<size_t>(n_ommited);
+      size_t new_size = old_size + static_cast<size_t>(n_facts - n_ommited);
       to_child_.resize(new_size, -1);
       to_data.resize(new_size, -1);
     }

@@ -19,7 +19,7 @@ void Feedback(int arg_rl, int value, int cost, vector<int> &value_rls,
   cost_rls[arg_rl] += cost;
 }
 
-int RandomRl(size_t size, std::mt19937 &engine) {
+int RandomRl(std::size_t size, std::mt19937 &engine) {
   return engine() % size;
 }
 

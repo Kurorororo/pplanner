@@ -106,7 +106,7 @@ int DistributedSearchGraph::GenerateAndCloseNodeFromBytes(
 
 int DistributedSearchGraph::GenerateNodeFromBytes(const unsigned char *d,
                                                   vector<int> &values) {
-  size_t n_info = n_evaluators() + 3;
+  int n_info = n_evaluators() + 3;
   int info[n_info];
   memcpy(info, d, n_info * sizeof(int));
   values.clear();

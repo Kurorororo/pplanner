@@ -72,7 +72,7 @@ class SIMHDGBFS1 : public Search {
 
   int world_size() const { return world_size_; }
 
-  size_t n_evaluators() const { return n_evaluators_; }
+  std::size_t n_evaluators() const { return n_evaluators_; }
 
   int rank() const { return rank_; }
 

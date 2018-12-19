@@ -27,13 +27,13 @@ class LandmarkGraph {
 
   ~LandmarkGraph() {}
 
-  size_t landmark_id_max() const { return id_to_landmark_.size(); }
+  std::size_t landmark_id_max() const { return id_to_landmark_.size(); }
 
-  size_t n_landmarks() const { return n_landmarks_; }
+  int n_landmarks() const { return n_landmarks_; }
 
-  size_t n_disjunctive() const { return n_disjunctive_; }
+  int n_disjunctive() const { return n_disjunctive_; }
 
-  size_t n_orderings() const { return n_orderings_; }
+  int n_orderings() const { return n_orderings_; }
 
   const Landmark& GetLandmark(int id) const { return id_to_landmark_[id]; }
 
@@ -110,7 +110,7 @@ class LandmarkGraph {
     return possible_achievers_[id];
   }
 
-  size_t GetPossibleAchieversSize(int id) const {
+  int GetPossibleAchieversSize(int id) const {
     return possible_achievers_[id].size();
   }
 
@@ -122,7 +122,7 @@ class LandmarkGraph {
     return first_achievers_[id];
   }
 
-  size_t GetFirstAchieversSize(int id) const {
+  int GetFirstAchieversSize(int id) const {
     return first_achievers_[id].size();
   }
 
@@ -140,9 +140,9 @@ class LandmarkGraph {
   bool FindCycle(int start, std::vector<int> &path,
                  std::unordered_set<int> &cloesd);
 
-  size_t n_landmarks_;
-  size_t n_disjunctive_;
-  size_t n_orderings_;
+  int n_landmarks_;
+  int n_disjunctive_;
+  int n_orderings_;
 
   // A fact must not appear in more than one landmarks.
   std::vector<int> fact_to_id_;

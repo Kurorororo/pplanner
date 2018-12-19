@@ -4,6 +4,7 @@
 
 namespace pplanner {
 
+using std::size_t;
 using std::vector;
 
 int SBPDDSGBFS::Search() {

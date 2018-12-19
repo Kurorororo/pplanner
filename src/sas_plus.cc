@@ -103,7 +103,7 @@ void SASPlus::Dump() const {
   std::cout << "Intiial state" << std::endl;
   auto initial_state = initial();
 
-  for (size_t i=0, n=initial_state.size(); i<n; ++i)
+  for (int i=0, n=initial_state.size(); i<n; ++i)
     std::cout << "var" << i << "=" << initial_state[i] << std::endl;
 
   std::cout << std::endl;

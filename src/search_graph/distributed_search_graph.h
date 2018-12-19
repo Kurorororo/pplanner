@@ -22,11 +22,11 @@ class DistributedSearchGraph : public SearchGraph {
 
   virtual ~DistributedSearchGraph() {}
 
-  virtual size_t node_size() const override {
+  virtual std::size_t node_size() const override {
     return sizeof(int) + SearchGraph::node_size();
   }
 
-  virtual void Reserve(size_t size) override {
+  virtual void Reserve(std::size_t size) override {
     SearchGraph::Reserve(size);
     parent_ranks_.reserve(size);
   }

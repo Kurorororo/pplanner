@@ -9,7 +9,7 @@ namespace pplanner {
 
 template<typename T, typename U>
 struct PairHash {
-  size_t operator()(const std::pair<T, U> &p) const {
+  std::size_t operator()(const std::pair<T, U> &p) const {
     return std::hash<T>{}(p.first) ^ std::hash<U>{}(p.second);
   }
 };

@@ -22,7 +22,7 @@ class PartialStateVector {
     values_.reserve(size);
   }
 
-  size_t size() const { return offsets_.size() - 1; }
+  int size() const { return offsets_.size() - 1; }
 
   int SizeOfPartialState(int i) const {
     assert(size() > 0);

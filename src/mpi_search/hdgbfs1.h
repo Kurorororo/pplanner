@@ -100,11 +100,11 @@ class HDGBFS1 : public Search {
 
   int world_size() const { return world_size_; }
 
-  size_t n_evaluators() const { return n_evaluators_; }
+  int n_evaluators() const { return n_evaluators_; }
 
   int rank() const { return rank_; }
 
-  size_t node_size() const { return graph_->node_size(); }
+  std::size_t node_size() const { return graph_->node_size(); }
 
   std::shared_ptr<const SASPlus> problem() const { return problem_; }
 
@@ -144,10 +144,12 @@ class HDGBFS1 : public Search {
 
   unsigned char* IncomingBuffer() { return incoming_buffer_.data(); }
 
-  void ResizeIncomingBuffer(size_t size) { incoming_buffer_.resize(size); }
+  void ResizeIncomingBuffer(std::size_t size) {
+    incoming_buffer_.resize(size);
+  }
 
-  unsigned char* ExtendOutgoingBuffer(int i, size_t size) {
-    size_t index = outgoing_buffers_[i].size();
+  unsigned char* ExtendOutgoingBuffer(int i, std::size_t size) {
+    std::size_t index = outgoing_buffers_[i].size();
     outgoing_buffers_[i].resize(index + size);
 
     return outgoing_buffers_[i].data() + index;
@@ -207,7 +209,7 @@ class HDGBFS1 : public Search {
   int world_size_;
   int rank_;
   int n_d_pruned_;
-  size_t n_evaluators_;
+  int n_evaluators_;
   unsigned char *mpi_buffer_;
   double min_pruning_ratio_;
   std::vector<int> best_values_;

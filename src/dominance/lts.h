@@ -77,7 +77,7 @@ class AtomicLTS {
 
   void Dump() const;
 
-  size_t n_bytes() const;
+  std::size_t n_bytes() const;
 
   static constexpr int kInfinity = std::numeric_limits<int>::max();
 

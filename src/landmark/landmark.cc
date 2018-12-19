@@ -41,8 +41,8 @@ void Landmark::Dump() const {
     std::cout << "var" << v.first << "->" << v.second << " ";
 }
 
-size_t Landmark::Hash() const {
-  size_t seed = 0;
+std::size_t Landmark::Hash() const {
+  std::size_t seed = 0;
 
   for (auto v : var_values_)
     boost::hash_combine(seed, PairHash<int, int>{}(v));

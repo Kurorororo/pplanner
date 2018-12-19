@@ -4,6 +4,7 @@
 
 namespace pplanner {
 
+using std::size_t;
 using std::vector;
 
 bool SearchGraph::CloseIfNotInner(int node, bool reopen_closed) {

@@ -31,8 +31,8 @@ void RelaxedSASPlus::InitActions(const SASPlus &problem, bool simplify) {
       precondition.push_back(f);
     }
 
-    size_t cost = problem.ActionCost(i);
-    size_t size = precondition.size();
+    int cost = problem.ActionCost(i);
+    int size = precondition.size();
 
     problem.CopyEffect(i, pair_effect);
     actions.clear();
@@ -116,7 +116,7 @@ void RelaxedSASPlus::Simplify() {
   unordered_map<pair<vector<int>, int>, int, decltype(key_hash)>
     umap(n_actions(), key_hash);
 
-  for (size_t i=0, n=n_actions(); i<n; ++i) {
+  for (int i=0, n=n_actions(); i<n; ++i) {
     pair<vector<int>, int> key;
     key.first = preconditions_[i];
     std::sort(key.first.begin(), key.first.end());
@@ -158,7 +158,7 @@ void RelaxedSASPlus::Simplify() {
         auto dominate_key = std::make_pair(vector<int>(), e);
 
         // 1 << i: 001, 010, 100
-        for (size_t i=0; i<p.size(); ++i)
+        for (int i=0, n=p.size(); i<n; ++i)
           if (mask & (1 << i)) dominate_key.first.push_back(p[i]);
 
         auto entry = umap.find(dominate_key);

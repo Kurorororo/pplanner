@@ -167,8 +167,8 @@ void LDS::Dump() const {
   }
 }
 
-size_t LDS::n_bytes() const {
-  size_t size = 0;
+std::size_t LDS::n_bytes() const {
+  std::size_t size = 0;
 
   return 1000000000;
 

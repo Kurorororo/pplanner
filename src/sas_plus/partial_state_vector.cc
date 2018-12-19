@@ -8,7 +8,7 @@ using std::vector;
 namespace pplanner {
 
 void PartialStateVector::Copy(int i, vector<pair<int, int> > &v) const {
-  size_t size = SizeOfPartialState(i);
+  int size = SizeOfPartialState(i);
   v.resize(size);
 
   auto var_iter = VarsBegin(i);
@@ -23,7 +23,7 @@ void PartialStateVector::Copy(int i, vector<pair<int, int> > &v) const {
 }
 
 void PartialStateVector::Add(const vector<pair<int, int> > &v) {
-  size_t size = v.size();
+  int size = v.size();
 
   for (auto &f : v) {
     vars_.push_back(f.first);

@@ -7,18 +7,18 @@ using std::vector;
 uint8_t* DistributedSearchGraphWithLandmarks::Landmark(int i) {
   if (i < 0) {
     i *= -1;
-    size_t size = static_cast<size_t>(i) * n_landmarks_bytes_;
+    std::size_t size = static_cast<std::size_t>(i) * n_landmarks_bytes_;
 
     if (tmp_landmarks_.size() < size)
       tmp_landmarks_.resize(size);
 
-    for (size_t j=0; j<n_landmarks_bytes_; ++j)
+    for (std::size_t j=0; j<n_landmarks_bytes_; ++j)
       tmp_landmarks_[size - n_landmarks_bytes_ + j] = 0;
 
     return tmp_landmarks_.data() + size - n_landmarks_bytes_;
   }
 
-  return landmarks_.data() + static_cast<size_t>(i) * n_landmarks_bytes_;
+  return landmarks_.data() + static_cast<std::size_t>(i) * n_landmarks_bytes_;
 }
 
 uint8_t* DistributedSearchGraphWithLandmarks::ParentLandmark(int i) {
@@ -83,7 +83,7 @@ int DistributedSearchGraphWithLandmarks::GenerateNodeIfNotClosedFromBytes(
   if (node != -1) {
     const uint8_t *landmark = reinterpret_cast<const uint8_t*>(
         d + DistributedSearchGraph::node_size());
-    size_t index = landmarks_.size() - n_landmarks_bytes_;
+    std::size_t index = landmarks_.size() - n_landmarks_bytes_;
     memcpy(landmarks_.data() + index, landmark,
            n_landmarks_bytes_ * sizeof(uint8_t));
   }
@@ -98,7 +98,7 @@ int DistributedSearchGraphWithLandmarks::GenerateAndCloseNodeFromBytes(
   if (node != -1) {
     const uint8_t *landmark = reinterpret_cast<const uint8_t*>(
         d + DistributedSearchGraph::node_size());
-    size_t index = landmarks_.size() - n_landmarks_bytes_;
+    std::size_t index = landmarks_.size() - n_landmarks_bytes_;
     memcpy(landmarks_.data() + index, landmark,
            n_landmarks_bytes_ * sizeof(uint8_t));
   }
@@ -112,7 +112,7 @@ int DistributedSearchGraphWithLandmarks::GenerateNodeFromBytes(
   int node = DistributedSearchGraph::GenerateNodeFromBytes(d, values);
   const uint8_t *landmark = reinterpret_cast<const uint8_t*>(
       d + n_evaluators() * sizeof(int) + DistributedSearchGraph::node_size());
-  size_t index = landmarks_.size() - n_landmarks_bytes_;
+  std::size_t index = landmarks_.size() - n_landmarks_bytes_;
   memcpy(landmarks_.data() + index, landmark,
          n_landmarks_bytes_ * sizeof(uint8_t));
 
@@ -128,7 +128,7 @@ int DistributedSearchGraphWithLandmarks::GenerateEvaluatedNode(
     int parent_rank) {
   int node = GenerateNode(action, parent_node, hash_value, packed, parent_rank);
   const uint8_t *tmp = tmp_landmarks_.data()
-    + static_cast<size_t>(index) * n_landmarks_bytes_;
+    + static_cast<std::size_t>(index) * n_landmarks_bytes_;
   memcpy(Landmark(node), tmp, n_landmarks_bytes_ * sizeof(uint8_t));
 
   return node;
@@ -146,7 +146,7 @@ void DistributedSearchGraphWithLandmarks::BufferEvaluatedNode(
   uint8_t *landmark = reinterpret_cast<uint8_t*>(
       buffer + DistributedSearchGraph::node_size());
   const uint8_t *tmp = tmp_landmarks_.data()
-    + static_cast<size_t>(index) * n_landmarks_bytes_;
+    + static_cast<std::size_t>(index) * n_landmarks_bytes_;
   memcpy(landmark, tmp, n_landmarks_bytes_ * sizeof(uint8_t));
 }
 

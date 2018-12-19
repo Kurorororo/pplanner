@@ -32,13 +32,13 @@ class SearchGraph {
 
   virtual void InitLandmarks(std::shared_ptr<const LandmarkGraph> graph) {}
 
-  virtual size_t node_size() const {
-    size_t state_size = packer_->block_size() * sizeof(uint32_t);
+  virtual std::size_t node_size() const {
+    std::size_t state_size = packer_->block_size() * sizeof(uint32_t);
 
     return state_size + 2 * sizeof(int) + sizeof(uint32_t);
   }
 
-  virtual void Reserve(size_t size) {
+  virtual void Reserve(std::size_t size) {
     states_.reserve(packer_->block_size() * size);
     actions_.reserve(size);
     parents_.reserve(size);
@@ -74,16 +74,18 @@ class SearchGraph {
 
   virtual void Dump() {}
 
-  size_t capacity() const { return capacity_; }
+  std::size_t capacity() const { return capacity_; }
 
-  size_t size() const { return hash_values_.size(); }
+  std::size_t size() const { return hash_values_.size(); }
 
-  size_t closed_size() const { return closed_.size() * sizeof(int); }
+  std::size_t closed_size() const { return closed_.size() * sizeof(int); }
 
-  size_t state_size() const { return packer_->block_size() * sizeof(uint32_t); }
+  std::size_t state_size() const {
+    return packer_->block_size() * sizeof(uint32_t);
+  }
 
-  void ReserveByRAMSize(size_t ram_size) {
-    size_t size = (ram_size - closed_size()) / node_size();
+  void ReserveByRAMSize(std::size_t ram_size) {
+    std::size_t size = (ram_size - closed_size()) / node_size();
     Reserve(size);
   }
 
@@ -94,14 +96,14 @@ class SearchGraph {
   uint32_t HashValue(int i) const { return hash_values_[i]; }
 
   void State(int i, std::vector<int> &state) const {
-    size_t block_size = packer_->block_size();
-    auto packed = states_.data() + static_cast<size_t>(i) * block_size;
+    std::size_t block_size = packer_->block_size();
+    auto packed = states_.data() + static_cast<std::size_t>(i) * block_size;
     Unpack(packed, state);
   }
 
   const uint32_t* PackedState(int i) const {
-    size_t block_size = packer_->block_size();
-    return states_.data() + static_cast<size_t>(i) * block_size;
+    std::size_t block_size = packer_->block_size();
+    return states_.data() + static_cast<std::size_t>(i) * block_size;
   }
 
   int GenerateNode(int action, int parent_node, const std::vector<int> &state) {
@@ -224,23 +226,23 @@ class SearchGraph {
     packer_->Unpack(packed, state);
   }
 
-  size_t block_size() const { return packer_->block_size(); }
+  std::size_t block_size() const { return packer_->block_size(); }
 
-  size_t Find(int i) const {
+  std::size_t Find(int i) const {
     uint32_t hash_value = HashValue(i);
-    size_t block_size = packer_->block_size();
-    auto packed = states_.data() + static_cast<size_t>(i) * block_size;
+    std::size_t block_size = packer_->block_size();
+    auto packed = states_.data() + static_cast<std::size_t>(i) * block_size;
 
     return Find(hash_value, packed);
   }
 
-  size_t Find(uint32_t hash_value, const uint32_t *packed) const;
+  std::size_t Find(uint32_t hash_value, const uint32_t *packed) const;
 
-  void Close(size_t index, int node);
+  void Close(std::size_t index, int node);
 
-  int ClosedEntryAt(size_t i) const { return closed_[i]; }
+  int ClosedEntryAt(std::size_t i) const { return closed_[i]; }
 
-  void OpenClosedEntryAt(size_t i) { closed_[i] = -1; }
+  void OpenClosedEntryAt(std::size_t i) { closed_[i] = -1; }
 
  private:
   void ReserveIfFull() {
@@ -249,23 +251,23 @@ class SearchGraph {
   }
 
   void AddPacked(const std::vector<int> &state) {
-    size_t old_size = states_.size();
+    std::size_t old_size = states_.size();
     states_.resize(old_size + packer_->block_size());
     Pack(state, states_.data() + old_size);
   }
 
   void AddPacked(const uint32_t *packed) {
-    size_t block_size = packer_->block_size();
-    size_t old_size = states_.size();
+    std::size_t block_size = packer_->block_size();
+    std::size_t old_size = states_.size();
     states_.resize(old_size + block_size);
     memcpy(states_.data() + old_size, packed, block_size * sizeof(uint32_t));
   }
 
   void ResizeClosed();
 
-  size_t capacity_;
+  std::size_t capacity_;
   float resize_factor_;
-  size_t n_closed_;
+  std::size_t n_closed_;
   int closed_exponent_;
   uint32_t closed_mask_;
   std::vector<int> closed_;

@@ -71,11 +71,11 @@ class SIMHDGBFS : public Search {
 
   int world_size() const { return world_size_; }
 
-  size_t n_evaluators() const { return n_evaluators_; }
+  int n_evaluators() const { return n_evaluators_; }
 
   int rank() const { return rank_; }
 
-  size_t node_size() const { return graphs_[rank_]->node_size(); }
+  std::size_t node_size() const { return graphs_[rank_]->node_size(); }
 
   std::shared_ptr<const SASPlus> problem() const { return problem_; }
 
@@ -88,8 +88,8 @@ class SIMHDGBFS : public Search {
 
   void Push(std::vector<int> &values, int node);
 
-  unsigned char* ExtendOutgoingBuffer(int i, size_t size) {
-    size_t index = outgoing_buffers_[rank_][i].size();
+  unsigned char* ExtendOutgoingBuffer(int i, std::size_t size) {
+    std::size_t index = outgoing_buffers_[rank_][i].size();
     outgoing_buffers_[rank_][i].resize(index + size);
 
     return outgoing_buffers_[rank_][i].data() + index;
@@ -120,7 +120,7 @@ class SIMHDGBFS : public Search {
   int rank_;
   int delay_;
   int delay_index_;
-  size_t n_evaluators_;
+  int n_evaluators_;
   std::vector<int> n_in_out_going_buffer_;
   std::vector<int> tmp_state_;
   std::vector<std::vector<std::vector<unsigned char> > > incoming_buffers_;

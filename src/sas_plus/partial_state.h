@@ -14,7 +14,7 @@ class PartialState {
 
   explicit PartialState(const std::vector<std::pair<int, int> > &v);
 
-  size_t size() const { return vars_.size(); }
+  int size() const { return vars_.size(); }
 
   void Add(int var, int value) {
     vars_.push_back(var);

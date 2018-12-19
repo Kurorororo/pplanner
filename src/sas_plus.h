@@ -28,17 +28,17 @@ class SASPlus {
 
   void InitFromLines(std::queue<std::string> &lines);
 
-  size_t n_variables() const { return initial_.size(); }
+  int n_variables() const { return initial_.size(); }
 
-  size_t n_goal_facts() const {
+  int n_goal_facts() const {
     assert(goal_ != nullptr);
 
     return goal_->size();
   }
 
-  size_t n_actions() const { return action_costs_.size(); }
+  int n_actions() const { return action_costs_.size(); }
 
-  size_t n_facts() const {
+  int n_facts() const {
     assert(facts_ != nullptr);
 
     return facts_->size();

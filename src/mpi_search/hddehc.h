@@ -100,11 +100,11 @@ class HDDEHC : public Search {
 
   int world_size() const { return world_size_; }
 
-  size_t n_evaluators() const { return n_evaluators_; }
+  int n_evaluators() const { return n_evaluators_; }
 
   int rank() const { return rank_; }
 
-  size_t node_size() const { return graph_->node_size(); }
+  std::size_t node_size() const { return graph_->node_size(); }
 
   std::shared_ptr<const SASPlus> problem() const { return problem_; }
 
@@ -125,7 +125,7 @@ class HDDEHC : public Search {
 
   int MinimumValue(int i) const { return open_list_->MinimumValue(i); }
 
-  size_t n_open_nodes() const { return open_list_->size(); }
+  std::size_t n_open_nodes() const { return open_list_->size(); }
 
   int IndependentExpand(int node, std::vector<int> &state, bool eager_dd=false);
 
@@ -135,7 +135,7 @@ class HDDEHC : public Search {
     return incoming_buffer_.data();
   }
 
-  void ResizeIncomingBuffer(size_t size) {
+  void ResizeIncomingBuffer(std::size_t size) {
     incoming_buffer_.resize(size);
   }
 
@@ -143,7 +143,7 @@ class HDDEHC : public Search {
     return outgoing_buffers_[i].data();
   }
 
-  size_t OutgoingBufferSize(int i) const {
+  std::size_t OutgoingBufferSize(int i) const {
     return outgoing_buffers_[i].size();
   }
 
@@ -151,8 +151,8 @@ class HDDEHC : public Search {
     return outgoing_buffers_[i].empty();
   }
 
-  unsigned char* ExtendOutgoingBuffer(int i, size_t size) {
-    size_t index = outgoing_buffers_[i].size();
+  unsigned char* ExtendOutgoingBuffer(int i, std::size_t size) {
+    std::size_t index = outgoing_buffers_[i].size();
     outgoing_buffers_[i].resize(index + size);
 
     return outgoing_buffers_[i].data() + index;
@@ -204,7 +204,7 @@ class HDDEHC : public Search {
   int initial_rank_;
   int world_size_;
   int rank_;
-  size_t n_evaluators_;
+  int n_evaluators_;
   unsigned char *mpi_buffer_;
   std::vector<int> tmp_state_;
   std::vector<int> current_initial_;

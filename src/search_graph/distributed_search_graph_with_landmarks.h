@@ -25,13 +25,13 @@ class DistributedSearchGraphWithLandmarks : public DistributedSearchGraph {
     parent_landmark_.resize(n_landmarks_bytes_, 0);
   }
 
-  virtual size_t node_size() const override {
+  virtual std::size_t node_size() const override {
     int node_size = DistributedSearchGraph::node_size();
 
     return n_landmarks_bytes_ * sizeof(uint8_t) + node_size;
   }
 
-  virtual void Reserve(size_t size) override {
+  virtual void Reserve(std::size_t size) override {
     DistributedSearchGraph::Reserve(size);
     landmarks_.reserve(n_landmarks_bytes_ * size);
   }
@@ -84,7 +84,7 @@ class DistributedSearchGraphWithLandmarks : public DistributedSearchGraph {
   uint8_t* ParentLandmark(int i) override;
 
  private:
-  size_t n_landmarks_bytes_;
+  std::size_t n_landmarks_bytes_;
   std::vector<uint8_t> parent_landmark_;
   std::vector<uint8_t> landmarks_;
   std::vector<uint8_t> tmp_landmarks_;
