@@ -30,6 +30,44 @@ class EffectVector : public PartialStateVector {
   void CopyConditionalEffects(int i,
                               std::vector<std::pair<int, int> > &effects) const;
 
+  bool use_conditional() const { return use_conditional_; }
+
+  const int* effect_condition_offsets_1_data() const {
+    return effect_condition_offsets_1_.data();
+  }
+
+  std::size_t effect_condition_offsets_2_size() const {
+    return effect_condition_offsets_2_.size();
+  }
+
+  const int* effect_condition_offsets_2_data() const {
+    return effect_condition_offsets_2_.data();
+  }
+
+  std::size_t effect_conditions_size() const {
+    return effect_condition_vars_.size();
+  }
+
+  const int* effect_condition_vars_data() const {
+    return effect_condition_vars_.data();
+  }
+
+  const int* effect_condition_values_data() const {
+    return effect_condition_values_.data();
+  }
+
+  std::size_t conditional_effects_size() const {
+    return conditional_effect_vars_.size();
+  }
+
+  const int* conditional_effect_vars_data() const {
+    return conditional_effect_vars_.data();
+  }
+
+  const int* conditional_effect_values_data() const {
+    return conditional_effect_values_.data();
+  }
+
  private:
   bool use_conditional_;
   std::vector<bool> has_conditional_;

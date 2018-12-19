@@ -24,6 +24,8 @@ class PartialStateVector {
 
   int size() const { return offsets_.size() - 1; }
 
+  std::size_t n_units() const { return vars_.size(); }
+
   int SizeOfPartialState(int i) const {
     assert(size() > 0);
 
@@ -56,9 +58,9 @@ class PartialStateVector {
 
   const int* offsets_data() const { return offsets_.data(); }
 
-  const int* values_data() const { return values_.data(); }
-
   const int* vars_data() const { return vars_.data(); }
+
+  const int* values_data() const { return values_.data(); }
 
  private:
   std::vector<int> offsets_;

@@ -95,7 +95,7 @@ void SASPlus::Dump() const {
   assert(mutex_groups_ != nullptr);
   assert(goal_ != nullptr);
   assert(preconditions_ != nullptr);
-  assert(effect_ != nullptr);
+  assert(effects_ != nullptr);
 
   facts_->Dump();
 

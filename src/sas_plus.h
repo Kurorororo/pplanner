@@ -46,6 +46,8 @@ class SASPlus {
 
   int metric() const { return metric_; }
 
+  bool use_conditional() const { return effects_->use_conditional(); }
+
   const std::vector<int>& initial() const { return initial_; }
 
   int Fact(int var, int value) const { return facts_->Fact(var, value); }
@@ -155,13 +157,61 @@ class SASPlus {
 
   std::shared_ptr<const PartialState> goal() const { return goal_; }
 
-  const int* action_costs_data() { return action_costs_.data(); }
-
   std::shared_ptr<const PartialStateVector> preconditions() const {
     return preconditions_;
   }
 
   std::shared_ptr<const EffectVector> effects() const { return effects_; }
+
+  const int* goal_vars_data() const { return goal_->vars_data(); }
+
+  const int* goal_values_data() const { return goal_->values_data(); }
+
+  const int* action_costs_data() const { return action_costs_.data(); }
+
+  const int* effect_offsets_data() const { return effects_->offsets_data(); }
+
+  std::size_t effects_size() const { return effects_->n_units(); }
+
+  const int* effect_vars_data() const { return effects_->vars_data(); }
+
+  const int* effect_values_data() const { return effects_->values_data(); }
+
+  const int* effect_condition_offsets_1_data() const {
+    return effects_->effect_condition_offsets_1_data();
+  }
+
+  std::size_t effect_condition_offsets_2_size() const {
+    return effects_->effect_condition_offsets_2_size();
+  }
+
+  const int* effect_condition_offsets_2_data() const {
+    return effects_->effect_condition_offsets_2_data();
+  }
+
+  std::size_t effect_conditions_size() const {
+    return effects_->effect_conditions_size();
+  }
+
+  const int* effect_condition_vars_data() const {
+    return effects_->effect_condition_vars_data();
+  }
+
+  const int* effect_condition_values_data() const {
+    return effects_->effect_condition_values_data();
+  }
+
+  std::size_t conditional_effects_size() const {
+    return effects_->conditional_effects_size();
+  }
+
+  const int* conditional_effect_vars_data() const {
+    return effects_->conditional_effect_vars_data();
+  }
+
+  const int* conditional_effect_values_data() const {
+    return effects_->conditional_effect_values_data();
+  }
 
  private:
   void CreateActions(int n);

@@ -8,8 +8,6 @@ using std::vector;
 
 int SingleOpenList::EvaluateAndPush(const vector<int> &state, int node,
                                     bool preferred) {
-  assert(evaluators_ != nullptr);
-
   values_.clear();
 
   for (auto evaluator : evaluators_) {
