@@ -343,12 +343,23 @@ vector<shared_ptr<DTG> > InitializeDTGs(shared_ptr<const SASPlus> problem) {
           continue;
         }
 
+        bool found = false;
+
         for (int k=0, l=tmp_effect_conditions.size(); k<l; ++k) {
           int precondition_var = tmp_effect_conditions[j][k].first;
 
           if (precondition_var == effect_var) {
             int precondition_value = tmp_effect_conditions[j][k].second;
             ++adjacent_matrixes[effect_var][precondition_value][effect_value];
+            found = true;
+            break;
+          }
+        }
+
+        if (!found) {
+          for (int k=0; k<problem->VarRange(effect_var); ++k) {
+            if (k == effect_value) continue;
+            ++adjacent_matrixes[effect_var][k][effect_value];
           }
         }
       }
