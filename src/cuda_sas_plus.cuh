@@ -1,6 +1,8 @@
 #ifndef CUDA_SAS_PLUS_H_
 #define CUDA_SAS_PLUS_H_
 
+#include <memory>
+
 #include "sas_plus.h"
 
 namespace pplanner {
@@ -11,6 +13,7 @@ struct CudaSASPlus {
   int n_goal_facts;
   int n_actions;
   bool use_conditional;
+  int *var_offsets;
   int *goal_vars;
   int *goal_values;
   int *action_costs;
@@ -24,6 +27,11 @@ struct CudaSASPlus {
   int *conditional_effect_vars;
   int *conditional_effect_values;
 };
+
+__device__
+inline int Fact(const CudaSASPlus &problem, int var, int value) {
+  return problem.var_offsets[var] + value;
+}
 
 __device__
 bool IsGoal(const CudaSASPlus &problem, const int *state);

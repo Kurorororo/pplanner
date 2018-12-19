@@ -10,7 +10,6 @@
 #include "sas_plus.h"
 
 namespace pplanner {
-
 class SuccessorGenerator {
  public:
   SuccessorGenerator() : problem_(nullptr), to_data_(1, 0) {}
@@ -37,9 +36,15 @@ class SuccessorGenerator {
 
   void Dump() const;
 
+  std::size_t to_child_size() const { return to_child_.size(); }
+
   const int* to_child_data() const { return to_child_.data(); }
 
+  std::size_t to_data_size() const { return to_data_.size(); }
+
   const int* to_data() const { return to_data_.data(); }
+
+  std::size_t data_size() const { return data_.size(); }
 
   const int* data() const { return data_.data(); }
 

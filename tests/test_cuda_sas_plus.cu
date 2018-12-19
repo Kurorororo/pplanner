@@ -1,6 +1,7 @@
 #include "cuda_sas_plus.cuh"
 
 #include <iostream>
+#include <memory>
 
 #include "cuda_common/cuda_check.cuh"
 
@@ -11,8 +12,90 @@ using namespace pplanner;
 std::queue<std::string> ExampleSASPlusLines(bool unit_cost=true);
 
 __global__
+void FactKernel(const CudaSASPlus problem, int var, int value, int *result) {
+  *result = Fact(problem, var, value);
+}
+
+void FactTest(std::shared_ptr<const SASPlus> problem,
+              const CudaSASPlus &cuda_problem) {
+  int *cuda_result = nullptr;
+  CUDA_CHECK(cudaMalloc((void**)&cuda_result, sizeof(int)));
+  int result = 0;
+
+  FactKernel<<<1, 1>>>(cuda_problem, 0, 0, cuda_result);
+  CUDA_CHECK(cudaMemcpy(&result, cuda_result, sizeof(int),
+                        cudaMemcpyDeviceToHost));
+  assert(0 == result);
+
+  FactKernel<<<1, 1>>>(cuda_problem, 0, 1, cuda_result);
+  CUDA_CHECK(cudaMemcpy(&result, cuda_result, sizeof(int),
+                        cudaMemcpyDeviceToHost));
+  assert(1 == result);
+
+  FactKernel<<<1, 1>>>(cuda_problem, 1, 0, cuda_result);
+  CUDA_CHECK(cudaMemcpy(&result, cuda_result, sizeof(int),
+                        cudaMemcpyDeviceToHost));
+  assert(2 == result);
+
+  FactKernel<<<1, 1>>>(cuda_problem, 1, 1, cuda_result);
+  CUDA_CHECK(cudaMemcpy(&result, cuda_result, sizeof(int),
+                        cudaMemcpyDeviceToHost));
+  assert(3 == result);
+
+  FactKernel<<<1, 1>>>(cuda_problem, 2, 0, cuda_result);
+  CUDA_CHECK(cudaMemcpy(&result, cuda_result, sizeof(int),
+                        cudaMemcpyDeviceToHost));
+  assert(4 == result);
+
+  FactKernel<<<1, 1>>>(cuda_problem, 2, 1, cuda_result);
+  CUDA_CHECK(cudaMemcpy(&result, cuda_result, sizeof(int),
+                        cudaMemcpyDeviceToHost));
+  assert(5 == result);
+
+  FactKernel<<<1, 1>>>(cuda_problem, 2, 2, cuda_result);
+  CUDA_CHECK(cudaMemcpy(&result, cuda_result, sizeof(int),
+                        cudaMemcpyDeviceToHost));
+  assert(6 == result);
+
+  CUDA_CHECK(cudaFree(cuda_result));
+
+  std::cout << "passed FactTest" << std::endl;
+}
+
+__global__
 void IsGoalKernel(const CudaSASPlus problem, const int *state, bool *result) {
   *result = IsGoal(problem, state);
+}
+
+void IsGoalTest(std::shared_ptr<const SASPlus> problem,
+                const CudaSASPlus &cuda_problem) {
+  bool *cuda_result = nullptr;
+  CUDA_CHECK(cudaMalloc((void**)&cuda_result, sizeof(bool)));
+  bool result;
+
+  auto state = problem->initial();
+  int *cuda_state = nullptr;
+  CudaMallocAndCopy((void**)&cuda_state, state.data(),
+                    problem->n_variables() * sizeof(int));
+
+  IsGoalKernel<<<1, 1>>>(cuda_problem, cuda_state, cuda_result);
+  CUDA_CHECK(cudaMemcpy(&result, cuda_result, sizeof(bool),
+                        cudaMemcpyDeviceToHost));
+  assert(!result);
+
+  state[2] = 1;
+  CUDA_CHECK(cudaMemcpy(cuda_state, state.data(),
+                        problem->n_variables() * sizeof(int),
+                        cudaMemcpyHostToDevice));
+  IsGoalKernel<<<1, 1>>>(cuda_problem, cuda_state, cuda_result);
+  CUDA_CHECK(cudaMemcpy(&result, cuda_result, sizeof(bool),
+                        cudaMemcpyDeviceToHost));
+  assert(result);
+
+  CUDA_CHECK(cudaFree(cuda_result));
+  CUDA_CHECK(cudaFree(cuda_state));
+
+  std::cout << "passed IsGoalTest" << std::endl;
 }
 
 __global__
@@ -21,10 +104,45 @@ void ApplyEffectKernel(const CudaSASPlus problem, int i, const int *state,
   ApplyEffect(problem, i, state, child);
 }
 
-int main() {
-  bool *cuda_result = nullptr;
-  CUDA_CHECK(cudaMalloc((void**)&cuda_result, sizeof(bool)));
+void ApplyEffectTest(std::shared_ptr<const SASPlus> problem,
+                     const CudaSASPlus &cuda_problem) {
+  auto state = problem->initial();
+  auto child = state;
+  int *cuda_state = nullptr;
+  CudaMallocAndCopy((void**)&cuda_state, state.data(),
+                    problem->n_variables() * sizeof(int));
+  int *cuda_child = nullptr;
+  CudaMallocAndCopy((void**)&cuda_child, child.data(),
+                    problem->n_variables() * sizeof(int));
 
+  ApplyEffectKernel<<<1, 1>>>(cuda_problem, 4, cuda_state, cuda_child);
+  problem->ApplyEffect(4, state);
+  CUDA_CHECK(cudaMemcpy(child.data(), cuda_child,
+                        problem->n_variables() * sizeof(int),
+                        cudaMemcpyDeviceToHost));
+  assert(state == child);
+
+  ApplyEffectKernel<<<1, 1>>>(cuda_problem, 2, cuda_child, cuda_state);
+  problem->ApplyEffect(2, state);
+  CUDA_CHECK(cudaMemcpy(child.data(), cuda_state,
+                        problem->n_variables() * sizeof(int),
+                        cudaMemcpyDeviceToHost));
+  assert(state == child);
+
+  ApplyEffectKernel<<<1, 1>>>(cuda_problem, 1, cuda_state, cuda_child);
+  problem->ApplyEffect(1, state);
+  CUDA_CHECK(cudaMemcpy(child.data(), cuda_child,
+                        problem->n_variables() * sizeof(int),
+                        cudaMemcpyDeviceToHost));
+  assert(state == child);
+
+  CUDA_CHECK(cudaFree(cuda_state));
+  CUDA_CHECK(cudaFree(cuda_child));
+
+  std::cout << "passed ApplyEffectTest" << std::endl;
+}
+
+int main() {
   auto lines = ExampleSASPlusLines();
   std::shared_ptr<SASPlus> problem = std::make_shared<SASPlus>();
   problem->InitFromLines(lines);
@@ -32,59 +150,9 @@ int main() {
   CudaSASPlus cuda_problem;
   InitCudaSASPlus(problem, &cuda_problem);
 
-  int *cuda_state = nullptr;
-  CudaMallocAndCopy((void**)&cuda_state, problem->initial().data(),
-                    problem->n_variables() * sizeof(int));
-
-  int *cuda_child = nullptr;
-  CudaMallocAndCopy((void**)&cuda_child, problem->initial().data(),
-                    problem->n_variables() * sizeof(int));
-
-  IsGoalKernel<<<1, 1>>>(cuda_problem, cuda_child, cuda_result);
-  bool result;
-  CUDA_CHECK(cudaMemcpy(&result, cuda_result, sizeof(bool),
-                        cudaMemcpyDeviceToHost));
-  assert(!result);
-
-  auto modified = problem->initial();
-  modified[2] = 1;
-  CUDA_CHECK(cudaMemcpy(cuda_child, modified.data(),
-                        problem->n_variables() * sizeof(int),
-                        cudaMemcpyHostToDevice));
-  IsGoalKernel<<<1, 1>>>(cuda_problem, cuda_child, cuda_result);
-  CUDA_CHECK(cudaMemcpy(&result, cuda_result, sizeof(bool),
-                        cudaMemcpyDeviceToHost));
-  assert(result);
-  std::cout << "passed IsGoal" << std::endl;
-
-  ApplyEffectKernel<<<1, 1>>>(cuda_problem, 4, cuda_state, cuda_child);
-  modified = problem->initial();
-  problem->ApplyEffect(4, modified);
-  auto child = problem->initial();
-  CUDA_CHECK(cudaMemcpy(child.data(), cuda_child,
-                        problem->n_variables() * sizeof(int),
-                        cudaMemcpyDeviceToHost));
-  assert(child == modified);
-
-  ApplyEffectKernel<<<1, 1>>>(cuda_problem, 2, cuda_child, cuda_state);
-  problem->ApplyEffect(2, modified);
-  CUDA_CHECK(cudaMemcpy(child.data(), cuda_state,
-                        problem->n_variables() * sizeof(int),
-                        cudaMemcpyDeviceToHost));
-  assert(child == modified);
-
-  ApplyEffectKernel<<<1, 1>>>(cuda_problem, 1, cuda_state, cuda_child);
-  problem->ApplyEffect(1, modified);
-  CUDA_CHECK(cudaMemcpy(child.data(), cuda_child,
-                        problem->n_variables() * sizeof(int),
-                        cudaMemcpyDeviceToHost));
-  assert(child == modified);
-  std::cout << "passed ApplyEffect" << std::endl;
-
-  CUDA_CHECK(cudaFree(cuda_result));
-  CUDA_CHECK(cudaFree(cuda_state));
-  CUDA_CHECK(cudaFree(cuda_child));
-  FreeCudaSASPlus(&cuda_problem);
+  FactTest(problem, cuda_problem);
+  IsGoalTest(problem, cuda_problem);
+  ApplyEffectTest(problem, cuda_problem);
 
   return 0;
 }

@@ -163,6 +163,8 @@ class SASPlus {
 
   std::shared_ptr<const EffectVector> effects() const { return effects_; }
 
+  const int* var_offsets_data() const { return facts_->offsets_data(); }
+
   const int* goal_vars_data() const { return goal_->vars_data(); }
 
   const int* goal_values_data() const { return goal_->values_data(); }
