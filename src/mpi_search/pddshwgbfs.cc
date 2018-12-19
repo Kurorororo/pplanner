@@ -1,4 +1,4 @@
-#include "search/pddsgbfs.h"
+#include "mpi_search/pddsgbfs.h"
 
 #include <vector>
 

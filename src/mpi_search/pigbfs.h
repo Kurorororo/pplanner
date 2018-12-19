@@ -7,7 +7,7 @@
 #include <boost/property_tree/ptree.hpp>
 
 #include "sas_plus.h"
-#include "search/hdgbfs.h"
+#include "mpi_search/hdgbfs.h"
 
 namespace pplanner {
 

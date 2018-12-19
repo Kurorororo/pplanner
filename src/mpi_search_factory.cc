@@ -1,12 +1,12 @@
 #include "mpi_search_factory.h"
 
-#include "search/hddehc.h"
-#include "search/hdgbfs.h"
-#include "search/hdgbfs1.h"
-#include "search/pddsgbfs.h"
-#include "search/pigbfs.h"
-#include "search/symmetry_breaking_hdgbfs.h"
-#include "search/symmetry_breaking_pddsgbfs.h"
+#include "mpi_search/hddehc.h"
+#include "mpi_search/hdgbfs.h"
+#include "mpi_search/hdgbfs1.h"
+#include "mpi_search/pddsgbfs.h"
+#include "mpi_search/pigbfs.h"
+#include "mpi_search/symmetry_breaking_hdgbfs.h"
+#include "mpi_search/symmetry_breaking_pddsgbfs.h"
 
 namespace pplanner {
 

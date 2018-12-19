@@ -1,4 +1,4 @@
-#include "search/hdgbfs1.h"
+#include "mpi_search/hdgbfs1.h"
 
 #include <algorithm>
 #include <iostream>

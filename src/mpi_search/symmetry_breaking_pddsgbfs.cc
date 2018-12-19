@@ -1,4 +1,4 @@
-#include "search/symmetry_breaking_pddsgbfs.h"
+#include "mpi_search/symmetry_breaking_pddsgbfs.h"
 
 #include <vector>
 

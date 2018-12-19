@@ -1,4 +1,4 @@
-#include "search/pigbfs.h"
+#include "mpi_search/pigbfs.h"
 
 namespace pplanner {
 

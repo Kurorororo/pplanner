@@ -1,4 +1,4 @@
-#include "search/hddehc.h"
+#include "mpi_search/symmetry_breaking_hdgbfs.h"
 
 #include <algorithm>
 #include <iostream>
@@ -17,7 +17,7 @@ using std::make_shared;
 using std::unordered_set;
 using std::vector;
 
-void HDDEHC::Init(const boost::property_tree::ptree &pt) {
+void SBHDGBFS::Init(const boost::property_tree::ptree &pt) {
   MPI_Comm_rank(MPI_COMM_WORLD, &rank_);
 
   if (auto opt = pt.get_optional<int>("max_expansion")) {
@@ -80,15 +80,15 @@ void HDDEHC::Init(const boost::property_tree::ptree &pt) {
   if (auto ram = pt.get_optional<size_t>("ram"))
     graph_->ReserveByRAMSize(ram.get());
   else
-    graph_->ReserveByRAMSize(5000000000);
+    graph_->ReserveByRAMSize(3000000000);
+
+  states_.reserve(graph_->capacity() * graph_->block_size());
 
   if (auto opt = pt.get_optional<int>("sss")) {
     use_sss_ = true;
     sss_aproximater_ = std::unique_ptr<SSSApproximater>(
         new SSSApproximater(problem_));
   }
-
-  if (auto opt = pt.get_optional<int>("aggressive")) aggressive_ = true;
 
   std::string abstraction = "none";
 
@@ -106,7 +106,36 @@ void HDDEHC::Init(const boost::property_tree::ptree &pt) {
   outgoing_buffers_.resize(world_size_);
 }
 
-int HDDEHC::Search() {
+void SBHDGBFS::SaveState(const std::vector<int> &state) {
+  if (states_.size() == states_.capacity()) {
+    size_t size = states_.size() / graph_->block_size();
+    size_t new_size = 1.2 * size * graph_->block_size();
+    states_.reserve(new_size);
+  }
+
+  size_t index = states_.size();
+  states_.resize(index + graph_->block_size());
+  graph_->Pack(state, states_.data() + index);
+}
+
+void SBHDGBFS::SavePackedState(const uint32_t *packed) {
+  if (states_.size() == states_.capacity()) {
+    size_t size = states_.size() / graph_->block_size();
+    size_t new_size = 1.2 * size * graph_->block_size();
+    states_.reserve(new_size);
+  }
+
+  size_t index = states_.size();
+  states_.resize(index + graph_->block_size());
+  memcpy(states_.data() + index, packed,
+         graph_->block_size() * sizeof(uint32_t));
+}
+
+void SBHDGBFS::RestoreState(int node, std::vector<int> &state) const {
+  graph_->Unpack(states_.data() + node * graph_->block_size(), state);
+}
+
+int SBHDGBFS::Search() {
   auto state = InitialEvaluate();
 
   if (runup() && rank() == initial_rank()) {
@@ -141,19 +170,22 @@ int HDDEHC::Search() {
   return -1;
 }
 
-vector<int> HDDEHC::InitialEvaluate(bool eager_dd) {
+vector<int> SBHDGBFS::InitialEvaluate(bool eager_dd) {
   auto state = problem_->initial();
+  auto canonical = state;
+  manager_->ToCanonical(state, canonical);
   uint32_t world_size = static_cast<uint32_t>(world_size_);
-  int initial_rank_ = z_hash_->operator()(state) % world_size;
+  int initial_rank_ = z_hash_->operator()(canonical) % world_size;
 
   if (rank_ == initial_rank_) {
     int node = -1;
 
     if (eager_dd)
-      node = graph_->GenerateAndCloseNode(-1, -1, state, -1);
+      node = graph_->GenerateAndCloseNode(-1, -1, canonical, -1);
     else
-      node = graph_->GenerateNode(-1, -1, state, -1);
+      node = graph_->GenerateNode(-1, -1, canonical, -1);
 
+    SaveState(state);
     IncrementGenerated();
     int h = open_list_->EvaluateAndPush(state, node, true);
     graph_->SetH(node, h);
@@ -165,9 +197,10 @@ vector<int> HDDEHC::InitialEvaluate(bool eager_dd) {
   return state;
 }
 
-int HDDEHC::Expand(int node, vector<int> &state, bool eager_dd) {
+int SBHDGBFS::Expand(int node, vector<int> &state, bool eager_dd) {
   static vector<int> values;
   static vector<int> child;
+  static vector<int> canonical;
   static vector<int> applicable;
   static unordered_set<int> preferred;
   static vector<bool> sss;
@@ -175,7 +208,7 @@ int HDDEHC::Expand(int node, vector<int> &state, bool eager_dd) {
   if (!eager_dd && !graph_->CloseIfNot(node)) return -1;
 
   ++expanded_;
-  graph_->Expand(node, state);
+  RestoreState(node, state);
 
   if (problem_->IsGoal(state)) return node;
 
@@ -201,14 +234,12 @@ int HDDEHC::Expand(int node, vector<int> &state, bool eager_dd) {
     child = state;
     problem_->ApplyEffect(o, child);
 
-    if (lds_->Dominance(child, state)
-        || lds_->Dominance(child, current_initial_))
-      continue;
-
     bool is_preferred = use_preferred_ && preferred.find(o) != preferred.end();
     if (is_preferred) ++n_preferreds_;
 
-    uint32_t hash = z_hash_->operator()(child);
+    manager_->ToCanonical(child, canonical);
+
+    uint32_t hash = z_hash_->operator()(canonical);
     int to_rank = hash % static_cast<uint32_t>(world_size_);
 
     ++n_sent_or_generated_;
@@ -217,30 +248,23 @@ int HDDEHC::Expand(int node, vector<int> &state, bool eager_dd) {
       int child_node = -1;
 
       if (eager_dd) {
-        child_node = graph_->GenerateAndCloseNode(o, node, state, child, rank_);
+        child_node = graph_->GenerateAndCloseNode(o, node, canonical, rank_);
       } else {
-        child_node = graph_->GenerateNodeIfNotClosed(
-            o, node, state, child, rank_);
+        child_node = graph_->GenerateNodeIfNotClosed(o, node, canonical, rank_);
       }
 
       if (child_node == -1) continue;
+
+      SaveState(child);
       IncrementGenerated();
-
-      bool dominated = false;
-
-      if (aggressive_ && lds_->Dominance(current_initial_, child)) {
-        open_list_->Clear();
-        current_initial_ = child;
-        dominated = true;
-      }
-
       int h = Evaluate(child, child_node, values);
       if (h != -1) Push(values, child_node);
-
-      if (dominated) break;
     } else {
-      unsigned char *buffer = ExtendOutgoingBuffer(to_rank, node_size());
-      graph_->BufferNode(o, node, state, child, buffer);
+      unsigned char *buffer = ExtendOutgoingBuffer(
+          to_rank, node_size() + graph_->block_size() * sizeof(uint32_t));;
+      graph_->BufferNode(o, node, canonical, buffer);
+      uint32_t *packed = reinterpret_cast<uint32_t*>(buffer + node_size());
+      graph_->Pack(child, packed);
       ++n_sent_;
     }
   }
@@ -250,7 +274,7 @@ int HDDEHC::Expand(int node, vector<int> &state, bool eager_dd) {
   return -1;
 }
 
-int HDDEHC::Evaluate(const vector<int> &state, int node, vector<int> &values) {
+int SBHDGBFS::Evaluate(const vector<int> &state, int node, vector<int> &values) {
   ++evaluated_;
 
   values.clear();
@@ -274,7 +298,7 @@ int HDDEHC::Evaluate(const vector<int> &state, int node, vector<int> &values) {
 }
 
 
-void HDDEHC::Push(std::vector<int> &values, int node) {
+void SBHDGBFS::Push(std::vector<int> &values, int node) {
   int h = values[0];
   open_list_->Push(values, node, false);
 
@@ -291,16 +315,17 @@ void HDDEHC::Push(std::vector<int> &values, int node) {
   }
 }
 
-int HDDEHC::IndependentExpand(int node, vector<int> &state, bool eager_dd) {
+int SBHDGBFS::IndependentExpand(int node, vector<int> &state, bool eager_dd) {
   static vector<int> values;
   static vector<int> child;
+  static vector<int> canonical;
   static vector<int> applicable;
   static unordered_set<int> preferred;
 
   if (!eager_dd && !graph_->CloseIfNot(node)) return -1;
 
   ++expanded_;
-  graph_->Expand(node, state);
+  RestoreState(node, state);
 
   if (problem_->IsGoal(state)) return node;
 
@@ -325,13 +350,13 @@ int HDDEHC::IndependentExpand(int node, vector<int> &state, bool eager_dd) {
     bool is_preferred = use_preferred_ && preferred.find(o) != preferred.end();
     if (is_preferred) ++n_preferreds_;
 
+    manager_->ToCanonical(child, canonical);
     int child_node = -1;
 
     if (eager_dd) {
-      child_node = graph_->GenerateAndCloseNode(o, node, state, child, rank_);
+      child_node = graph_->GenerateAndCloseNode(o, node, canonical, rank_);
     } else {
-      child_node = graph_->GenerateNodeIfNotClosed(
-          o, node, state, child, rank_);
+      child_node = graph_->GenerateNodeIfNotClosed(o, node, canonical, rank_);
     }
 
     if (child_node == -1) continue;
@@ -343,7 +368,7 @@ int HDDEHC::IndependentExpand(int node, vector<int> &state, bool eager_dd) {
   return -1;
 }
 
-int HDDEHC::Distribute(bool eager_dd) {
+int SBHDGBFS::Distribute(bool eager_dd) {
   static vector<int> state(problem_->n_variables());
   static vector<int> values;
   static vector<int> child;
@@ -401,7 +426,7 @@ int HDDEHC::Distribute(bool eager_dd) {
   return -1;
 }
 
-void HDDEHC::SendNodes(int tag) {
+void SBHDGBFS::SendNodes(int tag) {
   for (int i=0; i<world_size_; ++i) {
     if (i == rank_ || IsOutgoingBufferEmpty(i)) continue;
     const unsigned char *d = OutgoingBuffer(i);
@@ -410,9 +435,9 @@ void HDDEHC::SendNodes(int tag) {
   }
 }
 
-void HDDEHC::ReceiveNodes() {
+void SBHDGBFS::ReceiveNodes() {
   int has_received = 0;
-  size_t unit_size = node_size();
+  size_t unit_size = node_size() + graph_->block_size() * sizeof(uint32_t);
   MPI_Status status;
   MPI_Iprobe(MPI_ANY_SOURCE, kNodeTag, MPI_COMM_WORLD, &has_received, &status);
 
@@ -440,18 +465,17 @@ void HDDEHC::ReceiveNodes() {
   CallbackOnReceiveAllNodes();
 }
 
-void HDDEHC::CallbackOnReceiveNode(int source, const unsigned char *d,
-                                   bool no_node) {
+void SBHDGBFS::CallbackOnReceiveNode(int source, const unsigned char *d,
+                                     bool no_node) {
   static vector<int> values;
 
   int node = graph_->GenerateNodeIfNotClosedFromBytes(d);
 
   if (node != -1) {
     IncrementGenerated();
-    graph_->State(node, tmp_state_);
-
-    if (lds_->Dominance(tmp_state_, current_initial_)) return;
-
+    const uint32_t *packed = reinterpret_cast<const uint32_t*>(d + node_size());
+    graph_->Unpack(packed, tmp_state_);
+    SavePackedState(packed);
     int h = Evaluate(tmp_state_, node, values);
 
     if (h == -1) {
@@ -460,23 +484,18 @@ void HDDEHC::CallbackOnReceiveNode(int source, const unsigned char *d,
       return;
     }
 
-    if (aggressive_ && lds_->Dominance(current_initial_, tmp_state_)) {
-      open_list_->Clear();
-      current_initial_ = tmp_state_;
-    }
-
     Push(values, node);
   }
 }
 
-void HDDEHC::SendTermination() {
+void SBHDGBFS::SendTermination() {
   for (int i=0; i<world_size_; ++i) {
     if (i == rank_) continue;
     MPI_Bsend(NULL, 0, MPI_BYTE, i,kTerminationTag, MPI_COMM_WORLD);
   }
 }
 
-bool HDDEHC::ReceiveTermination() {
+bool SBHDGBFS::ReceiveTermination() {
   int has_received = 0;
   MPI_Iprobe(MPI_ANY_SOURCE, kTerminationTag, MPI_COMM_WORLD, &has_received,
              MPI_STATUS_IGNORE);
@@ -484,7 +503,7 @@ bool HDDEHC::ReceiveTermination() {
   return has_received == 1;
 }
 
-vector<int> HDDEHC::ExtractPath(int node) {
+vector<int> SBHDGBFS::ExtractPath(int node) {
   vector<int> rec_buffer(world_size_);
   MPI_Gather(
       &node, 1, MPI_INT, rec_buffer.data(), 1, MPI_INT, 0, MPI_COMM_WORLD);
@@ -574,7 +593,7 @@ vector<int> HDDEHC::ExtractPath(int node) {
   return vector<int>(0);
 }
 
-void HDDEHC::Flush(int tag) {
+void SBHDGBFS::Flush(int tag) {
   MPI_Status status;
   int has_received = 0;
 
@@ -593,7 +612,7 @@ void HDDEHC::Flush(int tag) {
   }
 }
 
-void HDDEHC::DumpStatistics() const {
+void SBHDGBFS::DumpStatistics() const {
   int expanded = 0;
   int evaluated = 0;
   int generated = 0;
