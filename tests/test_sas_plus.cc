@@ -30,7 +30,7 @@ TEST_F(SASPlusTest, IsInitialized) {
 }
 
 TEST_F(SASPlusTest, InitFromLinesWorks) {
-  auto lines =  ExampleSASPlusLines();
+  auto lines = ExampleSASPlusLines();
   sas_0_.InitFromLines(lines);
   EXPECT_EQ(0, sas_0_.metric());
   EXPECT_NE(nullptr, sas_0_.facts());
@@ -40,7 +40,7 @@ TEST_F(SASPlusTest, InitFromLinesWorks) {
 }
 
 TEST_F(SASPlusTest, NVariablesWorks) {
-  EXPECT_EQ(3, sas_1_.n_variables());
+  EXPECT_EQ(4, sas_1_.n_variables());
 }
 
 TEST_F(SASPlusTest, NGoalFactsWorks) {
@@ -48,7 +48,7 @@ TEST_F(SASPlusTest, NGoalFactsWorks) {
 }
 
 TEST_F(SASPlusTest, NActionsWorks) {
-  EXPECT_EQ(6, sas_1_.n_actions());
+  EXPECT_EQ(7, sas_1_.n_actions());
 }
 
 TEST_F(SASPlusTest, MetricWorks) {
@@ -63,6 +63,7 @@ TEST_F(SASPlusTest, InitialWorks) {
   EXPECT_EQ(0, state[0]);
   EXPECT_EQ(1, state[1]);
   EXPECT_EQ(0, state[2]);
+  EXPECT_EQ(0, state[3]);
 }
 
 TEST_F(SASPlusTest, FactWorks) {
@@ -73,6 +74,8 @@ TEST_F(SASPlusTest, FactWorks) {
   EXPECT_EQ(4, sas_1_.Fact(2, 0));
   EXPECT_EQ(5, sas_1_.Fact(2, 1));
   EXPECT_EQ(6, sas_1_.Fact(2, 2));
+  EXPECT_EQ(7, sas_1_.Fact(3, 0));
+  EXPECT_EQ(8, sas_1_.Fact(3, 1));
 
   EXPECT_EQ(0, sas_1_.Fact(std::make_pair(0, 0)));
   EXPECT_EQ(1, sas_1_.Fact(std::make_pair(0, 1)));
@@ -81,18 +84,22 @@ TEST_F(SASPlusTest, FactWorks) {
   EXPECT_EQ(4, sas_1_.Fact(std::make_pair(2, 0)));
   EXPECT_EQ(5, sas_1_.Fact(std::make_pair(2, 1)));
   EXPECT_EQ(6, sas_1_.Fact(std::make_pair(2, 2)));
+  EXPECT_EQ(7, sas_1_.Fact(std::make_pair(3, 0)));
+  EXPECT_EQ(8, sas_1_.Fact(std::make_pair(3, 1)));
 }
 
 TEST_F(SASPlusTest, VarBeginWorks) {
   EXPECT_EQ(0, sas_1_.VarBegin(0));
   EXPECT_EQ(2, sas_1_.VarBegin(1));
   EXPECT_EQ(4, sas_1_.VarBegin(2));
+  EXPECT_EQ(7, sas_1_.VarBegin(3));
 }
 
 TEST_F(SASPlusTest, VarRangeWorks) {
   EXPECT_EQ(2, sas_1_.VarRange(0));
   EXPECT_EQ(2, sas_1_.VarRange(1));
   EXPECT_EQ(3, sas_1_.VarRange(2));
+  EXPECT_EQ(2, sas_1_.VarRange(3));
 }
 
 TEST_F(SASPlusTest, PredicateWorks) {
@@ -103,6 +110,8 @@ TEST_F(SASPlusTest, PredicateWorks) {
   EXPECT_EQ(std::string("at"), sas_1_.Predicate(2, 0));
   EXPECT_EQ(std::string("at"), sas_1_.Predicate(2, 1));
   EXPECT_EQ(std::string("<none of those>"), sas_1_.Predicate(2, 2));
+  EXPECT_EQ(std::string("low"), sas_1_.Predicate(3, 0));
+  EXPECT_EQ(std::string("high"), sas_1_.Predicate(3, 1));
 }
 
 TEST_F(SASPlusTest, IsMutexWorks) {
@@ -135,6 +144,7 @@ TEST_F(SASPlusTest, ActionCostWorks) {
   EXPECT_EQ(1, sas_1_.ActionCost(3));
   EXPECT_EQ(1, sas_1_.ActionCost(4));
   EXPECT_EQ(1, sas_1_.ActionCost(5));
+  EXPECT_EQ(1, sas_1_.ActionCost(6));
 
   auto lines = ExampleSASPlusLines(false);
   sas_0_.InitFromLines(lines);
@@ -144,6 +154,7 @@ TEST_F(SASPlusTest, ActionCostWorks) {
   EXPECT_EQ(10, sas_0_.ActionCost(3));
   EXPECT_EQ(10, sas_0_.ActionCost(4));
   EXPECT_EQ(10, sas_0_.ActionCost(5));
+  EXPECT_EQ(10, sas_0_.ActionCost(6));
 }
 
 TEST_F(SASPlusTest, ActionNameWorks) {
@@ -153,6 +164,8 @@ TEST_F(SASPlusTest, ActionNameWorks) {
   EXPECT_EQ(std::string("move roomb rooma"), sas_1_.ActionName(3));
   EXPECT_EQ(std::string("pick ball1 rooma left"), sas_1_.ActionName(4));
   EXPECT_EQ(std::string("pick ball1 roomb left"), sas_1_.ActionName(5));
+  EXPECT_EQ(std::string("pick_conditional ball1 roomb left"),
+            sas_1_.ActionName(6));
 }
 
 TEST_F(SASPlusTest, CopyPreconditionWorks) {
@@ -215,6 +228,15 @@ TEST_F(SASPlusTest, ApplyEffectWorks) {
   EXPECT_EQ(1, state[0]);
   sas_1_.ApplyEffect(1, state);
   EXPECT_EQ(1, state[2]);
+
+  state = std::vector<int>{1, 1, 1, 0};
+  auto expected = std::vector<int>{1, 0, 2, 0};
+  sas_1_.ApplyEffect(6, state);
+  EXPECT_EQ(expected, state);
+  state = std::vector<int>{1, 1, 1, 1};
+  expected = std::vector<int>{0, 0, 2, 1};
+  sas_1_.ApplyEffect(6, state);
+  EXPECT_EQ(expected, state);
 }
 
 
@@ -226,12 +248,14 @@ TEST_F(SASPlusTest, StateToFactVectorWorks) {
   EXPECT_EQ(0, v[0]);
   EXPECT_EQ(3, v[1]);
   EXPECT_EQ(4, v[2]);
+  EXPECT_EQ(7, v[3]);
   state[0] = 1;
   StateToFactVector(sas_1_, state, v);
   ASSERT_TRUE(state.size() == v.size());
   EXPECT_EQ(1, v[0]);
   EXPECT_EQ(3, v[1]);
   EXPECT_EQ(4, v[2]);
+  EXPECT_EQ(7, v[3]);
 }
 
 TEST_F(SASPlusTest, StateToFactSetWorks) {
@@ -245,6 +269,8 @@ TEST_F(SASPlusTest, StateToFactSetWorks) {
   EXPECT_TRUE(s[3]);
   EXPECT_TRUE(s[4]);
   EXPECT_FALSE(s[5]);
+  EXPECT_TRUE(s[7]);
+  EXPECT_FALSE(s[8]);
   state[0] = 1;
   StateToFactSet(sas_1_, state, s);
   ASSERT_TRUE(sas_1_.n_facts() == static_cast<int>(s.size()));
@@ -254,6 +280,8 @@ TEST_F(SASPlusTest, StateToFactSetWorks) {
   EXPECT_TRUE(s[3]);
   EXPECT_TRUE(s[4]);
   EXPECT_FALSE(s[5]);
+  EXPECT_TRUE(s[7]);
+  EXPECT_FALSE(s[8]);
 }
 
 std::queue<std::string> ExampleSASPlusLines(bool unit_cost) {
@@ -268,7 +296,7 @@ std::queue<std::string> ExampleSASPlusLines(bool unit_cost) {
   q.push("begin_metric");
   q.push(metric);
   q.push("end_metric");
-  q.push("3");
+  q.push("4");
   q.push("begin_variable");
   q.push("var0");
   q.push("-1");
@@ -291,6 +319,13 @@ std::queue<std::string> ExampleSASPlusLines(bool unit_cost) {
   q.push("Atom at(ball1, roomb)");
   q.push("<none of those>");
   q.push("end_variable");
+  q.push("begin_variable");
+  q.push("var3");
+  q.push("-1");
+  q.push("2");
+  q.push("Atom low");
+  q.push("Atom high");
+  q.push("end_variable");
   q.push("1");
   q.push("begin_mutex_group");
   q.push("3");
@@ -302,12 +337,13 @@ std::queue<std::string> ExampleSASPlusLines(bool unit_cost) {
   q.push("0");
   q.push("1");
   q.push("0");
+  q.push("0");
   q.push("end_state");
   q.push("begin_goal");
   q.push("1");
   q.push("2 1");
   q.push("end_goal");
-  q.push("6");
+  q.push("7");
   q.push("begin_operator");
   q.push("drop ball1 rooma left");
   q.push("1");
@@ -356,6 +392,16 @@ std::queue<std::string> ExampleSASPlusLines(bool unit_cost) {
   q.push("2");
   q.push("0 2 1 2");
   q.push("0 1 1 0");
+  q.push(cost);
+  q.push("end_operator");
+  q.push("begin_operator");
+  q.push("pick_conditional ball1 roomb left");
+  q.push("1");
+  q.push("0 1");
+  q.push("3");
+  q.push("0 2 1 2");
+  q.push("0 1 1 0");
+  q.push("1 3 1 0 -1 0");
   q.push(cost);
   q.push("end_operator");
   q.push("0");

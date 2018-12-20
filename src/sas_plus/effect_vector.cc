@@ -8,7 +8,7 @@ using std::vector;
 using std::pair;
 
 void EffectVector::Apply(int i, vector<int> &state) const {
-  static vector<int> backup(state);
+  thread_local vector<int> backup(state);
 
   if (use_conditional_ && has_conditional_[i]) {
     backup = state;

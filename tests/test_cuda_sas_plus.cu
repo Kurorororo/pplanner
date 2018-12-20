@@ -136,6 +136,28 @@ void ApplyEffectTest(std::shared_ptr<const SASPlus> problem,
                         cudaMemcpyDeviceToHost));
   assert(state == child);
 
+  state = std::vector<int>{1, 1, 1, 0};
+  CUDA_CHECK(cudaMemcpy(cuda_state, state.data(),
+                        problem->n_variables() * sizeof(int),
+                        cudaMemcpyHostToDevice));
+  ApplyEffectKernel<<<1, 1>>>(cuda_problem, 6, cuda_state, cuda_child);
+  problem->ApplyEffect(6, state);
+  CUDA_CHECK(cudaMemcpy(child.data(), cuda_child,
+                        problem->n_variables() * sizeof(int),
+                        cudaMemcpyDeviceToHost));
+  assert(state == child);
+
+  state = std::vector<int>{1, 1, 1, 1};
+  CUDA_CHECK(cudaMemcpy(cuda_state, state.data(),
+                        problem->n_variables() * sizeof(int),
+                        cudaMemcpyHostToDevice));
+  ApplyEffectKernel<<<1, 1>>>(cuda_problem, 6, cuda_state, cuda_child);
+  problem->ApplyEffect(6, state);
+  CUDA_CHECK(cudaMemcpy(child.data(), cuda_child,
+                        problem->n_variables() * sizeof(int),
+                        cudaMemcpyDeviceToHost));
+  assert(state == child);
+
   CUDA_CHECK(cudaFree(cuda_state));
   CUDA_CHECK(cudaFree(cuda_child));
 
@@ -171,7 +193,7 @@ std::queue<std::string> ExampleSASPlusLines(bool unit_cost) {
   q.push("begin_metric");
   q.push(metric);
   q.push("end_metric");
-  q.push("3");
+  q.push("4");
   q.push("begin_variable");
   q.push("var0");
   q.push("-1");
@@ -194,6 +216,13 @@ std::queue<std::string> ExampleSASPlusLines(bool unit_cost) {
   q.push("Atom at(ball1, roomb)");
   q.push("<none of those>");
   q.push("end_variable");
+  q.push("begin_variable");
+  q.push("var3");
+  q.push("-1");
+  q.push("2");
+  q.push("Atom low");
+  q.push("Atom high");
+  q.push("end_variable");
   q.push("1");
   q.push("begin_mutex_group");
   q.push("3");
@@ -205,12 +234,13 @@ std::queue<std::string> ExampleSASPlusLines(bool unit_cost) {
   q.push("0");
   q.push("1");
   q.push("0");
+  q.push("0");
   q.push("end_state");
   q.push("begin_goal");
   q.push("1");
   q.push("2 1");
   q.push("end_goal");
-  q.push("6");
+  q.push("7");
   q.push("begin_operator");
   q.push("drop ball1 rooma left");
   q.push("1");
@@ -259,6 +289,16 @@ std::queue<std::string> ExampleSASPlusLines(bool unit_cost) {
   q.push("2");
   q.push("0 2 1 2");
   q.push("0 1 1 0");
+  q.push(cost);
+  q.push("end_operator");
+  q.push("begin_operator");
+  q.push("pick_conditional ball1 roomb left");
+  q.push("1");
+  q.push("0 1");
+  q.push("3");
+  q.push("0 2 1 2");
+  q.push("0 1 1 0");
+  q.push("1 3 1 0 -1 0");
   q.push(cost);
   q.push("end_operator");
   q.push("0");
