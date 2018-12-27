@@ -78,6 +78,14 @@ if (CUDA_FOUND)
     ./tests/test_cuda_sas_plus.cu ./src/cuda_sas_plus.cu)
   add_test(NAME CudaSASPlusTest COMMAND test_cuda_sas_plus)
   target_link_libraries(test_cuda_sas_plus sas_plus)
+
+  cuda_add_executable(test_cuda_successor_generator
+    ./tests/test_cuda_successor_generator.cu
+    ./src/cuda_successor_generator.cu
+    ./src/cuda_sas_plus.cu
+    ./src/successor_generator.cc)
+  add_test(NAME CudaSuccessorGeneratorTest COMMAND test_cuda_successor_generator)
+  target_link_libraries(test_cuda_successor_generator sas_plus)
 endif()
 
 # sequential planner
