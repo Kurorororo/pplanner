@@ -84,9 +84,11 @@ class SearchGraph {
     return packer_->block_size() * sizeof(uint32_t);
   }
 
-  void ReserveByRAMSize(std::size_t ram_size) {
+  std::size_t ReserveByRAMSize(std::size_t ram_size) {
     std::size_t size = (ram_size - closed_size()) / node_size();
     Reserve(size);
+
+    return size;
   }
 
   int Action(int i) const { return actions_[i]; }

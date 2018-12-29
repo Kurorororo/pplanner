@@ -7,6 +7,7 @@
 {                                                                             \
   if (ptr == NULL) {                                                          \
     printf("Could not allocate memory: %s:%d\n", __FILE__, __LINE__);         \
+    exit(1);
   }                                                                           \
 }
 

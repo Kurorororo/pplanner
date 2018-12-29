@@ -67,6 +67,10 @@ class LandmarkCount : public Evaluator {
         state, applicable, parent_accepted, accepted, preferred);
   }
 
+  std::shared_ptr<const LandmarkGraph> landmark_graph() const {
+    return lmcount_->landmark_graph();
+  }
+
  private:
   std::shared_ptr<SearchGraph> search_graph_;
   std::unique_ptr<LandmarkCountBase> lmcount_;

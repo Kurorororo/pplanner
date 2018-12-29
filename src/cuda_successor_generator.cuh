@@ -16,6 +16,8 @@ struct CudaSuccessorGenerator {
   int *data;
 };
 
+extern __constant__ CudaSuccessorGenerator cuda_generator;
+
 __device__
 int Count(const CudaSuccessorGenerator &generator, const CudaSASPlus &problem,
           const int *state);

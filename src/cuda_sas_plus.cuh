@@ -28,6 +28,8 @@ struct CudaSASPlus {
   int *conditional_effect_values;
 };
 
+extern __constant__ CudaSASPlus cuda_problem;
+
 __device__
 inline int Fact(const CudaSASPlus &problem, int var, int value) {
   return problem.var_offsets[var] + value;

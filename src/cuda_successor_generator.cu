@@ -4,6 +4,8 @@
 
 namespace pplanner {
 
+__constant__ CudaSuccessorGenerator cuda_generator;
+
 __device__
 void DFSample(const CudaSuccessorGenerator &generator,
               const CudaSASPlus &problem, const int *state, int index,

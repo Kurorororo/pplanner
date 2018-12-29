@@ -4,6 +4,8 @@
 
 namespace pplanner {
 
+__constant__ CudaSASPlus cuda_problem;
+
 __device__
 void ApplyEffect(const CudaSASPlus &problem, int i, const int *state,
                  int *child) {
