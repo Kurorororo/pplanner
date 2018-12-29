@@ -83,8 +83,10 @@ if (CUDA_FOUND)
     ./tests/test_cuda_successor_generator.cu
     ./src/cuda_successor_generator.cu
     ./src/cuda_sas_plus.cu
-    ./src/successor_generator.cc)
-  add_test(NAME CudaSuccessorGeneratorTest COMMAND test_cuda_successor_generator)
+    ./src/successor_generator.cc
+    ./src/cuda_common/cuda_random.cu)
+  add_test(
+    NAME CudaSuccessorGeneratorTest COMMAND test_cuda_successor_generator)
   target_link_libraries(test_cuda_successor_generator sas_plus)
 endif()
 

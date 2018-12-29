@@ -10,6 +10,7 @@
 #include <curand_kernel.h>
 
 #include "cuda_common/cuda_check.cuh"
+#include "cuda_common/cuda_random.cuh"
 #include "cuda_sas_plus.cuh"
 #include "sas_plus.h"
 #include "successor_generator.h"
@@ -97,11 +98,9 @@ void GenerateTest(const CudaSuccessorGenerator &generator,
 
 __global__
 void SampleKernel(const CudaSuccessorGenerator generator,
-                  const CudaSASPlus problem, const int *state, int *result) {
-  int id = threadIdx.x + blockIdx.x * blockDim.x;
-  curandState_t rng;
-  curand_init(123, id, 0, &rng);
-  *result = Sample(generator, problem, state, &rng);
+                  const CudaSASPlus problem, const int *state, int *result,
+                  curandState_t *rng) {
+  *result = Sample(generator, problem, state, rng);
 }
 
 void SampleTest(const CudaSuccessorGenerator &generator,
@@ -113,9 +112,13 @@ void SampleTest(const CudaSuccessorGenerator &generator,
   int *cuda_state = nullptr;
   CudaMallocAndCopy((void**)&cuda_state, state.data(), 3 * sizeof(int));
 
+  curandState_t *rng = nullptr;
+  CUDA_CHECK(cudaMalloc((void**)&rng, sizeof(curandState_t)));
+  SetupStates<<<1, 1>>>(123, rng);
+
   int *cuda_result = nullptr;
   CUDA_CHECK(cudaMalloc((void**)&cuda_result, sizeof(int)));
-  SampleKernel<<<1, 1>>>(generator, problem, cuda_state, cuda_result);
+  SampleKernel<<<1, 1>>>(generator, problem, cuda_state, cuda_result, rng);
   int result;
   CUDA_CHECK(cudaMemcpy(&result, cuda_result, sizeof(int),
                         cudaMemcpyDeviceToHost));
@@ -126,7 +129,7 @@ void SampleTest(const CudaSuccessorGenerator &generator,
   CUDA_CHECK(cudaMemcpy(cuda_state, state.data(), 3 * sizeof(int),
                         cudaMemcpyHostToDevice));
 
-  SampleKernel<<<1, 1>>>(generator, problem, cuda_state, cuda_result);
+  SampleKernel<<<1, 1>>>(generator, problem, cuda_state, cuda_result, rng);
   CUDA_CHECK(cudaMemcpy(&result, cuda_result, sizeof(int),
                         cudaMemcpyDeviceToHost));
   assert(0 == result || 2 == result);
@@ -135,11 +138,13 @@ void SampleTest(const CudaSuccessorGenerator &generator,
   CUDA_CHECK(cudaMemcpy(cuda_state, state.data(), 3 * sizeof(int),
                         cudaMemcpyHostToDevice));
 
-  GenerateKernel<<<1, 1>>>(generator, problem, cuda_state, cuda_result);
+  SampleKernel<<<1, 1>>>(generator, problem, cuda_state, cuda_result, rng);
   CUDA_CHECK(cudaMemcpy(&result, cuda_result, sizeof(int),
                         cudaMemcpyDeviceToHost));
   assert(1 == result || 3 == result);
 
+  CUDA_CHECK(cudaFree(cuda_count));
+  CUDA_CHECK(cudaFree(rng));
   CUDA_CHECK(cudaFree(cuda_result));
   CUDA_CHECK(cudaFree(cuda_state));
 

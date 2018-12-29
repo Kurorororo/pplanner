@@ -45,12 +45,7 @@ void DFSCount(const CudaSuccessorGenerator &generator,
 
   for (int i = current, n = problem.n_variables; i < n; ++i) {
     int next = Fact(problem, i, state[i]) + offset;
-    int b = generator.to_data[next];
-    int e = generator.to_data[next + 1];
-
-    for (int j = b; j < e; ++j)
-      ++count;
-
+    count += generator.to_data[next + 1] - generator.to_data[next];
     int child = generator.to_child[next];
     if (child == -1) continue;
 
