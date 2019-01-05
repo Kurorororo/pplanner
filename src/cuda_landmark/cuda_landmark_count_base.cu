@@ -1,21 +1,23 @@
 #include "cuda_landmark/cuda_landmark_count_base.cuh"
 
+#include "cuda_common/cuda_bit_vector.cuh"
+
 namespace pplanner {
 
 __device__
-int ReachedSize(const CudaLandmarkGraph &graph const uint8_t *parent_accepted,
-                uint8_t *accepted) {
+int ReachedSize(const CudaLandmarkGraph &graph, const int *state,
+                const uint8_t *parent_accepted, uint8_t *accepted) {
   int size = 0;
 
   for (int psi_id = 0, n = graph.landmark_id_max; psi_id < n; ++psi_id) {
     if (CudaGet(parent_accepted, psi_id)) {
-      Up(accepted, psi_id);
+      CudaUp(accepted, psi_id);
       ++size;
       continue;
     }
 
     if (IsImplicated(graph, psi_id, state)) {
-      Up(accepted, psi_id);
+      CudaUp(accepted, psi_id);
       ++size;
     }
   }
@@ -29,7 +31,7 @@ int NeededSize(const CudaLandmarkGraph &graph, const int *state,
   int size = 0;
 
   for (int phi_id = 0, n = graph.landmark_id_max; phi_id < n; ++phi_id) {
-    if (!Get(accepted, phi_id)) continue;
+    if (!CudaGet(accepted, phi_id)) continue;
     status[phi_id] = 1;
 
     if (IsImplicated(graph, phi_id, state)) continue;
@@ -41,7 +43,7 @@ int NeededSize(const CudaLandmarkGraph &graph, const int *state,
     }
 
     int start = graph.child_start[phi_id];
-    int end = graph.children_end[phi_id];
+    int end = graph.child_end[phi_id];
 
     for (int psi_id = start; psi_id < end; ++psi_id) {
       if (IsGreedy(graph, phi_id, psi_id) && !CudaGet(accepted, psi_id)) {

@@ -103,6 +103,12 @@ class SearchGraph {
     Unpack(packed, state);
   }
 
+  void State(int i, int *state) const {
+    std::size_t block_size = packer_->block_size();
+    auto packed = states_.data() + static_cast<std::size_t>(i) * block_size;
+    Unpack(packed, state);
+  }
+
   const uint32_t* PackedState(int i) const {
     std::size_t block_size = packer_->block_size();
     return states_.data() + static_cast<std::size_t>(i) * block_size;
@@ -195,6 +201,14 @@ class SearchGraph {
     return closed_[Find(hash_value, packed)];
   }
 
+  int GetClosed(const std::vector<int> &state, uint32_t *packed,
+                uint32_t *hash_value) {
+    *hash_value = hash_->operator()(state);
+    packer_->Pack(state, packed);
+
+    return GetClosed(*hash_value, packed);
+  }
+
   int GetClosed(int action, int parent_node, const std::vector<int> &parent,
                 const std::vector<int> &state, uint32_t *packed,
                 uint32_t *hash_value) {
@@ -224,7 +238,15 @@ class SearchGraph {
     packer_->Pack(state, packed);
   }
 
+  void Pack(const int *state, uint32_t *packed) const {
+    packer_->Pack(state, packed);
+  }
+
   void Unpack(const uint32_t *packed, std::vector<int> &state) const {
+    packer_->Unpack(packed, state);
+  }
+
+  void Unpack(const uint32_t *packed, int *state) const {
     packer_->Unpack(packed, state);
   }
 

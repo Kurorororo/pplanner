@@ -1,4 +1,6 @@
-#include "cuda_landmark/cuda_landmark_grap.cuh"
+#include "cuda_landmark/cuda_landmark_graph.cuh"
+
+#include "cuda_common/cuda_check.cuh"
 
 namespace pplanner {
 
@@ -12,10 +14,11 @@ bool IsImplicated(const CudaLandmarkGraph &graph, int i, const int *state) {
   return false;
 }
 
-void InitCudaLandmarkGraph(std::shared_ptr<const CudaLandmarkGraph> graph,
+void InitCudaLandmarkGraph(std::shared_ptr<const LandmarkGraph> graph,
                            CudaLandmarkGraph *cuda_graph) {
   int landmark_id_max = graph->landmark_id_max();
   cuda_graph->landmark_id_max = landmark_id_max;
+  cuda_graph->n_bytes = (landmark_id_max + 7) / 8;
   cuda_graph->n_landmarks = graph->n_landmarks();
 
   std::vector<int> vars;
@@ -48,7 +51,7 @@ void InitCudaLandmarkGraph(std::shared_ptr<const CudaLandmarkGraph> graph,
   std::vector<int> child_end;
 
   for (int i = 0; i < landmark_id_max; ++i) {
-    auto lms = GetTermIdsByInitId(i);
+    auto lms = graph->GetTermIdsByInitId(i);
     child_start.push_back(children.size());
     children.insert(children.end(), lms.begin(), lms.end());
     child_end.push_back(children.size());
@@ -66,7 +69,7 @@ void InitCudaLandmarkGraph(std::shared_ptr<const CudaLandmarkGraph> graph,
   std::vector<int> parent_end;
 
   for (int i = 0; i < landmark_id_max; ++i) {
-    auto lms = GetInitIdsByTermId(i);
+    auto lms = graph->GetInitIdsByTermId(i);
     parent_start.push_back(parents.size());
     parents.insert(parents.end(), lms.begin(), lms.end());
     parent_end.push_back(parents.size());
@@ -101,7 +104,7 @@ void InitCudaLandmarkGraph(std::shared_ptr<const CudaLandmarkGraph> graph,
   for (int i = 0; i < landmark_id_max; ++i) {
     for (int j = 0; j < landmark_id_max; ++j) {
       bool is = graph->IsAdjacent(i, j)
-        && GetOrderingType(i, j) == LandmarkGraph::GREEDY;
+        && graph->GetOrderingType(i, j) == LandmarkGraph::GREEDY;
       is_greedy[i * landmark_id_max + j] = is;
     }
   }

@@ -1,24 +1,29 @@
 #include "cuda_search/cuda_random_walk.cuh"
 
+#include "cuda_common/cuda_check.cuh"
+#include "cuda_common/cuda_random.cuh"
 #include "cuda_landmark/cuda_landmark_count_base.cuh"
 
 namespace pplanner {
 
 __device__
-void Fallback(int id, const RandomWalkMessage &m, int *state, int *accpted,
+void Fallback(int id, const RandomWalkMessage &m, int *state, uint8_t *accepted,
               int *length) {
-  memcpy(state, m.best_state[id * n_variables], n_variables * sizeof(int));
-  memcpy(accepted, m.best_accepted[id * n_bytes], n_bytes * sizeof(uint8_t));
+  memcpy(state, &m.best_states[id * cuda_problem.n_variables],
+         cuda_problem.n_variables * sizeof(int));
+  memcpy(accepted, &m.best_accepted[id * cuda_landmark_graph.n_bytes],
+         cuda_landmark_graph.n_bytes * sizeof(uint8_t));
   *length = m.best_length[id];
 }
 
+__device__
 void Swap(int **s, int **c, uint8_t **pc, uint8_t **ac) {
   int *tmp_s = *s;
   *s = *c;
   *c = tmp_s;
   uint8_t *tmp = *pc;
   *pc = *ac;
-  *ac = *tmp;
+  *ac = tmp;
 }
 
 __global__
@@ -26,22 +31,32 @@ void RandomWalk(int walk_length, RandomWalkMessage m) {
   int id = threadIdx.x + blockIdx.x * blockDim.x;
 
   int n_variables = cuda_problem.n_variables;
-  int *s = m.states[id * 2 * n_variables];
-  memcpy(s, m.best_state[id * n_variables], n_variables * sizeof(int));
-  int *c = m.states[(id * 2 + 1) * n_variables];
-  int n_bytes = (cuda_random_walk.landmark_id_max + 7) / 8;
-  uint8_t *pc = m.accepted[id * 2 * n_bytes];
-  memcpy(pc, m.best_accepted[id * n_bytes], n_bytes * sizeof(uint8_t));
-  uint8_t *ac = m.accepted[(id * 2 + 1) * n_bytes];
+  int *s = &m.states[id * 2 * n_variables];
+  memcpy(s, &m.best_states[id * n_variables], n_variables * sizeof(int));
+  int *c = &m.states[(id * 2 + 1) * n_variables];
+  int n_bytes = cuda_landmark_graph.n_bytes;
+  uint8_t *pc = &m.accepted[id * 2 * n_bytes];
+  memcpy(pc, &m.best_accepted[id * n_bytes], n_bytes * sizeof(uint8_t));
+  uint8_t *ac = &m.accepted[(id * 2 + 1) * n_bytes];
   int length = 0;
   m.best_length[id] = 0;
+  uint8_t *status = &m.status[id * n_bytes];
 
-  for (int i = 0; i < cuda_walk_length; ++i) {
+  if (m.first_eval[id]) {
+    int h = Evaluate(cuda_landmark_graph, cuda_problem, s, pc, ac, &status[id]);
+    ++m.evaluated;
+    uint8_t *tmp = pc;
+    pc = ac;
+    ac = tmp;
+    m.best_h[id] = h;
+  }
+
+  for (int i = 0; i < walk_length; ++i) {
     int a = Sample(cuda_generator, cuda_problem, s, &m.rngs[id]);
     ++m.expanded;
 
-    if (a != -1) {
-      Fallback(id, &m, s, pc, &length);
+    if (a == -1) {
+      Fallback(id, m, s, pc, &length);
       ++m.dead_ends;
       continue;
     }
@@ -55,18 +70,18 @@ void RandomWalk(int walk_length, RandomWalkMessage m) {
     ++m.evaluated;
 
     if (h == -1) {
-      Fallback(id, &m, s, pc, &length);
+      Fallback(id, m, s, pc, &length);
       ++m.dead_ends;
       continue;
     }
 
-    m.sequences[id * cuda_walk_length + length++] = a;
+    m.best_sequences[id * walk_length + length++] = a;
 
     if (h < m.best_h[id]) {
       m.best_h[id] = h;
       m.best_length[id] = length;
-      memcpy(m.best_states[id * n_variables], c, n_variables * sizeof(int));
-      memcpy(m.best_accepted[id * n_bytes], ac, n_bytes * sizeof(uint8_t));
+      memcpy(&m.best_states[id * n_variables], c, n_variables * sizeof(int));
+      memcpy(&m.best_accepted[id * n_bytes], ac, n_bytes * sizeof(uint8_t));
     }
 
     Swap(&s, &c, &pc, &ac);
@@ -79,7 +94,7 @@ void InitRandomWalkMessage(int n_grid, int n_block, int walk_length,
                            RandomWalkMessage *m) {
   int n_threads = n_grid * n_block;
   m->generated = new int[n_threads];
-  m->expanded = new int[n_threads]
+  m->expanded = new int[n_threads];
   m->evaluated = new int[n_threads];
   m->dead_ends = new int[n_threads];
   m->best_h = new int[n_threads];
@@ -91,6 +106,7 @@ void InitRandomWalkMessage(int n_grid, int n_block, int walk_length,
   m->best_accepted = new uint8_t[n_threads * n_bytes];
   m->accepted = new uint8_t[n_threads * 2 * n_bytes];
   m->status = new uint8_t[n_threads * landmark_id_max];
+  m->first_eval = new bool[n_threads * landmark_id_max];
 }
 
 void FreeRandomWalkMessage(RandomWalkMessage *m) {
@@ -106,6 +122,7 @@ void FreeRandomWalkMessage(RandomWalkMessage *m) {
   delete m->best_accepted;
   delete m->accepted;
   delete m->status;
+  delete m->first_eval;
 }
 
 void CudaInitRandomWalkMessage(int n_grid, int n_block, int walk_length,
@@ -135,6 +152,7 @@ void CudaInitRandomWalkMessage(int n_grid, int n_block, int walk_length,
                         n_threads * 2 * n_bytes * sizeof(uint8_t)));
   CUDA_CHECK(cudaMalloc((void**)&m->status,
                         n_threads * landmark_id_max * sizeof(uint8_t)));
+  CUDA_CHECK(cudaMalloc((void**)&m->first_eval, n_threads * sizeof(bool)));
 }
 
 void CudaFreeRandomWalkMessage(RandomWalkMessage *m) {
@@ -150,10 +168,11 @@ void CudaFreeRandomWalkMessage(RandomWalkMessage *m) {
   CUDA_CHECK(cudaFree(m->best_accepted));
   CUDA_CHECK(cudaFree(m->accepted));
   CUDA_CHECK(cudaFree(m->status));
+  CUDA_CHECK(cudaFree(m->first_eval));
 }
 
-void Uplaod(const RandomWalkMessage &m, int n_threads, int n_variables,
-           int n_bytes, RandomWalkMessage *cuda_m) {
+void Upload(const RandomWalkMessage &m, int n_threads, int n_variables,
+            int n_bytes, RandomWalkMessage *cuda_m) {
   CUDA_CHECK(cudaMemcpy(cuda_m->best_h, m.best_h, n_threads * sizeof(int),
                         cudaMemcpyHostToDevice));
   CUDA_CHECK(cudaMemcpy(cuda_m->best_states, m.best_states,
@@ -162,9 +181,11 @@ void Uplaod(const RandomWalkMessage &m, int n_threads, int n_variables,
   CUDA_CHECK(cudaMemcpy(cuda_m->best_accepted, m.best_accepted,
                         n_threads * n_bytes * sizeof(int),
                         cudaMemcpyHostToDevice));
+  CUDA_CHECK(cudaMemcpy(cuda_m->first_eval, m.first_eval,
+                        n_threads * sizeof(bool), cudaMemcpyHostToDevice));
 }
 
-void Download(const RandomWalkMessage *cuda_m, int n_threads, int n_variables,
+void Download(const RandomWalkMessage &cuda_m, int n_threads, int n_variables,
               int n_bytes, int walk_length, RandomWalkMessage *m) {
   CUDA_CHECK(cudaMemcpy(m->best_h, cuda_m.best_h, n_threads * sizeof(int),
                         cudaMemcpyDeviceToHost));
@@ -200,7 +221,7 @@ void UploadStatistics(RandomWalkMessage &m, int n_threads,
                         n_threads * sizeof(int), cudaMemcpyHostToDevice));
 }
 
-void DownloadStatistics(const RandomWalkMessage &cuda_m, int n_threds,
+void DownloadStatistics(const RandomWalkMessage &cuda_m, int n_threads,
                         RandomWalkMessage *m) {
   CUDA_CHECK(cudaMemcpy(m->generated, cuda_m.generated,
                         n_threads * sizeof(int), cudaMemcpyDeviceToHost));
@@ -210,4 +231,6 @@ void DownloadStatistics(const RandomWalkMessage &cuda_m, int n_threds,
                         n_threads * sizeof(int), cudaMemcpyDeviceToHost));
   CUDA_CHECK(cudaMemcpy(m->dead_ends, cuda_m.dead_ends,
                         n_threads * sizeof(int), cudaMemcpyDeviceToHost));
+}
+
 } // namespace pplanner

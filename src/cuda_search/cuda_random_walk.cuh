@@ -19,6 +19,7 @@ struct RandomWalkMessage {
   uint8_t *best_accepted;
   uint8_t *accepted;
   uint8_t *status;
+  bool *first_eval;
   curandState *rngs;
 };
 
@@ -37,15 +38,16 @@ void CudaInitRandomWalkMessage(int n_grid, int n_block, int walk_length,
 
 void CudaFreeRandomWalkMessage(RandomWalkMessage *m);
 
-void Uplaod(const RandomWalkMessage &m, int n_threads, int n_variables,
+void Upload(const RandomWalkMessage &m, int n_threads, int n_variables,
             int n_bytes, RandomWalkMessage *cuda_m);
 
-void Download(const RandomWalkMessage &cuda_m, RandomWalkMessage *m);
+void Download(const RandomWalkMessage &cuda_m, int n_threads, int n_variables,
+              int n_bytes, int walk_length, RandomWalkMessage *m);
 
 void UploadStatistics(RandomWalkMessage &m, int n_threads,
                       RandomWalkMessage *cuda_m);
 
-void DownloadStatistics(const RandomWalkMessage &cuda_m, int n_threds,
+void DownloadStatistics(const RandomWalkMessage &cuda_m, int n_threads,
                         RandomWalkMessage *m);
 
 } // namespace pplanner

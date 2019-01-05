@@ -48,6 +48,11 @@ class SearchGraphWithLandmarks : public SearchGraph {
     return landmarks_.data() + parent * n_landmarks_bytes_;
   }
 
+  void SetLandmark(int i, const uint8_t *landmark) {
+    memcpy(landmarks_.data() + i * n_landmarks_bytes_, landmark,
+           n_landmarks_bytes_ * sizeof(uint8_t));
+  }
+
  private:
   std::size_t n_landmarks_bytes_;
   std::vector<uint8_t> landmarks_;

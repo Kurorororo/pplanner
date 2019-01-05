@@ -18,7 +18,11 @@ class StatePacker {
 
   void Pack(const std::vector<int> &state, uint32_t *packed) const;
 
+  void Pack(const int *state, uint32_t *packed) const;
+
   void Unpack(const uint32_t *packed, std::vector<int> &state) const;
+
+  void Unpack(const uint32_t *packed, int *state) const;
 
  private:
   std::size_t block_size_;

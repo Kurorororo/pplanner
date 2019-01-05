@@ -9,6 +9,7 @@ namespace pplanner {
 
 struct CudaLandmarkGraph {
   int landmark_id_max;
+  int n_bytes;
   int n_landmarks;
   int *vars;
   int *values;
@@ -18,8 +19,8 @@ struct CudaLandmarkGraph {
   int *parent_start;
   int *parent_end;
   int *children;
-  int *children_start;
-  int *children_end;
+  int *child_start;
+  int *child_end;
   bool *is_goal;
   bool *no_first;
   bool *no_possible;
@@ -33,7 +34,7 @@ bool IsImplicated(const CudaLandmarkGraph &graph, int i, const int *state);
 
 __device__
 inline bool IsGreedy(const CudaLandmarkGraph &graph, int i, int j) {
-  return graph.is_greedy[i * landmark_id_max + j];
+  return graph.is_greedy[i * graph.landmark_id_max + j];
 }
 
 void InitCudaLandmarkGraph(std::shared_ptr<const LandmarkGraph> graph,

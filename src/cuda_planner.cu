@@ -6,7 +6,7 @@
 #include <boost/property_tree/json_parser.hpp>
 
 #include "sas_plus.h"
-#include "cuda_search_factory.h"
+#include "cuda_search_factory.cuh"
 #include "postprocess/action_elimination.h"
 #include "utils/file_utils.h"
 
@@ -47,10 +47,7 @@ int main(int argc, char *argv[]) {
   auto child = pt.get_child_optional("config");
   if (!child) throw std::runtime_error("Invalid config file.");
 
-  int max_expansion = -1;
-  if (vm.count("max_expansion")) max_expansion = vm["max_expansion"].as<int>();
-
-  auto search = CudaSearchFactory(sas, child.get(), max_expansion);
+  auto search = CudaSearchFactory(sas, child.get());
   auto chrono_start = std::chrono::system_clock::now();
   auto result = search->Plan();
   auto chrono_end = std::chrono::system_clock::now();

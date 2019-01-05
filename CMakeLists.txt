@@ -74,6 +74,29 @@ if (CUDA_FOUND)
     set(CUDA_NVCC_FLAGS_DEBUG -O0)
   endif (CMAKE_BUILD_TYPE_UPPER STREQUAL "RELEASE")
 
+  cuda_add_executable(cuda_planner
+    ./src/cuda_planner.cu
+    ./src/cuda_sas_plus.cu
+    ./src/cuda_successor_generator.cu
+    ./src/cuda_search_factory.cu
+    ./src/cuda_search/cuda_bmrw.cu
+    ./src/cuda_search/cuda_random_walk.cu
+    ./src/cuda_landmark/cuda_landmark_graph.cu
+    ./src/cuda_landmark/cuda_landmark_count_base.cu
+    ./src/cuda_common/cuda_random.cu
+    ./src/successor_generator.cc
+    ./src/postprocess/action_elimination.cc
+    ./src/utils/file_utils.cc)
+  target_link_libraries(cuda_planner
+    search
+    open_lists
+    evaluators
+    landmark
+    ff
+    search_graph
+    sas_plus
+    ${Boost_PROGRAM_OPTIONS_LIBRARY})
+
   cuda_add_executable(test_cuda_sas_plus
     ./tests/test_cuda_sas_plus.cu ./src/cuda_sas_plus.cu)
   add_test(NAME CudaSASPlusTest COMMAND test_cuda_sas_plus)

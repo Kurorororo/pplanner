@@ -65,8 +65,30 @@ void StatePacker::Pack(const vector<int> &state, uint32_t *packed) const {
   }
 }
 
+void StatePacker::Pack(const int *state, uint32_t *packed) const {
+  int index = 0;
+
+  for (int i=0, n=block_size_; i<n; ++i) {
+    uint32_t tmp = 0;
+
+    for (int j=0, m=var_per_block_[i]; j<m; ++j) {
+      tmp |= static_cast<uint32_t>(state[index]) << shift_[index];
+      ++index;
+    }
+
+    packed[i] = tmp;
+  }
+}
+
 void StatePacker::Unpack(const uint32_t *packed, vector<int> &state) const {
   for (int i=0, n=state.size(); i<n; ++i) {
+    int index = block_index_[i];
+    state[i] = static_cast<int>((packed[index] & mask_[i]) >> shift_[i]);
+  }
+}
+
+void StatePacker::Unpack(const uint32_t *packed, int *state) const {
+  for (int i=0, n=block_index_.size(); i<n; ++i) {
     int index = block_index_[i];
     state[i] = static_cast<int>((packed[index] & mask_[i]) >> shift_[i]);
   }
