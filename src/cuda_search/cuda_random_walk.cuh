@@ -1,6 +1,8 @@
 #ifndef CUDA_RANDOM_WALK_H_
 #define CUDA_RANDOM_WALK_H_
 
+#include <curand_kernel.h>
+
 #include "cuda_sas_plus.cuh"
 #include "cuda_successor_generator.cuh"
 

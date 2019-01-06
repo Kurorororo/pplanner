@@ -44,7 +44,7 @@ void RandomWalk(int walk_length, RandomWalkMessage m) {
 
   if (m.first_eval[id]) {
     int h = Evaluate(cuda_landmark_graph, cuda_problem, s, pc, ac, &status[id]);
-    ++m.evaluated;
+    ++m.evaluated[id];
     uint8_t *tmp = pc;
     pc = ac;
     ac = tmp;
@@ -53,11 +53,11 @@ void RandomWalk(int walk_length, RandomWalkMessage m) {
 
   for (int i = 0; i < walk_length; ++i) {
     int a = Sample(cuda_generator, cuda_problem, s, &m.rngs[id]);
-    ++m.expanded;
+    ++m.expanded[id];
 
     if (a == -1) {
       Fallback(id, m, s, pc, &length);
-      ++m.dead_ends;
+      ++m.dead_ends[id];
       continue;
     }
 
@@ -67,11 +67,11 @@ void RandomWalk(int walk_length, RandomWalkMessage m) {
       ac[j] = 0;
 
     int h = Evaluate(cuda_landmark_graph, cuda_problem, c, pc, ac, &status[id]);
-    ++m.evaluated;
+    ++m.evaluated[id];
 
     if (h == -1) {
       Fallback(id, m, s, pc, &length);
-      ++m.dead_ends;
+      ++m.dead_ends[id];
       continue;
     }
 
@@ -110,19 +110,19 @@ void InitRandomWalkMessage(int n_grid, int n_block, int walk_length,
 }
 
 void FreeRandomWalkMessage(RandomWalkMessage *m) {
-  delete m->generated;
-  delete m->expanded;
-  delete m->evaluated;
-  delete m->dead_ends;
-  delete m->best_h;
-  delete m->best_length;
-  delete m->best_states;
-  delete m->states;
-  delete m->best_sequences;
-  delete m->best_accepted;
-  delete m->accepted;
-  delete m->status;
-  delete m->first_eval;
+  delete[] m->generated;
+  delete[] m->expanded;
+  delete[] m->evaluated;
+  delete[] m->dead_ends;
+  delete[] m->best_h;
+  delete[] m->best_length;
+  delete[] m->best_states;
+  delete[] m->states;
+  delete[] m->best_sequences;
+  delete[] m->best_accepted;
+  delete[] m->accepted;
+  delete[] m->status;
+  delete[] m->first_eval;
 }
 
 void CudaInitRandomWalkMessage(int n_grid, int n_block, int walk_length,
@@ -179,7 +179,7 @@ void Upload(const RandomWalkMessage &m, int n_threads, int n_variables,
                         n_threads * n_variables * sizeof(int),
                         cudaMemcpyHostToDevice));
   CUDA_CHECK(cudaMemcpy(cuda_m->best_accepted, m.best_accepted,
-                        n_threads * n_bytes * sizeof(int),
+                        n_threads * n_bytes * sizeof(uint8_t),
                         cudaMemcpyHostToDevice));
   CUDA_CHECK(cudaMemcpy(cuda_m->first_eval, m.first_eval,
                         n_threads * sizeof(bool), cudaMemcpyHostToDevice));
@@ -195,7 +195,7 @@ void Download(const RandomWalkMessage &cuda_m, int n_threads, int n_variables,
                         n_threads * n_variables * sizeof(int),
                         cudaMemcpyDeviceToHost));
   CUDA_CHECK(cudaMemcpy(m->best_accepted, cuda_m.best_accepted,
-                        n_threads * n_bytes * sizeof(int),
+                        n_threads * n_bytes * sizeof(uint8_t),
                         cudaMemcpyDeviceToHost));
   CUDA_CHECK(cudaMemcpy(m->best_sequences, cuda_m.best_sequences,
                         n_threads * walk_length * sizeof(int),

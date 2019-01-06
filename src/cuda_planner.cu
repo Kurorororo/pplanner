@@ -1,5 +1,7 @@
 #include <chrono>
 #include <iostream>
+#include <memory>
+#include <vector>
 
 #include <boost/program_options.hpp>
 #include <boost/property_tree/ptree.hpp>

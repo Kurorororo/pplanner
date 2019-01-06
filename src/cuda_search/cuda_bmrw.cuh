@@ -24,7 +24,7 @@ class CudaBMRW : public Search {
   CudaBMRW(std::shared_ptr<const SASPlus> problem,
            const boost::property_tree::ptree &pt)
     : n_grid_(20),
-      n_block_(128),
+      n_block_(256),
       n_elite_(100),
       walk_length_(10),
       generated_(0),
@@ -36,9 +36,9 @@ class CudaBMRW : public Search {
       graph_(nullptr),
       lmcount_(nullptr),
       open_list_(nullptr),
-      cuda_problem_(nullptr),
-      cuda_generator_(nullptr),
-      cuda_landmark_graph_(nullptr) { Init(pt); }
+      cuda_problem_(new CudaSASPlus),
+      cuda_generator_(new CudaSuccessorGenerator),
+      cuda_landmark_graph_(new CudaLandmarkGraph) { Init(pt); }
 
   ~CudaBMRW();
 

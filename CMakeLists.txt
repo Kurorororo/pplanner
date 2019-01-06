@@ -65,8 +65,9 @@ endIf ()
 
 # CUDA planner
 if (CUDA_FOUND)
-  set(CUDA_NVCC_FLAGS "-std=c++11" "-arch=compute_61" "-code=sm_61")
   set(CUDA_SEPARABLE_COMPILATION ON)
+  set(CUDA_PROPAGATE_HOST_FLAGS ON)
+  set(CUDA_NVCC_FLAGS "-std=c++11" "-arch=compute_61" "-code=sm_61")
 
   if (CMAKE_BUILD_TYPE_UPPER STREQUAL "RELEASE")
     set(CUDA_NVCC_FLAGS_RELEASE -O3 -DNDEBG)

@@ -1,5 +1,7 @@
 #include "cuda_sas_plus.cuh"
 
+#include <iostream>
+
 #include "cuda_common/cuda_check.cuh"
 
 namespace pplanner {

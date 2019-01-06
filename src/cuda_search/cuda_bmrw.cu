@@ -100,7 +100,7 @@ void CudaBMRW::PopStates(vector<int> &parents) {
       node = open_list_->Pop();
     }
 
-    if (graph_->Action(node) == -1 && graph_->Parent(node) != -1) {
+    if (graph_->Action(node) != -1 && graph_->Parent(node) != -1) {
       m_.first_eval[i] = true;
       memcpy(&m_.best_accepted[i * n_landmark_bytes_],
              graph_->ParentLandmark(node), n_landmark_bytes_ * sizeof(uint8_t));
@@ -113,9 +113,9 @@ void CudaBMRW::PopStates(vector<int> &parents) {
     m_.best_h[i] = h;
     graph_->State(node, &m_.best_states[i * problem_->n_variables()]);
     parents[i] = node;
-    Upload(m_, n_threads_, problem_->n_variables(), n_landmark_bytes_,
-           &cuda_m_);
   }
+
+  Upload(m_, n_threads_, problem_->n_variables(), n_landmark_bytes_, &cuda_m_);
 }
 
 void CudaBMRW::GenerateChildren(int parent, vector<int> &values,
@@ -135,6 +135,7 @@ void CudaBMRW::GenerateChildren(int parent, vector<int> &values,
     child = state;
     problem_->ApplyEffect(o, child);
     int node = graph_->GenerateNode(o, parent, state, child);
+    ++generated_;
     open_list_->Push(values, node, false);
   }
 }
@@ -165,8 +166,9 @@ int CudaBMRW::PushStates(const vector<int> &parents, vector<int> &arg_h) {
            problem_->n_variables() * sizeof(int));
     int node = graph_->GenerateAndCloseNode(-1, parents[i], state);
 
-    if (node != -1) continue;
+    if (node == -1) continue;
 
+    ++generated_;
     graph_->SetLandmark(node, &m_.best_accepted[i * n_landmark_bytes_]);
     sequences_.resize(node + 1);
     int length = m_.best_length[i];
@@ -253,6 +255,9 @@ CudaBMRW::~CudaBMRW() {
   FreeCudaLandmarkGraph(cuda_landmark_graph_);
   FreeRandomWalkMessage(&m_);
   CudaFreeRandomWalkMessage(&cuda_m_);
+  delete cuda_problem_;
+  delete cuda_generator_;
+  delete cuda_landmark_graph_;
 }
 
 } // namespace pplanner
