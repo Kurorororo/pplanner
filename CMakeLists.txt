@@ -81,6 +81,7 @@ if (CUDA_FOUND)
     ./src/cuda_successor_generator.cu
     ./src/cuda_search_factory.cu
     ./src/cuda_search/cuda_bmrw.cu
+    ./src/cuda_search/cuda_rwagbfs.cu
     ./src/cuda_search/cuda_random_walk.cu
     ./src/cuda_landmark/cuda_landmark_graph.cu
     ./src/cuda_landmark/cuda_landmark_count_base.cu

@@ -72,6 +72,8 @@ class SearchGraph {
 
   virtual int Cost(int i) const { return -1; }
 
+  virtual void Clear();
+
   virtual void Dump() {}
 
   std::size_t capacity() const { return capacity_; }

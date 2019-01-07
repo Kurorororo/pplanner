@@ -38,18 +38,21 @@ void RandomWalk(int walk_length, RandomWalkMessage m) {
   uint8_t *pc = &m.accepted[id * 2 * n_bytes];
   memcpy(pc, &m.best_accepted[id * n_bytes], n_bytes * sizeof(uint8_t));
   uint8_t *ac = &m.accepted[(id * 2 + 1) * n_bytes];
-  int length = 0;
-  m.best_length[id] = 0;
   uint8_t *status = &m.status[id * n_bytes];
 
   if (m.first_eval[id]) {
-    int h = Evaluate(cuda_landmark_graph, cuda_problem, s, pc, ac, &status[id]);
+    for (int j = 0; j < n_bytes; ++j)
+      m.best_accepted[id * n_bytes + j] = 0;
+
+    int h = Evaluate(cuda_landmark_graph, cuda_problem, s, pc,
+                     &m.best_accepted[id * n_bytes], &status[id]);
     ++m.evaluated[id];
-    uint8_t *tmp = pc;
-    pc = ac;
-    ac = tmp;
+    memcpy(pc, &m.best_accepted[id * n_bytes], n_bytes * sizeof(uint8_t));
     m.best_h[id] = h;
   }
+
+  int length = 0;
+  m.best_length[id] = 0;
 
   for (int i = 0; i < walk_length; ++i) {
     int a = Sample(cuda_generator, cuda_problem, s, &m.rngs[id]);

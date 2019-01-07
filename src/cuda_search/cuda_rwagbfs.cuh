@@ -1,5 +1,5 @@
-#ifndef CUDA_BMRW_H_
-#define CUDA_BMRW_H_
+#ifndef CUDA_RWAGBFS_H_
+#define CUDA_RWAGBFS_H_
 
 #include <memory>
 #include <vector>
@@ -19,9 +19,9 @@
 
 namespace pplanner {
 
-class CudaBMRW : public Search {
+class CudaRWAGBFS : public Search {
  public:
-  CudaBMRW(std::shared_ptr<const SASPlus> problem,
+  CudaRWAGBFS(std::shared_ptr<const SASPlus> problem,
            const boost::property_tree::ptree &pt)
     : n_grid_(20),
       n_block_(256),
@@ -40,7 +40,7 @@ class CudaBMRW : public Search {
       cuda_generator_(new CudaSuccessorGenerator),
       cuda_landmark_graph_(new CudaLandmarkGraph) { Init(pt); }
 
-  ~CudaBMRW();
+  ~CudaRWAGBFS();
 
   std::vector<int> Plan() override {
     int goal = Search();
@@ -55,16 +55,11 @@ class CudaBMRW : public Search {
 
   void InitialEvaluate();
 
-  void PopStates(std::vector<int> &parents);
-
-  void GenerateChildren(int parent, std::vector<int> &values,
-                        const std::vector<int> &state);
-
-  int PushStates(const std::vector<int> &parents, std::vector<int> &arg_h);
-
-  void Restart();
+  int PushStates(const std::vector<int> &parents);
 
   int Search();
+
+  int Expand(std::vector<int> &parents, int *counter);
 
   std::vector<int> ExtractPlan(int node);
 
@@ -95,4 +90,4 @@ class CudaBMRW : public Search {
 
 } // namespace pplaner
 
-#endif // CUDA_BMRW_H_
+#endif // CUDA_RWAGBFS_H_

@@ -46,6 +46,15 @@ int SearchGraph::GenerateAndCloseNode(int action, int parent_node,
   return node;
 }
 
+void SearchGraph::Clear() {
+  n_closed_ = 0;
+  std::fill(closed_.begin(), closed_.end(), -1);
+  actions_.clear();
+  parents_.clear();
+  states_.clear();
+  hash_values_.clear();
+}
+
 void SearchGraph::Close(size_t index, int node) {
   ++n_closed_;
   closed_[index] = node;
