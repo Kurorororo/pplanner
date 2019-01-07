@@ -5,6 +5,18 @@
 namespace pplanner {
 
 __device__
+bool IsLeaf(const CudaLandmarkGraph &graph, int lm_id,
+            const uint8_t *accepted) {
+  int start = graph.parent_start[lm_id];
+  int end = graph.parent_end[lm_id];
+
+  for (int i = start; i < end; ++i)
+    if (!CudaGet(accepted, graph.parents[i])) return false;
+
+  return true;
+}
+
+__device__
 int ReachedSize(const CudaLandmarkGraph &graph, const int *state,
                 const uint8_t *parent_accepted, uint8_t *accepted) {
   int size = 0;
@@ -16,7 +28,8 @@ int ReachedSize(const CudaLandmarkGraph &graph, const int *state,
       continue;
     }
 
-    if (IsImplicated(graph, psi_id, state)) {
+    if (IsImplicated(graph, psi_id, state)
+        && IsLeaf(graph, psi_id, parent_accepted)) {
       CudaUp(accepted, psi_id);
       ++size;
     }
@@ -45,8 +58,9 @@ int NeededSize(const CudaLandmarkGraph &graph, const int *state,
     int start = graph.child_start[phi_id];
     int end = graph.child_end[phi_id];
 
-    for (int psi_id = start; psi_id < end; ++psi_id) {
-      if (IsGreedy(graph, phi_id, psi_id) && !CudaGet(accepted, psi_id)) {
+    for (int i = start; i < end; ++i) {
+      if (IsGreedy(graph, phi_id, graph.children[i])
+          && !CudaGet(accepted, graph.children[i])) {
         status[phi_id] = 2;
         ++size;
         break;
@@ -84,7 +98,7 @@ int Evaluate(const CudaLandmarkGraph &graph, const CudaSASPlus &problem,
   int needed_size = NeededSize(graph, state, accepted, status);
 
   for (int i = 0, n = graph.landmark_id_max; i < n; ++i) {
-    if ((status[i] == 0 && graph.no_first[i])
+    if ((graph.start[i] < graph.end[i] && (status[i] == 0 && graph.no_first[i]))
         || (status[i] == 2 && graph.no_possible[i])) return -1;
   }
 

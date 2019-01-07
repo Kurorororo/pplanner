@@ -38,14 +38,14 @@ void RandomWalk(int walk_length, RandomWalkMessage m) {
   uint8_t *pc = &m.accepted[id * 2 * n_bytes];
   memcpy(pc, &m.best_accepted[id * n_bytes], n_bytes * sizeof(uint8_t));
   uint8_t *ac = &m.accepted[(id * 2 + 1) * n_bytes];
-  uint8_t *status = &m.status[id * n_bytes];
+  uint8_t *status = &m.status[id * cuda_landmark_graph.landmark_id_max];
 
   if (m.first_eval[id]) {
     for (int j = 0; j < n_bytes; ++j)
       m.best_accepted[id * n_bytes + j] = 0;
 
     int h = Evaluate(cuda_landmark_graph, cuda_problem, s, pc,
-                     &m.best_accepted[id * n_bytes], &status[id]);
+                     &m.best_accepted[id * n_bytes], status);
     ++m.evaluated[id];
     memcpy(pc, &m.best_accepted[id * n_bytes], n_bytes * sizeof(uint8_t));
     m.best_h[id] = h;
@@ -69,7 +69,7 @@ void RandomWalk(int walk_length, RandomWalkMessage m) {
     for (int j = 0; j < n_bytes; ++j)
       ac[j] = 0;
 
-    int h = Evaluate(cuda_landmark_graph, cuda_problem, c, pc, ac, &status[id]);
+    int h = Evaluate(cuda_landmark_graph, cuda_problem, c, pc, ac, status);
     ++m.evaluated[id];
 
     if (h == -1) {
@@ -109,7 +109,7 @@ void InitRandomWalkMessage(int n_grid, int n_block, int walk_length,
   m->best_accepted = new uint8_t[n_threads * n_bytes];
   m->accepted = new uint8_t[n_threads * 2 * n_bytes];
   m->status = new uint8_t[n_threads * landmark_id_max];
-  m->first_eval = new bool[n_threads * landmark_id_max];
+  m->first_eval = new bool[n_threads];
 }
 
 void FreeRandomWalkMessage(RandomWalkMessage *m) {
