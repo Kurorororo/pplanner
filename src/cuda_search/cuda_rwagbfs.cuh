@@ -1,6 +1,7 @@
 #ifndef CUDA_RWAGBFS_H_
 #define CUDA_RWAGBFS_H_
 
+#include <array>
 #include <memory>
 #include <vector>
 
@@ -55,11 +56,11 @@ class CudaRWAGBFS : public Search {
 
   void InitialEvaluate();
 
-  int PushStates(const std::vector<int> &parents);
+  int PushStates(const std::vector<int> &parents, const RandomWalkMessage &m);
 
   int Search();
 
-  int Expand(std::vector<int> &parents, int *counter);
+  int Expand(std::vector<int> &parents, int *counter, RandomWalkMessage *m);
 
   std::vector<int> ExtractPlan(int node);
 
@@ -84,7 +85,7 @@ class CudaRWAGBFS : public Search {
   CudaSASPlus *cuda_problem_;
   CudaSuccessorGenerator *cuda_generator_;
   CudaLandmarkGraph *cuda_landmark_graph_;
-  RandomWalkMessage m_;
+  std::array<RandomWalkMessage, 2> ms_;
   RandomWalkMessage cuda_m_;
 };
 

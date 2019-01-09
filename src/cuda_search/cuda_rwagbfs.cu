@@ -1,5 +1,7 @@
 #include "cuda_search/cuda_rwagbfs.cuh"
 
+#include <array>
+
 #include "evaluator.h"
 #include "open_list_factory.h"
 #include "cuda_common/cuda_check.cuh"
@@ -59,12 +61,15 @@ void CudaRWAGBFS::Init(const boost::property_tree::ptree &pt) {
   InitCudaSASPlus(problem_, cuda_problem_);
   InitCudaSuccessorGenerator(generator_, cuda_generator_);
   InitCudaLandmarkGraph(lmcount_->landmark_graph(), cuda_landmark_graph_);
+
   InitRandomWalkMessage(n_grid_, n_block_, walk_length_,
-                        problem_->n_variables(), landmark_id_max_, &m_);
+                        problem_->n_variables(), landmark_id_max_, &ms_[0]);
+  InitRandomWalkMessage(n_grid_, n_block_, walk_length_,
+                        problem_->n_variables(), landmark_id_max_, &ms_[1]);
   CudaInitRandomWalkMessage(n_grid_, n_block_, walk_length_,
                             problem_->n_variables(), landmark_id_max_,
                             &cuda_m_);
-  UploadStatistics(m_, n_threads_, &cuda_m_);
+  UploadStatistics(ms_[0], n_threads_, &cuda_m_);
   CUDA_CHECK(cudaMemcpyToSymbol(cuda_problem, cuda_problem_,
                                 sizeof(CudaSASPlus)));
   CUDA_CHECK(cudaMemcpyToSymbol(cuda_generator, cuda_generator_,
@@ -72,8 +77,10 @@ void CudaRWAGBFS::Init(const boost::property_tree::ptree &pt) {
   CUDA_CHECK(cudaMemcpyToSymbol(cuda_landmark_graph, cuda_landmark_graph_,
                                 sizeof(CudaLandmarkGraph)));
 
-  for (int i = 0; i < n_threads_; ++i)
-    m_.first_eval[i] = false;
+  for (int i = 0; i < n_threads_; ++i) {
+    ms_[0].first_eval[i] = false;
+    ms_[1].first_eval[i] = false;
+  }
 }
 
 void CudaRWAGBFS::InitialEvaluate() {
@@ -90,16 +97,17 @@ void CudaRWAGBFS::InitialEvaluate() {
   open_list_->Push(values, node, false);
 }
 
-int CudaRWAGBFS::PushStates(const vector<int> &parents) {
+int CudaRWAGBFS::PushStates(const vector<int> &parents,
+                            const RandomWalkMessage &m) {
   thread_local vector<int> state(problem_->n_variables());
   thread_local vector<int> values(1);
 
   for (int i = 0; i < n_threads_; ++i) {
-    int h = m_.best_h[i];
+    int h = m.best_h[i];
 
     if (h == -1) continue;
 
-    memcpy(state.data(), &m_.best_states[i * problem_->n_variables()],
+    memcpy(state.data(), &m.best_states[i * problem_->n_variables()],
            problem_->n_variables() * sizeof(int));
     int node = graph_->GenerateNodeIfNotClosed(-1, parents[i], state);
 
@@ -107,11 +115,11 @@ int CudaRWAGBFS::PushStates(const vector<int> &parents) {
 
     ++generated_;
     graph_->SetH(node, h);
-    graph_->SetLandmark(node, &m_.best_accepted[i * n_landmark_bytes_]);
+    graph_->SetLandmark(node, &m.best_accepted[i * n_landmark_bytes_]);
     sequences_.resize(node + 1);
-    int length = m_.best_length[i];
+    int length = m.best_length[i];
     sequences_[node].resize(length);
-    memcpy(sequences_[node].data(), &m_.best_sequences[i * walk_length_],
+    memcpy(sequences_[node].data(), &m.best_sequences[i * walk_length_],
            length * sizeof(int));
 
     if (h < best_h_) {
@@ -129,46 +137,52 @@ int CudaRWAGBFS::PushStates(const vector<int> &parents) {
 }
 
 int CudaRWAGBFS::Search() {
-  std::vector<int> parents(n_threads_);
+  std::array<std::vector<int>, 2> parents{
+    vector<int>(n_threads_), vector<int>(n_threads_)};
   std::vector<int> arg_h(n_threads_);
   InitialEvaluate();
   int counter = 0;
+  int p_index = 0;
 
   while (!open_list_->IsEmpty()) {
     if (counter < n_threads_) {
-      int goal = Expand(parents, &counter);
+      int goal = Expand(parents[p_index], &counter, &ms_[p_index]);
 
       if (goal != -1) return goal;
     }
 
     if (counter >= n_threads_) {
       counter = 0;
-      Upload(m_, n_threads_, problem_->n_variables(), n_landmark_bytes_,
-             &cuda_m_);
+      auto pb = parents[p_index];
+      Upload(ms_[p_index], n_threads_, problem_->n_variables(),
+             n_landmark_bytes_, &cuda_m_);
       cudaEvent_t fin;
       CUDA_CHECK(cudaEventCreate(&fin));
       RandomWalk<<<n_grid_, n_block_>>>(walk_length_, cuda_m_);
       CUDA_CHECK(cudaEventRecord(fin, 0));
 
       while(cudaEventQuery(fin) == cudaErrorNotReady){
-        int goal = Expand(parents, &counter);
+        int goal = Expand(parents[1 - p_index], &counter, &ms_[1 - p_index]);
 
         if (goal != -1) return goal;
       }
 
       Download(cuda_m_, n_threads_, problem_->n_variables(), n_landmark_bytes_,
-               walk_length_, &m_);
+               walk_length_, &ms_[p_index]);
 
-      int goal = PushStates(parents);
+      int goal = PushStates(parents[p_index], ms_[p_index]);
 
       if (goal != -1) return goal;
+
+      p_index = 1 - p_index;
     }
   }
 
   return -1;
 }
 
-int CudaRWAGBFS::Expand(vector<int> &parents, int *counter) {
+int CudaRWAGBFS::Expand(vector<int> &parents, int *counter,
+                        RandomWalkMessage *m) {
   thread_local vector<int> state(problem_->n_variables());
   thread_local vector<int> child(problem_->n_variables());
   thread_local vector<int> applicable;
@@ -212,10 +226,10 @@ int CudaRWAGBFS::Expand(vector<int> &parents, int *counter) {
     open_list_->Push(values, child_node, false);
 
     int id = *counter % n_threads_;
-    m_.best_h[id] = h;
-    memcpy(&m_.best_states[id * problem_->n_variables()], child.data(),
+    m->best_h[id] = h;
+    memcpy(&m->best_states[id * problem_->n_variables()], child.data(),
            problem_->n_variables() * sizeof(int));
-    memcpy(&m_.best_accepted[id * n_landmark_bytes_],
+    memcpy(&m->best_accepted[id * n_landmark_bytes_],
            graph_->Landmark(child_node), n_landmark_bytes_ * sizeof(uint8_t));
     parents[id] = child_node;
     *counter = *counter + 1;
@@ -230,14 +244,15 @@ int CudaRWAGBFS::Expand(vector<int> &parents, int *counter) {
 
   return -1;
 }
+
 std::vector<int> CudaRWAGBFS::ExtractPlan(int node) {
-  DownloadStatistics(cuda_m_, n_threads_, &m_);
+  DownloadStatistics(cuda_m_, n_threads_, &ms_[0]);
 
   for (int i = 0; i < n_threads_; ++i) {
-    generated_ += m_.generated[i];
-    expanded_ += m_.expanded[i];
-    evaluated_ += m_.evaluated[i];
-    dead_ends_ += m_.dead_ends[i];
+    generated_ += ms_[0].generated[i];
+    expanded_ += ms_[0].expanded[i];
+    evaluated_ += ms_[0].evaluated[i];
+    dead_ends_ += ms_[0].dead_ends[i];
   }
 
   if (node == -1) return std::vector<int>{-1};
@@ -269,7 +284,8 @@ CudaRWAGBFS::~CudaRWAGBFS() {
   FreeCudaSASPlus(cuda_problem_);
   FreeCudaSuccessorGenerator(cuda_generator_);
   FreeCudaLandmarkGraph(cuda_landmark_graph_);
-  FreeRandomWalkMessage(&m_);
+  FreeRandomWalkMessage(&ms_[0]);
+  FreeRandomWalkMessage(&ms_[1]);
   CudaFreeRandomWalkMessage(&cuda_m_);
   delete cuda_problem_;
   delete cuda_generator_;
