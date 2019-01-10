@@ -55,8 +55,8 @@ bool IsGoal(const CudaSASPlus &problem, const int *state) {
   return true;
 }
 
-void InitConditionalEffects(std::shared_ptr<const SASPlus> problem,
-                            CudaSASPlus *cuda_problem) {
+std::size_t InitConditionalEffects(std::shared_ptr<const SASPlus> problem,
+                                   CudaSASPlus *cuda_problem) {
   if (problem->use_conditional()) {
     CudaMallocAndCopy((void**)&cuda_problem->effect_condition_offsets_1,
                       problem->effect_condition_offsets_1_data(),
@@ -76,18 +76,26 @@ void InitConditionalEffects(std::shared_ptr<const SASPlus> problem,
     CudaMallocAndCopy((void**)&cuda_problem->conditional_effect_values,
                       problem->conditional_effect_values_data(),
                       problem->conditional_effects_size() * sizeof(int));
-  } else {
-    cuda_problem->effect_condition_offsets_1 = nullptr;
-    cuda_problem->effect_condition_offsets_2 = nullptr;
-    cuda_problem->effect_condition_vars = nullptr;
-    cuda_problem->effect_condition_values = nullptr;
-    cuda_problem->conditional_effect_vars = nullptr;
-    cuda_problem->conditional_effect_values = nullptr;
+    std::size_t size = (problem->n_actions() + 1) * sizeof(int);
+    size += problem->effect_condition_offsets_2_size() * sizeof(int);
+    size += 2 * problem->effect_conditions_size() * sizeof(int);
+    size += 2 * problem->conditional_effects_size() * sizeof(int);
+
+    return size;
   }
+
+  cuda_problem->effect_condition_offsets_1 = nullptr;
+  cuda_problem->effect_condition_offsets_2 = nullptr;
+  cuda_problem->effect_condition_vars = nullptr;
+  cuda_problem->effect_condition_values = nullptr;
+  cuda_problem->conditional_effect_vars = nullptr;
+  cuda_problem->conditional_effect_values = nullptr;
+
+  return 0;
 }
 
-void InitCudaSASPlus(std::shared_ptr<const SASPlus> problem,
-                     CudaSASPlus *cuda_problem) {
+std::size_t InitCudaSASPlus(std::shared_ptr<const SASPlus> problem,
+                            CudaSASPlus *cuda_problem) {
   cuda_problem->metric = problem->metric();
   cuda_problem->n_variables = problem->n_variables();
   cuda_problem->n_goal_facts = problem->n_goal_facts();
@@ -116,7 +124,15 @@ void InitCudaSASPlus(std::shared_ptr<const SASPlus> problem,
                     problem->effect_values_data(),
                     problem->effects_size() * sizeof(int));
 
-  InitConditionalEffects(problem, cuda_problem);
+  std::size_t size = 4 * sizeof(int) + sizeof(bool);
+  size += (problem->n_variables() + 1) * sizeof(int);
+  size += 2 * problem->n_goal_facts() * sizeof(int);
+  size += (2 * problem->n_actions() + 1) * sizeof(int);
+  size += 2 * problem->effects_size() * sizeof(int);
+
+  size += InitConditionalEffects(problem, cuda_problem);
+
+  return size;
 }
 
 void FreeCudaSASPlus(CudaSASPlus *problem) {

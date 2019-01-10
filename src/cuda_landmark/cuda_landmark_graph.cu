@@ -14,12 +14,13 @@ bool IsImplicated(const CudaLandmarkGraph &graph, int i, const int *state) {
   return false;
 }
 
-void InitCudaLandmarkGraph(std::shared_ptr<const LandmarkGraph> graph,
+std::size_t InitCudaLandmarkGraph(std::shared_ptr<const LandmarkGraph> graph,
                            CudaLandmarkGraph *cuda_graph) {
   int landmark_id_max = graph->landmark_id_max();
   cuda_graph->landmark_id_max = landmark_id_max;
   cuda_graph->n_bytes = (landmark_id_max + 7) / 8;
   cuda_graph->n_landmarks = graph->n_landmarks();
+  std::size_t size = 3 * sizeof(int);
 
   std::vector<int> vars;
   std::vector<int> values;
@@ -46,6 +47,9 @@ void InitCudaLandmarkGraph(std::shared_ptr<const LandmarkGraph> graph,
   CudaMallocAndCopy((void**)&cuda_graph->end, end.data(),
                     end.size() * sizeof(int));
 
+  size += (vars.size() + values.size()) * sizeof(int);
+  size += (start.size() + end.size()) * sizeof(int);
+
   std::vector<int> children;
   std::vector<int> child_start;
   std::vector<int> child_end;
@@ -64,6 +68,9 @@ void InitCudaLandmarkGraph(std::shared_ptr<const LandmarkGraph> graph,
   CudaMallocAndCopy((void**)&cuda_graph->child_end, child_end.data(),
                     child_end.size() * sizeof(int));
 
+  size += children.size() * sizeof(int);
+  size += (child_start.size() + child_end.size()) * sizeof(int);
+
   std::vector<int> parents;
   std::vector<int> parent_start;
   std::vector<int> parent_end;
@@ -81,6 +88,9 @@ void InitCudaLandmarkGraph(std::shared_ptr<const LandmarkGraph> graph,
                     parent_start.size() * sizeof(int));
   CudaMallocAndCopy((void**)&cuda_graph->parent_end, parent_end.data(),
                     parent_end.size() * sizeof(int));
+
+  size += parents.size() * sizeof(int);
+  size += (parent_start.size() + parent_end.size()) * sizeof(int);
 
   bool *is_goal = new bool[landmark_id_max];
   bool *no_possible = new bool[landmark_id_max];
@@ -103,6 +113,8 @@ void InitCudaLandmarkGraph(std::shared_ptr<const LandmarkGraph> graph,
   delete[] no_possible;
   delete[] no_first;
 
+  size += 3 * landmark_id_max * sizeof(bool);
+
   bool *is_greedy = new bool[landmark_id_max * landmark_id_max];
 
   for (int i = 0; i < landmark_id_max; ++i) {
@@ -117,6 +129,10 @@ void InitCudaLandmarkGraph(std::shared_ptr<const LandmarkGraph> graph,
                     landmark_id_max * landmark_id_max * sizeof(bool));
 
   delete[] is_greedy;
+
+  size += landmark_id_max  * landmark_id_max * sizeof(bool);
+
+  return size;
 }
 
 void FreeCudaLandmarkGraph(CudaLandmarkGraph *graph) {

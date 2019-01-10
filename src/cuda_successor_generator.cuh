@@ -30,7 +30,7 @@ __device__
 int Sample(const CudaSuccessorGenerator &generator, const CudaSASPlus &problem,
            const int *state, curandState_t *rng);
 
-void InitCudaSuccessorGenerator(
+std::size_t InitCudaSuccessorGenerator(
     std::shared_ptr<const SuccessorGenerator> generator,
     CudaSuccessorGenerator *cuda_generator);
 

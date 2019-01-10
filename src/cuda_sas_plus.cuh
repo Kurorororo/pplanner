@@ -42,8 +42,8 @@ __device__
 void ApplyEffect(const CudaSASPlus &problem, int i, const int *state,
                  int *child);
 
-void InitCudaSASPlus(std::shared_ptr<const SASPlus> problem,
-                     CudaSASPlus *cuda_problem);
+std::size_t InitCudaSASPlus(std::shared_ptr<const SASPlus> problem,
+                            CudaSASPlus *cuda_problem);
 
 void FreeCudaSASPlus(CudaSASPlus *problem);
 

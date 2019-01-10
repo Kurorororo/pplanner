@@ -20,10 +20,14 @@ class ZobristHash : public DistributionHash {
   uint32_t HashByDifference(int action, uint32_t seed,
                             const std::vector<int> &parent,
                             const std::vector<int> &state) override;
+
+  const uint32_t* array() const { return array_.data(); }
+
+  std::size_t array_size() const { return array_.size(); }
+
  private:
   int n_;
   std::shared_ptr<const SASPlus> problem_;
-  std::vector<int> offsets_;
   std::vector<uint32_t> array_;
 };
 

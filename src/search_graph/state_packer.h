@@ -24,6 +24,22 @@ class StatePacker {
 
   void Unpack(const uint32_t *packed, int *state) const;
 
+  const int* block_index() const { return block_index_.data(); }
+
+  std::size_t block_index_size() { return block_index_.size(); }
+
+  const int* var_per_block() const { return var_per_block_.data(); }
+
+  std::size_t var_per_block_size() { return var_per_block_.size(); }
+
+  const int* shift() const { return shift_.data(); }
+
+  std::size_t shift_size() { return shift_.size(); }
+
+  const uint32_t* mask() const { return mask_.data(); }
+
+  std::size_t mask_size() { return mask_.size(); }
+
  private:
   std::size_t block_size_;
   std::vector<int> block_index_;

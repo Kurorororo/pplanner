@@ -5,6 +5,7 @@
 
 #include "cuda_sas_plus.cuh"
 #include "cuda_successor_generator.cuh"
+#include "cuda_landmark/cuda_landmark_graph.cuh"
 
 namespace pplanner {
 
@@ -24,6 +25,10 @@ struct RandomWalkMessage {
   bool *first_eval;
   curandState *rngs;
 };
+
+extern __constant__ CudaSASPlus cuda_problem;
+extern __constant__ CudaSuccessorGenerator cuda_generator;
+extern __constant__ CudaLandmarkGraph cuda_landmark_graph;
 
 __global__
 void RandomWalk(int walk_length, RandomWalkMessage m);

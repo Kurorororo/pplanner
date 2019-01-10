@@ -37,8 +37,8 @@ inline bool IsGreedy(const CudaLandmarkGraph &graph, int i, int j) {
   return graph.is_greedy[i * graph.landmark_id_max + j];
 }
 
-void InitCudaLandmarkGraph(std::shared_ptr<const LandmarkGraph> graph,
-                           CudaLandmarkGraph *cuda_graph);
+std::size_t InitCudaLandmarkGraph(std::shared_ptr<const LandmarkGraph> graph,
+                                  CudaLandmarkGraph *cuda_graph);
 
 void FreeCudaLandmarkGraph(CudaLandmarkGraph *graph);
 

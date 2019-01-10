@@ -92,7 +92,7 @@ void Generate(const CudaSuccessorGenerator &generator,
   DFS(generator, problem, state, 0, 0, count, result);
 }
 
-void InitCudaSuccessorGenerator(
+std::size_t InitCudaSuccessorGenerator(
     std::shared_ptr<const SuccessorGenerator> generator,
     CudaSuccessorGenerator *cuda_generator) {
   CudaMallocAndCopy((void**)&cuda_generator->to_child,
@@ -102,6 +102,9 @@ void InitCudaSuccessorGenerator(
                     generator->to_data_size() * sizeof(int));
   CudaMallocAndCopy((void**)&cuda_generator->data, generator->data(),
                     generator->data_size() * sizeof(int));
+
+  return (generator->to_child_size() + generator->to_data_size()
+          + generator->data_size()) * sizeof(int);
 }
 
 void FreeCudaSuccessorGenerator(CudaSuccessorGenerator *cuda_generator) {
