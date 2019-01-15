@@ -37,10 +37,8 @@ void Pop(CudaSearchGraph graph, GBFSMessage m, int *next_list, int *prev_list,
   State(graph, node, s);
   Close(graph, node, closed);
 
-  int c = CountFromTable(cuda_generator, cuda_problem, s);
-
+  m.c[id] = CountFromTable(cuda_generator, cuda_problem, s);
   m.node[id] = node;
-  m.c[id] = c;
 }
 
 int PrepareExpansion(int threads, int *h_min, GBFSMessage *m,
@@ -84,8 +82,8 @@ int PrepareExpansion(int threads, int *h_min, GBFSMessage *m,
 }
 
 __global__
-void Expand(CudaSearchGraph graph, GBFSMessage m, int *next_list,
-            int *prev_list, int *goal) {
+void Expand(CudaSearchGraph graph, GBFSMessage m, const int *closed,
+            int *next_list, int *prev_list, int *goal) {
   int id = threadIdx.x + blockIdx.x * blockDim.x;
 
   int c = m.c[id];
@@ -99,6 +97,8 @@ void Expand(CudaSearchGraph graph, GBFSMessage m, int *next_list,
   int *cs = &message.child[id * cuda_problem.n_variables];
   int *nx = &next_list[id * d_open_size];
   int *pv = &prev_list[id * d_open_size];
+  int *cl = &closed[id * cuda_closed_size];
+  uint32_t *packed = &m.packed[id * graph.block_size];
 
   const uint8_t *pac = GetLandmark(graph, parent);
   int8_t *status = &message.status[id * id_max];
@@ -113,10 +113,13 @@ void Expand(CudaSearchGraph graph, GBFSMessage m, int *next_list,
                                              cuda_problem, a,
                                              graph.d_hash_values[parent], s,
                                              cs);
+    Pack(cuda_graph, cs, packed);
 
+    if (GetClosed(graph, cl, hash_values, packed) != -1)
+      continue;
 
     int child = d_front + i;
-    GenerateNode(child, a, parent, hash_values, d_hash_values, &graph);
+    GenerateNode(child, a, parent, hash_value, d_hash_value, packed, &graph);
     message.child_node[i] = child;
     uint8_t *ac = GetLandmark(graph, child);
 
@@ -165,19 +168,18 @@ __global__ void SortChildren(const CudaSearchGraph graph, GBFSMessage m) {
 
 __global__
 void Push(CudaSearchGraph graph, GBFSMessage m, int *next_list,
-          int *prev_list, int *closed) {
+          int *prev_list) {
   int id = threadIdx.x + blockIdx.x * blockDim.x;
 
   int *nx = &next_list[id * cuda_open_size];
   int *pv = &prev_list[id * cuda_open_size];
-  int *cl = &prev_list[id * cuda_closed_size];
   int offset = m.pffsets[id];
 
   int h_min = m.h_min[id];
 
   for (int i = offset, n = offset + m.d[id]; i < n; ++i) {
     int h = m.sorted_h[i];
-    if (h == -1 || GetClosed(graph, closed, m.sorted[i]) != -1) continue;
+    if (h == -1) continue;
     if (h < h_min) h_min = h;
     Push(h, m.sorted[i], &graph, nx, pv);
   }

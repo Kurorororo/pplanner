@@ -99,6 +99,15 @@ if (CUDA_FOUND)
     sas_plus
     ${Boost_PROGRAM_OPTIONS_LIBRARY})
 
+  cuda_add_executable(time_cuda_prefix_sum
+    ./tests/cuda_common/time_cuda_prefix_sum.cu
+    ./src/cuda_common/cuda_prefix_sum.cu)
+
+  cuda_add_executable(test_cuda_prefix_sum
+    ./tests/cuda_common/test_cuda_prefix_sum.cu
+    ./src/cuda_common/cuda_prefix_sum.cu)
+  add_test(NAME CudaPrefixSumTest COMMAND test_cuda_prefix_sum)
+
   cuda_add_executable(test_cuda_sas_plus
     ./tests/test_cuda_sas_plus.cu ./src/cuda_sas_plus.cu)
   add_test(NAME CudaSASPlusTest COMMAND test_cuda_sas_plus)

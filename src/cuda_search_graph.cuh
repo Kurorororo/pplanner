@@ -19,7 +19,8 @@ struct CudaSearchGraph {
   int *parents;
   int *next;
   int *prev;
-  uint32_t *states;
+  int *states;
+  uint32_t *packed;
   uint32_t *hash_values;
   uint32_t *d_hash_values;
   uint8_t *landmarks;
@@ -58,6 +59,10 @@ inline uint8_t* GetLandmark(CudaSearchGraph &graph, int node) {
 
 __device__
 int GetClosed(const CudaSearchGraph &graph, const int *closed, int node);
+
+__device__
+int GetClosed(const CudaSearchGraph &graph, const int *closed, uint32_t hash,
+              const uint32_t *packed);
 
 __device__
 void Close(const CudaSearchGraph &graph, int node, int *closed);

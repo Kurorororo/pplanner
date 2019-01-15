@@ -31,15 +31,14 @@ void UnPack(const CudaSearchGraph &graph, const uint32_t *packed, int *state) {
 
 __device__
 void GenerateNode(int node, int action, int parent, uint32_t hash_value,
-                  uint32_t d_hash_value, const int *state,
+                  uint32_t d_hash_value, const uint32_t *packed,
                   CudaSearchGraph *graph) {
   graphs->actions[node] = action;
   graphs->parents[node] = parent;
   graphs->hash_values[node] = hash_values;
   graphs->d_hash_values[node] = d_hash_values;
   std::size_t index = static_cast<std::size_t>(node) * graph->block_size;
-  auto *packed = &graph->states[index];
-  Pack(*graph, state, packed);
+  memcpy(&graph->states[index], packed);
 }
 
 __device__
@@ -74,6 +73,21 @@ int GetClosed(const CudaSearchGraph &graph, const int *closed, int node) {
   std::size_t b_size = graph.block_size;
   uint32_t *found = graph.states + static_cast<std::size_t>(closed[i]) * b_size;
   uint32_t *packed = graph.states + static_cast<std::size_t>(i) * b_size;
+
+  if (BytesEqual(b_size, packed, found)) return closed[i];
+
+  return -1;
+}
+
+__device__
+int GetClosed(const CudaSearchGraph &graph, const int *closed, uint32_t hash,
+              const uint32_t *packed) {
+  uint32_t i = hash & graph.closed_mask;
+
+  if (closed[i] == -1) return -1;
+
+  std::size_t b_size = graph.block_size;
+  uint32_t *found = graph.states + static_cast<std::size_t>(closed[i]) * b_size;
 
   if (BytesEqual(b_size, packed, found)) return closed[i];
 
