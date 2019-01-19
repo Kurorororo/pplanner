@@ -52,6 +52,10 @@ class SearchGraph {
     hash_values_.push_back(hash_value);
   }
 
+  virtual int landmark_id_max() const { return 0; }
+
+  virtual std::size_t n_landmarks_bytes() const { return 0; }
+
   virtual uint8_t* Landmark(int i) { return nullptr; }
 
   virtual uint8_t* ParentLandmark(int i) { return nullptr; }
@@ -269,6 +273,8 @@ class SearchGraph {
   int ClosedEntryAt(std::size_t i) const { return closed_[i]; }
 
   void OpenClosedEntryAt(std::size_t i) { closed_[i] = -1; }
+
+  std::shared_ptr<const StatePacker> packer() const { return packer_; }
 
  private:
   void ReserveIfFull() {

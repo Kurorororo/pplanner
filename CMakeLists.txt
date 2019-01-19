@@ -79,13 +79,17 @@ if (CUDA_FOUND)
     ./src/cuda_planner.cu
     ./src/cuda_sas_plus.cu
     ./src/cuda_successor_generator.cu
+    ./src/cuda_search_graph.cu
     ./src/cuda_search_factory.cu
+    ./src/cuda_common/cuda_random.cu
     ./src/cuda_search/cuda_bmrw.cu
+    ./src/cuda_search/cuda_hdgbfs.cu
     ./src/cuda_search/cuda_rwagbfs.cu
+    ./src/cuda_search/cuda_gbfs_kernel.cu
     ./src/cuda_search/cuda_random_walk.cu
     ./src/cuda_landmark/cuda_landmark_graph.cu
     ./src/cuda_landmark/cuda_landmark_count_base.cu
-    ./src/cuda_common/cuda_random.cu
+    ./src/cuda_hash/cuda_zobrist_hash.cu
     ./src/successor_generator.cc
     ./src/postprocess/action_elimination.cc
     ./src/utils/file_utils.cc)

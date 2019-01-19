@@ -18,6 +18,7 @@ class SearchGraphWithLandmarks : public SearchGraph {
   ~SearchGraphWithLandmarks() {}
 
   void InitLandmarks(std::shared_ptr<const LandmarkGraph> graph) override {
+    landmark_id_max_ = graph->landmark_id_max();
     n_landmarks_bytes_ = (graph->landmark_id_max() + 7) / 8;
   }
 
@@ -35,6 +36,10 @@ class SearchGraphWithLandmarks : public SearchGraph {
     SearchGraph::AddProperties(action, parent_node, hash_value);
     landmarks_.resize(landmarks_.size() + n_landmarks_bytes_, 0);
   }
+
+  int landmark_id_max() const override { return landmark_id_max_; }
+
+  std::size_t n_landmarks_bytes() const override { return n_landmarks_bytes_; }
 
   uint8_t* Landmark(int i) override {
     return landmarks_.data() + i * n_landmarks_bytes_;
@@ -59,6 +64,7 @@ class SearchGraphWithLandmarks : public SearchGraph {
   }
 
  private:
+  int landmark_id_max_;
   std::size_t n_landmarks_bytes_;
   std::vector<uint8_t> landmarks_;
 };

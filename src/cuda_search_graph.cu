@@ -1,5 +1,6 @@
 #include "cuda_search_graph.cuh"
 
+#include "cuda_common/cuda_check.cuh"
 #include "cuda_hash/cuda_zobrist_hash.cuh"
 
 namespace pplanner {
@@ -33,31 +34,31 @@ __device__
 void GenerateNode(int node, int action, int parent, uint32_t hash_value,
                   uint32_t d_hash_value, const uint32_t *packed,
                   CudaSearchGraph *graph) {
-  graphs->actions[node] = action;
-  graphs->parents[node] = parent;
-  graphs->hash_values[node] = hash_values;
-  graphs->d_hash_values[node] = d_hash_values;
+  graph->actions[node] = action;
+  graph->parents[node] = parent;
+  graph->hash_values[node] = hash_value;
+  graph->d_hash_values[node] = d_hash_value;
   std::size_t index = static_cast<std::size_t>(node) * graph->block_size;
-  memcpy(&graph->states[index], packed);
+  memcpy(&graph->states[index], packed, graph->block_size);
 }
 
 __device__
 void SetLandmark(int node, int n_bytes, const uint8_t *landmark,
                  CudaSearchGraph *graph) {
   std::size_t index = static_cast<std::size_t>(node)
-    * static_cast<std::size_t>(n_bytes);
-  memcpy(&graph.states[index], landmark, n_bytes * sizeof(uint8_t));
+    * static_cast<std::size_t>(graph->n_landmarks_bytes);
+  memcpy(&graph->landmarks[index], landmark, n_bytes * sizeof(uint8_t));
 }
 
 __device__
 void State(const CudaSearchGraph &graph, int node, int *state) {
   std::size_t b_size = graph.block_size;
   uint32_t *packed = graph.states + static_cast<std::size_t>(node) * b_size;
-  Unpack(graph, packed, state);
+  UnPack(graph, packed, state);
 }
 
 __device__
-void BytesEqual(size_t size, const uint32_t *a, const uint32_t *b) {
+bool BytesEqual(size_t size, const uint32_t *a, const uint32_t *b) {
   for (int i = 0; i < size; ++i)
     if (a[i] != b[i]) return false;
 
@@ -104,14 +105,14 @@ __device__
 void Push(int h, int node, CudaSearchGraph *graph, int *next_list,
           int *prev_list) {
   int last = prev_list[h];
-  graph.prev[node] = last
+  graph->prev[node] = last;
   prev_list[h] = node;
-  graph.next[node] = -1;
+  graph->next[node] = -1;
 
   if (last == -1)
     next_list[h] = node;
   else
-    graph.next[last] = node;
+    graph->next[last] = node;
 }
 
 __device__
@@ -122,7 +123,7 @@ int Pop(int h_max, int *h_min, CudaSearchGraph *graph, int *next_list,
 
     if (node == -1) continue;
 
-    int new_next = graph.next[node];
+    int new_next = graph->next[node];
     next_list[i] = new_next;
 
     if (new_next == -1) prev_list[i] = -1;
@@ -138,23 +139,24 @@ int Pop(int h_max, int *h_min, CudaSearchGraph *graph, int *next_list,
 }
 
 void InitCudaSearchGraph(std::shared_ptr<const SASPlus> problem,
-                         int closed_exponent, int gpu_ram,
-                         std::size_t n_landmark_bytes, CudaSearchGraph *graph) {
-  graph->n_variables = problem->n_variables();
-  graph->n_landmark_bytes = n_landmark_bytes;
-  graph->closed_mask = (1u << graph.closed_exponent) - 1;
+                         std::shared_ptr<const SearchGraph> graph,
+                         int closed_exponent, std::size_t gpu_ram,
+                         CudaSearchGraph *cuda_graph) {
+  cuda_graph->n_variables = problem->n_variables();
+  cuda_graph->n_landmarks_bytes = graph->n_landmarks_bytes();
+  cuda_graph->closed_mask = (1u << closed_exponent) - 1;
   gpu_ram -= sizeof(int) + 2 * sizeof(uint32_t);
 
-  auto packer = std::unique_ptr<StatePacker>(new StatePacker(problem));
-  graph->block_size = packer->block_size();
-  CudaMallocAndCopy((void**)&graph->block_index, packer->block_index(),
+  auto packer = graph->packer();
+  cuda_graph->block_size = packer->block_size();
+  CudaMallocAndCopy((void**)&cuda_graph->block_index, packer->block_index(),
                     packer->block_index_size() * sizeof(int));
-  CudaMallocAndCopy((void**)&graph->var_per_block, packer->var_per_block(),
+  CudaMallocAndCopy((void**)&cuda_graph->var_per_block, packer->var_per_block(),
                     packer->var_per_block_size() * sizeof(int));
-  CudaMallocAndCopy((void**)&graph->shift, packer->shift(),
+  CudaMallocAndCopy((void**)&cuda_graph->shift, packer->shift(),
                     packer->shift_size() * sizeof(int));
-  CudaMallocAndCopy((void**)&graph->mask, packer->mask(),
-                    packer->mask() * sizeof(uint32_t));
+  CudaMallocAndCopy((void**)&cuda_graph->mask, packer->mask(),
+                    packer->mask_size() * sizeof(uint32_t));
   gpu_ram -= sizeof(std::size_t);
   gpu_ram -= packer->block_index_size() * sizeof(int);
   gpu_ram -= packer->var_per_block_size() * sizeof(int);
@@ -164,27 +166,29 @@ void InitCudaSearchGraph(std::shared_ptr<const SASPlus> problem,
   gpu_ram -= sizeof(std::size_t);
   std::size_t node_size = 4 * sizeof(int);
   node_size += (packer->block_size() + 2) * sizeof(uint32_t);
-  node_size += n_landmark_bytes * sizeof(uint8_t);
-  graph->node_max = gpu_ram / node_size;
-  CUDA_CHECK(cudaMalloc((void**)&graph->actions,
-             graph->node_max * sizeof(int)));
-  CUDA_CHECK(cudaMalloc((void**)&graph->parents,
-             graph->node_max * sizeof(int)));
-  CUDA_CHECK(cudaMalloc((void**)&graph->next, graph->node_max * sizeof(int)));
-  CUDA_CHECK(cudaMalloc((void**)&graph->prev, graph->node_max * sizeof(int)));
-  CUDA_CHECK(cudaMalloc((void**)&graph->states,
-  CUDA_CHECK(cudaMalloc((void**)&graph->states,
-             graph->node_max * packer->block_size() * sizeof(uint32_t)));
-  CUDA_CHECK(cudaMalloc((void**)&graph->hash_values,
-             graph->node_max * sizeof(uint32_t)));
-  CUDA_CHECK(cudaMalloc((void**)&graph->d_hash_values,
-             graph->node_max * sizeof(uint32_t)));
+  node_size += graph->n_landmarks_bytes() * sizeof(uint8_t);
+  cuda_graph->node_max = gpu_ram / node_size;
+  CUDA_CHECK(cudaMalloc((void**)&cuda_graph->actions,
+             cuda_graph->node_max * sizeof(int)));
+  CUDA_CHECK(cudaMalloc((void**)&cuda_graph->parents,
+             cuda_graph->node_max * sizeof(int)));
+  CUDA_CHECK(cudaMalloc((void**)&cuda_graph->next,
+             cuda_graph->node_max * sizeof(int)));
+  CUDA_CHECK(cudaMalloc((void**)&cuda_graph->prev,
+             cuda_graph->node_max * sizeof(int)));
+  CUDA_CHECK(cudaMalloc((void**)&cuda_graph->states,
+             cuda_graph->node_max * graph->state_size()));
+  CUDA_CHECK(cudaMalloc((void**)&cuda_graph->hash_values,
+             cuda_graph->node_max * sizeof(uint32_t)));
+  CUDA_CHECK(cudaMalloc((void**)&cuda_graph->d_hash_values,
+             cuda_graph->node_max * sizeof(uint32_t)));
 
-  graph->landmarks = nullptr;
+  cuda_graph->landmarks = nullptr;
+  std::size_t n_landmarks_bytes = graph->n_landmarks_bytes();
 
-  if (n_landmark_bytes > 0)
-    CUDA_CHECK(cudaMalloc((void**)&graph->landmarks,
-               graph->node_max * n_landmark_bytes * sizeof(uint8_t)));
+  if (n_landmarks_bytes > 0)
+    CUDA_CHECK(cudaMalloc((void**)&cuda_graph->landmarks,
+               cuda_graph->node_max * n_landmarks_bytes * sizeof(uint8_t)));
 }
 
 void FreeCudaSearchGraph(CudaSearchGraph *graph) {

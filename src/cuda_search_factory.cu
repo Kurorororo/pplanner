@@ -1,6 +1,7 @@
 #include "cuda_search_factory.cuh"
 
 #include "cuda_search/cuda_bmrw.cuh"
+#include "cuda_search/cuda_hdgbfs.cuh"
 #include "cuda_search/cuda_rwagbfs.cuh"
 
 namespace pplanner {
@@ -16,6 +17,9 @@ std::unique_ptr<Search> CudaSearchFactory(
 
   if (search.get() == "bmrw")
     return std::unique_ptr<CudaBMRW>(new CudaBMRW(problem, option.get()));
+
+  if (search.get() == "hdgbfs")
+    return std::unique_ptr<CudaHDGBFS>(new CudaHDGBFS(problem, option.get()));
 
   if (search.get() == "rwagbfs")
     return std::unique_ptr<CudaRWAGBFS>(new CudaRWAGBFS(problem, option.get()));

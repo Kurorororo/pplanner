@@ -6,21 +6,22 @@
 #include <memory>
 
 #include "cuda_sas_plus.cuh"
-#include "sas_plus.cuh"
+#include "sas_plus.h"
+#include "search_graph.h"
+#include "cuda_hash/cuda_zobrist_hash.cuh"
 
 namespace pplanner {
 
 struct CudaSearchGraph {
   int n_variables;
-  std::size_t n_landmark_bytes;
+  std::size_t n_landmarks_bytes;
   std::size_t node_max;
   uint32_t closed_mask;
   int *actions;
   int *parents;
   int *next;
   int *prev;
-  int *states;
-  uint32_t *packed;
+  uint32_t *states;
   uint32_t *hash_values;
   uint32_t *d_hash_values;
   uint8_t *landmarks;
@@ -52,9 +53,9 @@ void State(const CudaSearchGraph &graph, int node, int *state);
 
 __device__
 inline uint8_t* GetLandmark(CudaSearchGraph &graph, int node) {
-  std::size_t index = static_cast<std::size_t>(node) * graph.n_landmark_bytes;
+  std::size_t index = static_cast<std::size_t>(node) * graph.n_landmarks_bytes;
 
-  return &graph.landmark[index];
+  return &graph.landmarks[index];
 }
 
 __device__
@@ -75,8 +76,9 @@ int Pop(int h_max, int *h_min, CudaSearchGraph *graph, int *next_list,
         int *prev_list);
 
 void InitCudaSearchGraph(std::shared_ptr<const SASPlus> problem,
-                         int n_landmark_bytes, std::size_t gpu_ram,
-                         CudaSearchGraph *graph);
+                         std::shared_ptr<const SearchGraph> graph,
+                         int closed_exponent, std::size_t gpu_ram,
+                         CudaSearchGraph *cuda_graph);
 
 void FreeCudaSearchGraph(CudaSearchGraph *graph);
 
