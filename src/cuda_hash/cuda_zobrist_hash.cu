@@ -26,9 +26,11 @@ uint32_t HashByDifference(const CudaZobristHash &hash,
   int b = problem.effect_offsets[action];
   int e = problem.effect_offsets[action + 1];
 
-  for (int i = b; i < e; ++i)
-    seed = seed ^ hash.array[Fact(problem, i, parent[i])]
-                ^ hash.array[Fact(problem, i, state[i])];
+  for (int i = b; i < e; ++i) {
+    int var = problem.effect_vars[i];
+    seed = seed ^ hash.array[Fact(problem, var, parent[var])]
+                ^ hash.array[Fact(problem, var, state[var])];
+  }
 
   return seed;
 }

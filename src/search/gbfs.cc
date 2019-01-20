@@ -142,6 +142,8 @@ int GBFS::Expand(int node, vector<int> &state, vector<int> &child,
 
   generator_->Generate(state, applicable);
 
+  std::cout << "#applicable=" << applicable.size() << std::endl;
+
   if (applicable.empty()) {
     ++dead_ends_;
     return -1;
@@ -157,6 +159,7 @@ int GBFS::Expand(int node, vector<int> &state, vector<int> &child,
     sss_aproximater_->ApproximateSSS(state, applicable, sss);
 
   for (auto o : applicable) {
+    std::cout << "a=" << o << std::endl;
     if (use_sss_ && !sss[o]) {
       ++n_pruned_;
       continue;
@@ -179,6 +182,7 @@ int GBFS::Expand(int node, vector<int> &state, vector<int> &child,
     ++generated_;
 
     int h = open_list_->EvaluateAndPush(child, child_node, is_preferred);
+    std::cout << "h=" << h << std::endl;
     graph_->SetH(child_node, h);
     ++evaluated_;
 

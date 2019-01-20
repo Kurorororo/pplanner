@@ -21,6 +21,7 @@ struct CudaSearchGraph {
   int *parents;
   int *next;
   int *prev;
+  int *closed;
   uint32_t *states;
   uint32_t *hash_values;
   uint32_t *d_hash_values;
@@ -62,11 +63,7 @@ __device__
 int GetClosed(const CudaSearchGraph &graph, const int *closed, int node);
 
 __device__
-int GetClosed(const CudaSearchGraph &graph, const int *closed, uint32_t hash,
-              const uint32_t *packed);
-
-__device__
-void Close(const CudaSearchGraph &graph, int node, int *closed);
+void Close(int node, int *closed, CudaSearchGraph *graph);
 
 __device__
 void Push(int h, int node, CudaSearchGraph *graph, int *next_list,

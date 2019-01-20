@@ -85,20 +85,24 @@ int CudaHDGBFS::Search() {
   CUDA_CHECK(cudaMemcpy(cuda_m_.states, problem_->initial().data(),
                         problem_->n_variables() * sizeof(int),
                         cudaMemcpyHostToDevice));
-  int initial_h = -1;
-  InitialEvaluate<<<1, 1>>>(cuda_graph_, cuda_m_, open_, n_threads_,
-                            &initial_h);
-  std::cout << "Initial h value: " << initial_h << std::endl;
+  int *cuda_h = nullptr;
+  CUDA_CHECK(cudaMalloc((void**)&cuda_h, sizeof(int)));
+  InitialEvaluate<<<1, 1>>>(cuda_graph_, cuda_m_, open_, n_threads_, cuda_h);
+  m_.n_nodes += 1;
+  cuda_m_.n_nodes += 1;
+  int min_h = -1;
+  CUDA_CHECK(cudaMemcpy(&min_h, cuda_h, sizeof(int),
+                        cudaMemcpyDeviceToHost));
+  std::cout << "Initial h value: " << min_h << std::endl;
   int goal = -1;
   int *cuda_goal = nullptr;
   CUDA_CHECK(cudaMalloc((void**)&cuda_goal, sizeof(int)));
+  CUDA_CHECK(cudaMemcpy(cuda_goal, &goal, sizeof(int), cudaMemcpyHostToDevice));
 
   while (goal == -1) {
     Pop<<<n_grid_, n_block_>>>(cuda_graph_, cuda_m_, open_, closed_);
     expanded_ += PrepareExpansion(n_threads_, &m_, &cuda_m_);
-
-    Expand<<<n_grid_, n_block_>>>(cuda_graph_, m_, closed_, n_threads_,
-                                  cuda_goal);
+    Expand<<<n_grid_, n_block_>>>(cuda_graph_, cuda_m_, n_threads_, cuda_goal);
     CUDA_CHECK(cudaMemcpy(&goal, cuda_goal, sizeof(int),
                           cudaMemcpyDeviceToHost));
 
@@ -107,13 +111,22 @@ int CudaHDGBFS::Search() {
     generated_ += PrepareSort(n_threads_, &m_, &cuda_m_);
 
     if (generated_ > static_cast<int>(cuda_graph_.node_max)) {
+      std::cerr << "exceeded GPU RAM limit" << std::endl;
       CUDA_CHECK(cudaFree(cuda_goal));
       return -1;
     }
 
     SortChildren<<<n_grid_, n_block_>>>(cuda_graph_, cuda_m_);
     CUDA_CHECK(cudaDeviceSynchronize());
-    Push<<<n_grid_, n_block_>>>(cuda_graph_, cuda_m_, open_);
+    Push<<<n_grid_, n_block_>>>(cuda_graph_, cuda_m_, closed_, open_);
+    int h = -1;
+    CUDA_CHECK(cudaMemcpy(&h, cuda_m_.h, sizeof(int), cudaMemcpyDeviceToHost));
+
+    if (h != -1 && h < min_h) {
+      min_h = h;
+      std::cout << "New best heuristic value: " << min_h << std::endl;
+      std::cout << "[" << expanded_ << " expanded]" << std::endl;
+    }
   }
 
   CUDA_CHECK(cudaFree(cuda_goal));

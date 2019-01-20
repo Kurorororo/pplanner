@@ -54,8 +54,7 @@ void Pop(CudaSearchGraph graph, GBFSMessage m, CudaOpenList open,
 int PrepareExpansion(int threads, GBFSMessage *m, GBFSMessage *cuda_m);
 
 __global__
-void Expand(CudaSearchGraph graph, GBFSMessage m, CudaClosedList closed,
-            int n_threads, int *goal);
+void Expand(CudaSearchGraph graph, GBFSMessage m, int n_threads, int *goal);
 
 int PrepareSort(int threads, GBFSMessage *m, GBFSMessage *cuda_m);
 
@@ -63,7 +62,8 @@ __global__
 void SortChildren(const CudaSearchGraph graph, GBFSMessage m);
 
 __global__
-void Push(CudaSearchGraph graph, GBFSMessage m, CudaOpenList open);
+void Push(CudaSearchGraph graph, GBFSMessage m, CudaClosedList closed,
+          CudaOpenList open);
 
 __global__
 void NPlanStep(const CudaSearchGraph graph, int *goals, int *steps);

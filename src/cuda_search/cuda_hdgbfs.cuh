@@ -24,7 +24,7 @@ class CudaHDGBFS : public Search {
   CudaHDGBFS(std::shared_ptr<const SASPlus> problem,
            const boost::property_tree::ptree &pt)
     : n_grid_(20),
-      n_block_(256),
+      n_block_(128),
       generated_(0),
       expanded_(0),
       problem_(problem),

@@ -38,8 +38,9 @@ void GenerateNode(int node, int action, int parent, uint32_t hash_value,
   graph->parents[node] = parent;
   graph->hash_values[node] = hash_value;
   graph->d_hash_values[node] = d_hash_value;
+  graph->closed[node] = -1;
   std::size_t index = static_cast<std::size_t>(node) * graph->block_size;
-  memcpy(&graph->states[index], packed, graph->block_size);
+  memcpy(&graph->states[index], packed, graph->block_size * sizeof(uint32_t));
 }
 
 __device__
@@ -68,36 +69,25 @@ bool BytesEqual(size_t size, const uint32_t *a, const uint32_t *b) {
 __device__
 int GetClosed(const CudaSearchGraph &graph, const int *closed, int node) {
   uint32_t i = graph.hash_values[node] & graph.closed_mask;
+  std::size_t b = graph.block_size;
+  uint32_t *packed = graph.states + static_cast<std::size_t>(node) * b;
+  int current = closed[i];
 
-  if (closed[i] == -1) return -1;
+  while (current != -1) {
+    uint32_t *found = graph.states + static_cast<std::size_t>(current) * b;
 
-  std::size_t b_size = graph.block_size;
-  uint32_t *found = graph.states + static_cast<std::size_t>(closed[i]) * b_size;
-  uint32_t *packed = graph.states + static_cast<std::size_t>(i) * b_size;
+    if (BytesEqual(b, packed, found)) return current;
 
-  if (BytesEqual(b_size, packed, found)) return closed[i];
-
-  return -1;
-}
-
-__device__
-int GetClosed(const CudaSearchGraph &graph, const int *closed, uint32_t hash,
-              const uint32_t *packed) {
-  uint32_t i = hash & graph.closed_mask;
-
-  if (closed[i] == -1) return -1;
-
-  std::size_t b_size = graph.block_size;
-  uint32_t *found = graph.states + static_cast<std::size_t>(closed[i]) * b_size;
-
-  if (BytesEqual(b_size, packed, found)) return closed[i];
+    current = graph.closed[current];
+  }
 
   return -1;
 }
 
 __device__
-void Close(const CudaSearchGraph &graph, int node, int *closed) {
-  uint32_t i = graph.hash_values[node] & graph.closed_mask;
+void Close(int node, int *closed, CudaSearchGraph *graph) {
+  uint32_t i = graph->hash_values[node] & graph->closed_mask;
+  graph->closed[node] = closed[i];
   closed[i] = node;
 }
 
@@ -164,7 +154,7 @@ void InitCudaSearchGraph(std::shared_ptr<const SASPlus> problem,
   gpu_ram -= packer->mask_size() * sizeof(uint32_t);
 
   gpu_ram -= sizeof(std::size_t);
-  std::size_t node_size = 4 * sizeof(int);
+  std::size_t node_size = 5 * sizeof(int);
   node_size += (packer->block_size() + 2) * sizeof(uint32_t);
   node_size += graph->n_landmarks_bytes() * sizeof(uint8_t);
   cuda_graph->node_max = gpu_ram / node_size;
@@ -175,6 +165,8 @@ void InitCudaSearchGraph(std::shared_ptr<const SASPlus> problem,
   CUDA_CHECK(cudaMalloc((void**)&cuda_graph->next,
              cuda_graph->node_max * sizeof(int)));
   CUDA_CHECK(cudaMalloc((void**)&cuda_graph->prev,
+             cuda_graph->node_max * sizeof(int)));
+  CUDA_CHECK(cudaMalloc((void**)&cuda_graph->closed,
              cuda_graph->node_max * sizeof(int)));
   CUDA_CHECK(cudaMalloc((void**)&cuda_graph->states,
              cuda_graph->node_max * graph->state_size()));

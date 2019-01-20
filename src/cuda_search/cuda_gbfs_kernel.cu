@@ -23,13 +23,13 @@ void InitialEvaluate(CudaSearchGraph graph, GBFSMessage m, CudaOpenList open,
                      int n_thread, int *h) {
   int id = threadIdx.x + blockIdx.x * blockDim.x;
 
-  int *s = m.states;
-  uint8_t *ac = m.accepted;
-  uint8_t *status = m.status;
-  uint32_t *packed = m.packed;
-  uint32_t d_hash = Hash(cuda_d_hash, cuda_problem, s);
-
   if (id == 0) {
+    int *s = m.states;
+    uint8_t *ac = m.accepted;
+    uint8_t *status = m.status;
+    uint32_t *packed = m.packed;
+    uint32_t d_hash = Hash(cuda_d_hash, cuda_problem, s);
+
     for (int j = 0, n = cuda_landmark_graph.landmark_id_max; j < n; ++j)
       ac[j] = 0;
 
@@ -43,14 +43,16 @@ void InitialEvaluate(CudaSearchGraph graph, GBFSMessage m, CudaOpenList open,
 
     GenerateNode(0, -1, -1, c_hash, d_hash, packed, &graph);
     SetLandmark(0, cuda_landmark_graph.n_bytes, ac, &graph);
+
+    int proc = d_hash % n_thread;
+    int *nx = &open.next[proc * open.n_unit];
+    int *pv = &open.prev[proc * open.n_unit];
+
+    Push(*h, 0, &graph, nx, pv);
+    m.h_min[id] = *h;
+  } else {
+    m.h_min[id] = -1;
   }
-
-  int proc = d_hash % n_thread;
-  int *nx = &open.next[proc * open.n_unit];
-  int *pv = &open.prev[proc * open.n_unit];
-
-  Push(*h, 0, &graph, nx, pv);
-  m.h_min[id] = *h;
 }
 
 __global__
@@ -72,8 +74,7 @@ void Pop(CudaSearchGraph graph, GBFSMessage m, CudaOpenList open,
 
   int *s = &m.states[id * cuda_problem.n_variables];
   State(graph, node, s);
-  Close(graph, node, cl);
-
+  Close(node, cl, &graph);
   m.successor_counts[id] = Count(cuda_generator, cuda_problem, s);
   m.nodes[id] = node;
 }
@@ -105,8 +106,7 @@ int PrepareExpansion(int threads, GBFSMessage *m, GBFSMessage *cuda_m) {
 }
 
 __global__
-void Expand(CudaSearchGraph graph, GBFSMessage m, CudaClosedList closed,
-            int n_threads, int *goal) {
+void Expand(CudaSearchGraph graph, GBFSMessage m, int n_threads, int *goal) {
   int id = threadIdx.x + blockIdx.x * blockDim.x;
 
   int c = m.successor_counts[id];
@@ -119,7 +119,6 @@ void Expand(CudaSearchGraph graph, GBFSMessage m, CudaClosedList closed,
 
   int *cs = &m.child_states[id * cuda_problem.n_variables];
   uint32_t *packed = &m.packed[id * graph.block_size];
-  int *cl = &closed.closed[id * closed.n_unit];
 
   const uint8_t *pc = GetLandmark(graph, parent);
   uint8_t *ac = &m.accepted[id * cuda_landmark_graph.n_bytes];
@@ -129,20 +128,14 @@ void Expand(CudaSearchGraph graph, GBFSMessage m, CudaClosedList closed,
     int a = m.actions[i];
     memcpy(cs, s, cuda_problem.n_variables * sizeof(int));
     ApplyEffect(cuda_problem, a, s, cs);
-
     uint32_t c_hash = HashByDifference(cuda_c_hash, cuda_problem, a,
                                        graph.hash_values[parent], s, cs);
     Pack(graph, cs, packed);
 
-    if (GetClosed(graph, cl, c_hash, packed) != -1) continue;
-
-    for (int j = 0, n = cuda_landmark_graph.landmark_id_max; j < n; ++j)
+    for (int j = 0, n = cuda_landmark_graph.n_bytes; j < n; ++j)
       ac[j] = 0;
 
     int h = Evaluate(cuda_landmark_graph, cuda_problem, cs, pc, ac, status);
-
-    if (h == -1) continue;
-
     uint32_t d_hash = HashByDifference(cuda_d_hash, cuda_problem, a,
                                        graph.d_hash_values[parent], s, cs);
     int child = m.n_nodes + i;
@@ -174,6 +167,9 @@ int PrepareSort(int threads, GBFSMessage *m, GBFSMessage *cuda_m) {
     prefix_sum += m->received_counts[i];
   }
 
+  m->n_nodes += prefix_sum;
+  cuda_m->n_nodes += prefix_sum;
+
   CUDA_CHECK(cudaMemcpy(cuda_m->received_offsets, m->received_offsets,
                         threads * sizeof(int), cudaMemcpyHostToDevice));
 
@@ -193,19 +189,22 @@ void SortChildren(const CudaSearchGraph graph, GBFSMessage m) {
 }
 
 __global__
-void Push(CudaSearchGraph graph, GBFSMessage m, CudaOpenList open) {
+void Push(CudaSearchGraph graph, GBFSMessage m, CudaClosedList closed,
+          CudaOpenList open) {
   int id = threadIdx.x + blockIdx.x * blockDim.x;
 
   int *nx = &open.next[id * open.n_unit];
   int *pv = &open.prev[id * open.n_unit];
+  int *cl = &closed.closed[id * closed.n_unit];
   int offset = m.received_offsets[id];
   int h_min = m.h_min[id];
 
   for (int i = offset, n = offset + m.received_counts[id]; i < n; ++i) {
     int h = m.sorted_h[i];
-    if (h == -1) continue;
-    if (h < h_min) h_min = h;
-    Push(h, m.sorted[i], &graph, nx, pv);
+    int node = m.sorted[i];
+    if (h == -1 || GetClosed(graph, cl, node) != -1) continue;
+    if (h < h_min || h_min == -1) h_min = h;
+    Push(h, node, &graph, nx, pv);
   }
 
   m.h_min[id] = h_min;
@@ -286,8 +285,9 @@ std::size_t CudaInitializeGBFSMessage(
   CUDA_CHECK(cudaMalloc((void**)&m->status,
                         threads * landmark_id_max * sizeof(uint8_t)));
   size += threads * (n_bytes + landmark_id_max) * sizeof(uint8_t);
-
   CUDA_CHECK(cudaMalloc((void**)&m->packed, threads * graph->state_size()));
+  size += threads * graph->state_size();
+
   CUDA_CHECK(cudaMalloc((void**)&m->actions, n_successors_max * sizeof(int)));
   CUDA_CHECK(cudaMalloc((void**)&m->successors,
                         n_successors_max * sizeof(int)));
@@ -297,7 +297,7 @@ std::size_t CudaInitializeGBFSMessage(
                         n_successors_max * sizeof(int)));
   CUDA_CHECK(cudaMalloc((void**)&m->sorted, n_successors_max * sizeof(int)));
   CUDA_CHECK(cudaMalloc((void**)&m->sorted_h, n_successors_max * sizeof(int)));
-  size += 8 * n_successors_max * sizeof(int);
+  size += 7 * n_successors_max * sizeof(int);
 
   return size;
 }
