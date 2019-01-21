@@ -110,7 +110,7 @@ int CudaHDGBFS::Search() {
 
     generated_ += PrepareSort(n_threads_, &m_, &cuda_m_);
 
-    if (generated_ > static_cast<int>(cuda_graph_.node_max)) {
+    if (generated_ >= static_cast<int>(cuda_graph_.node_max - 1)) {
       std::cerr << "exceeded GPU RAM limit" << std::endl;
       CUDA_CHECK(cudaFree(cuda_goal));
       return -1;
