@@ -44,29 +44,33 @@ struct CudaClosedList {
 };
 
 __global__
-void InitialEvaluate(CudaSearchGraph graph, GBFSMessage m, CudaOpenList open,
-                     int n_thread, int *h);
+void CudaInitialPush(CudaSearchGraph graph, GBFSMessage m, CudaOpenList open,
+                     int n_thread);
 
 __global__
-void Pop(CudaSearchGraph graph, GBFSMessage m, CudaOpenList open,
-         CudaClosedList closed);
+void CudaInitialEvaluate(CudaSearchGraph graph, GBFSMessage m, CudaOpenList open,
+                         int n_thread, int *h);
+
+__global__
+void CudaPop(CudaSearchGraph graph, GBFSMessage m, CudaOpenList open,
+             CudaClosedList closed);
 
 int PrepareExpansion(int threads, GBFSMessage *m, GBFSMessage *cuda_m);
 
 __global__
-void Expand(CudaSearchGraph graph, GBFSMessage m, int n_threads, int *goal);
+void CudaExpand(CudaSearchGraph graph, GBFSMessage m, int n_threads, int *goal);
 
 int PrepareSort(int threads, GBFSMessage *m, GBFSMessage *cuda_m);
 
 __global__
-void SortChildren(const CudaSearchGraph graph, GBFSMessage m);
+void CudaSortChildren(const CudaSearchGraph graph, GBFSMessage m);
 
 __global__
-void Push(CudaSearchGraph graph, GBFSMessage m, CudaClosedList closed,
-          CudaOpenList open);
+void CudaPush(CudaSearchGraph graph, GBFSMessage m, CudaClosedList closed,
+              CudaOpenList open);
 
 __global__
-void NPlanStep(const CudaSearchGraph graph, int *goals, int *steps);
+void CudaNPlanStep(const CudaSearchGraph graph, int *goals, int *steps);
 
 __global__
 void CudaExtractPlan(const CudaSearchGraph graph, int *offsets, int *goals,
@@ -90,10 +94,14 @@ void CudaReallocMessage(int size, GBFSMessage *message);
 std::size_t CudaInitializeOpenList(int threads, std::size_t size,
                                    CudaOpenList *open);
 
+void CudaClearOpenList(int threads, CudaOpenList *open);
+
 void CudaFreeOpenList(CudaOpenList *open);
 
 std::size_t CudaInitializeClosedList(int threads, std::size_t size,
                                      CudaClosedList *closed);
+
+void CudaClearClosedList(int threads, CudaClosedList *closed);
 
 void CudaFreeClosedList(CudaClosedList *closed);
 

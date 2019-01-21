@@ -19,16 +19,18 @@ __constant__ CudaZobristHash cuda_c_hash;
 __constant__ CudaZobristHash cuda_d_hash;
 
 __global__
-void InitialEvaluate(CudaSearchGraph graph, GBFSMessage m, CudaOpenList open,
-                     int n_thread, int *h) {
+void CudaInitialEvaluate(CudaSearchGraph graph, GBFSMessage m,
+                         CudaOpenList open, int n_thread, int *h) {
   int id = threadIdx.x + blockIdx.x * blockDim.x;
 
-  if (id == 0) {
-    int *s = m.states;
+  int *s = m.states;
+  uint32_t d_hash = Hash(cuda_d_hash, cuda_problem, s);
+  int proc = d_hash % n_thread;
+
+  if (id == proc) {
     uint8_t *ac = m.accepted;
     uint8_t *status = m.status;
     uint32_t *packed = m.packed;
-    uint32_t d_hash = Hash(cuda_d_hash, cuda_problem, s);
 
     for (int j = 0, n = cuda_landmark_graph.landmark_id_max; j < n; ++j)
       ac[j] = 0;
@@ -44,7 +46,6 @@ void InitialEvaluate(CudaSearchGraph graph, GBFSMessage m, CudaOpenList open,
     GenerateNode(0, -1, -1, c_hash, d_hash, packed, &graph);
     SetLandmark(0, cuda_landmark_graph.n_bytes, ac, &graph);
 
-    int proc = d_hash % n_thread;
     int *nx = &open.next[proc * open.n_unit];
     int *pv = &open.prev[proc * open.n_unit];
 
@@ -56,8 +57,33 @@ void InitialEvaluate(CudaSearchGraph graph, GBFSMessage m, CudaOpenList open,
 }
 
 __global__
-void Pop(CudaSearchGraph graph, GBFSMessage m, CudaOpenList open,
-         CudaClosedList closed) {
+void CudaInitialPush(CudaSearchGraph graph, GBFSMessage m, CudaOpenList open,
+                     int n_thread) {
+  int id = threadIdx.x + blockIdx.x * blockDim.x;
+
+  int *s = m.states;
+  uint32_t d_hash = Hash(cuda_d_hash, cuda_problem, s);
+  int proc = d_hash % n_thread;
+
+  if (id == proc) {
+    uint32_t c_hash = Hash(cuda_c_hash, cuda_problem, s);
+    Pack(graph, s, m.packed);
+    GenerateNode(0, -1, -1, c_hash, d_hash, m.packed, &graph);
+    SetLandmark(0, cuda_landmark_graph.n_bytes, m.accepted, &graph);
+
+    int *nx = &open.next[proc * open.n_unit];
+    int *pv = &open.prev[proc * open.n_unit];
+
+    Push(m.h_min[0], 0, &graph, nx, pv);
+    m.h_min[id] = m.h_min[0];
+  } else {
+    m.h_min[id] = -1;
+  }
+}
+
+__global__
+void CudaPop(CudaSearchGraph graph, GBFSMessage m, CudaOpenList open,
+             CudaClosedList closed) {
   int id = threadIdx.x + blockIdx.x * blockDim.x;
 
   m.received_counts[id] = 0;
@@ -106,7 +132,8 @@ int PrepareExpansion(int threads, GBFSMessage *m, GBFSMessage *cuda_m) {
 }
 
 __global__
-void Expand(CudaSearchGraph graph, GBFSMessage m, int n_threads, int *goal) {
+void CudaExpand(CudaSearchGraph graph, GBFSMessage m, int n_threads,
+                int *goal) {
   int id = threadIdx.x + blockIdx.x * blockDim.x;
 
   int c = m.successor_counts[id];
@@ -177,7 +204,7 @@ int PrepareSort(int threads, GBFSMessage *m, GBFSMessage *cuda_m) {
 }
 
 __global__
-void SortChildren(const CudaSearchGraph graph, GBFSMessage m) {
+void CudaSortChildren(const CudaSearchGraph graph, GBFSMessage m) {
   int id = threadIdx.x + blockIdx.x * blockDim.x;
   int offset = m.successor_offsets[id];
 
@@ -189,8 +216,8 @@ void SortChildren(const CudaSearchGraph graph, GBFSMessage m) {
 }
 
 __global__
-void Push(CudaSearchGraph graph, GBFSMessage m, CudaClosedList closed,
-          CudaOpenList open) {
+void CudaPush(CudaSearchGraph graph, GBFSMessage m, CudaClosedList closed,
+              CudaOpenList open) {
   int id = threadIdx.x + blockIdx.x * blockDim.x;
 
   int *nx = &open.next[id * open.n_unit];
@@ -211,11 +238,13 @@ void Push(CudaSearchGraph graph, GBFSMessage m, CudaClosedList closed,
 }
 
 __global__
-void NPlanStep(const CudaSearchGraph graph, int *goals, int *steps) {
+void CudaNPlanStep(const CudaSearchGraph graph, int *goals, int *steps) {
   int id = threadIdx.x + blockIdx.x * blockDim.x;
 
   int step = 0;
   int current = goals[id];
+
+  if (current == -1) return;
 
   while (graph.actions[current] != -1) {
     ++step;
@@ -232,6 +261,8 @@ void CudaExtractPlan(const CudaSearchGraph graph, int *offsets, int *goals,
 
   int n = offsets[id];
   int current = goals[id];
+
+  if (current == -1) return;
 
   while (graph.actions[current] != -1) {
     plans[--n] = graph.actions[current];
@@ -352,6 +383,15 @@ std::size_t CudaInitializeOpenList(int threads, std::size_t size,
   return 2 * threads * size * sizeof(int);
 }
 
+void CudaClearOpenList(int threads, CudaOpenList *open) {
+  std::size_t size = threads * open->n_unit;
+  std::vector<int> cpu_list(size, -1);
+  CUDA_CHECK(cudaMemcpy(open->next, cpu_list.data(), size * sizeof(int),
+                        cudaMemcpyHostToDevice));
+  CUDA_CHECK(cudaMemcpy(open->prev, cpu_list.data(), size * sizeof(int),
+                        cudaMemcpyHostToDevice));
+}
+
 void CudaFreeOpenList(CudaOpenList *open) {
   CUDA_CHECK(cudaFree(open->next));
   CUDA_CHECK(cudaFree(open->prev));
@@ -365,6 +405,13 @@ std::size_t CudaInitializeClosedList(int threads, std::size_t size,
                     threads * size * sizeof(int));
 
   return threads * size * sizeof(int);
+}
+
+void CudaClearClosedList(int threads, CudaClosedList *closed) {
+  std::size_t size = threads * closed->n_unit;
+  std::vector<int> cpu_list(size, -1);
+  CUDA_CHECK(cudaMemcpy(closed->closed, cpu_list.data(), size * sizeof(int),
+                        cudaMemcpyHostToDevice));
 }
 
 void CudaFreeClosedList(CudaClosedList *closed) {

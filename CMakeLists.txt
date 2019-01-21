@@ -83,6 +83,7 @@ if (CUDA_FOUND)
     ./src/cuda_search_factory.cu
     ./src/cuda_common/cuda_random.cu
     ./src/cuda_search/cuda_bmrw.cu
+    ./src/cuda_search/cuda_hetro_gbfs.cu
     ./src/cuda_search/cuda_hdgbfs.cu
     ./src/cuda_search/cuda_rwagbfs.cu
     ./src/cuda_search/cuda_gbfs_kernel.cu

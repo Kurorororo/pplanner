@@ -87,7 +87,8 @@ int CudaHDGBFS::Search() {
                         cudaMemcpyHostToDevice));
   int *cuda_h = nullptr;
   CUDA_CHECK(cudaMalloc((void**)&cuda_h, sizeof(int)));
-  InitialEvaluate<<<1, 1>>>(cuda_graph_, cuda_m_, open_, n_threads_, cuda_h);
+  CudaInitialEvaluate<<<n_grid_, n_block_>>>(cuda_graph_, cuda_m_, open_,
+                                             n_threads_, cuda_h);
   m_.n_nodes += 1;
   cuda_m_.n_nodes += 1;
   int min_h = -1;
@@ -100,9 +101,10 @@ int CudaHDGBFS::Search() {
   CUDA_CHECK(cudaMemcpy(cuda_goal, &goal, sizeof(int), cudaMemcpyHostToDevice));
 
   while (goal == -1) {
-    Pop<<<n_grid_, n_block_>>>(cuda_graph_, cuda_m_, open_, closed_);
+    CudaPop<<<n_grid_, n_block_>>>(cuda_graph_, cuda_m_, open_, closed_);
     expanded_ += PrepareExpansion(n_threads_, &m_, &cuda_m_);
-    Expand<<<n_grid_, n_block_>>>(cuda_graph_, cuda_m_, n_threads_, cuda_goal);
+    CudaExpand<<<n_grid_, n_block_>>>(cuda_graph_, cuda_m_, n_threads_,
+                                      cuda_goal);
     CUDA_CHECK(cudaMemcpy(&goal, cuda_goal, sizeof(int),
                           cudaMemcpyDeviceToHost));
 
@@ -116,9 +118,9 @@ int CudaHDGBFS::Search() {
       return -1;
     }
 
-    SortChildren<<<n_grid_, n_block_>>>(cuda_graph_, cuda_m_);
+    CudaSortChildren<<<n_grid_, n_block_>>>(cuda_graph_, cuda_m_);
     CUDA_CHECK(cudaDeviceSynchronize());
-    Push<<<n_grid_, n_block_>>>(cuda_graph_, cuda_m_, closed_, open_);
+    CudaPush<<<n_grid_, n_block_>>>(cuda_graph_, cuda_m_, closed_, open_);
     int h = -1;
     CUDA_CHECK(cudaMemcpy(&h, cuda_m_.h, sizeof(int), cudaMemcpyDeviceToHost));
 
@@ -142,7 +144,7 @@ std::vector<int> CudaHDGBFS::ExtractPlan(int node) {
   CUDA_CHECK(cudaMemcpy(goals, &node, sizeof(int), cudaMemcpyHostToDevice));
   int *cuda_steps = nullptr;
   CUDA_CHECK(cudaMalloc((void**)&cuda_steps, sizeof(int)));
-  NPlanStep<<<1, 1>>>(cuda_graph_, goals, cuda_steps);
+  CudaNPlanStep<<<1, 1>>>(cuda_graph_, goals, cuda_steps);
   int step;
   CUDA_CHECK(cudaMemcpy(&step, cuda_steps, sizeof(int),
                         cudaMemcpyDeviceToHost));

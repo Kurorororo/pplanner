@@ -276,6 +276,8 @@ class SearchGraph {
 
   std::shared_ptr<const StatePacker> packer() const { return packer_; }
 
+  std::shared_ptr<const ZobristHash> hash() const { return hash_; }
+
  private:
   void ReserveIfFull() {
     if (actions_.size() == capacity_)
