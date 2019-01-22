@@ -52,7 +52,7 @@ void CudaInitialEvaluate(CudaSearchGraph graph, GBFSMessage m,
     Push(*h, 0, &graph, nx, pv);
     m.h_min[id] = *h;
   } else {
-    m.h_min[id] = -1;
+    m.h_min[id] = open.n_unit;
   }
 }
 
@@ -64,6 +64,7 @@ void CudaInitialPush(CudaSearchGraph graph, GBFSMessage m, CudaOpenList open,
   int *s = m.states;
   uint32_t d_hash = Hash(cuda_d_hash, cuda_problem, s);
   int proc = d_hash % n_thread;
+  int h = m.h_min[0];
 
   if (id == proc) {
     uint32_t c_hash = Hash(cuda_c_hash, cuda_problem, s);
@@ -74,10 +75,10 @@ void CudaInitialPush(CudaSearchGraph graph, GBFSMessage m, CudaOpenList open,
     int *nx = &open.next[proc * open.n_unit];
     int *pv = &open.prev[proc * open.n_unit];
 
-    Push(m.h_min[0], 0, &graph, nx, pv);
-    m.h_min[id] = m.h_min[0];
+    Push(h, 0, &graph, nx, pv);
+    m.h_min[id] = h;
   } else {
-    m.h_min[id] = -1;
+    m.h_min[id] = open.n_unit;
   }
 }
 
@@ -92,15 +93,18 @@ void CudaPop(CudaSearchGraph graph, GBFSMessage m, CudaOpenList open,
   int *nx = &open.next[id * open.n_unit];
   int *pv = &open.prev[id * open.n_unit];
   int *cl = &closed.closed[id * closed.n_unit];
-  int *h_min = &m.h_min[id];
+  int h_min = m.h_min[id];
 
-  int node = Pop(cuda_landmark_graph.n_landmarks, h_min, &graph, nx, pv);
+  int node = Pop(cuda_landmark_graph.n_landmarks, &h_min, &graph, nx, pv, id);
+  m.h_min[id] = h_min;
 
   if (node == -1 || GetClosed(graph, cl, node) != -1) return;
 
   int *s = &m.states[id * cuda_problem.n_variables];
+
   State(graph, node, s);
   Close(node, cl, &graph);
+
   m.successor_counts[id] = Count(cuda_generator, cuda_problem, s);
   m.nodes[id] = node;
 }
@@ -230,7 +234,7 @@ void CudaPush(CudaSearchGraph graph, GBFSMessage m, CudaClosedList closed,
     int h = m.sorted_h[i];
     int node = m.sorted[i];
     if (h == -1 || GetClosed(graph, cl, node) != -1) continue;
-    if (h < h_min || h_min == -1) h_min = h;
+    if (h < h_min) h_min = h;
     Push(h, node, &graph, nx, pv);
   }
 

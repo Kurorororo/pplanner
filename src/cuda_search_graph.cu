@@ -107,7 +107,7 @@ void Push(int h, int node, CudaSearchGraph *graph, int *next_list,
 
 __device__
 int Pop(int h_max, int *h_min, CudaSearchGraph *graph, int *next_list,
-        int *prev_list) {
+        int *prev_list, int id) {
   for (int i = *h_min; i < h_max; ++i) {
     int node = next_list[i];
 

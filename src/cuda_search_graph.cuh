@@ -70,7 +70,7 @@ void Push(int h, int node, CudaSearchGraph *graph, int *next_list,
           int *prev_list);
 __device__
 int Pop(int h_max, int *h_min, CudaSearchGraph *graph, int *next_list,
-        int *prev_list);
+        int *prev_list, int id);
 
 void InitCudaSearchGraph(std::shared_ptr<const SASPlus> problem,
                          std::shared_ptr<const SearchGraph> graph,

@@ -1,14 +1,20 @@
 cmake_minimum_required (VERSION 3.8)
 project(pplanner)
 
+if (NOT CMAKE_BUILD_TYPE)
+  message(STATUS "No build type selected, default to Release")
+  set (CMAKE_BUILD_TYPE "Release")
+endif ()
+
+
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/lib)
 set(CMAKE_CXX_FLAGS "-Wall")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
-set(CMAKE_CXX_FLAGS_DEBUG "-O0")
-set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-Og -pg -DNDEBUG")
+set(CMAKE_CXX_FLAGS_DEBUG "-O3 -g")
+set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O3 -g")
 enable_testing()
 
 set(Boost_USE_STATIC_LIBS ON)
@@ -61,7 +67,7 @@ if (MPI_CXX_FOUND)
     ${Boost_PROGRAM_OPTIONS_LIBRARY}
     ${MPI_CXX_LIBRARIES}
     ${MPI_CXX_LINK_FLAGS})
-endIf ()
+endif ()
 
 # CUDA planner
 if (CUDA_FOUND)
@@ -69,11 +75,15 @@ if (CUDA_FOUND)
   set(CUDA_PROPAGATE_HOST_FLAGS ON)
   set(CUDA_NVCC_FLAGS "-std=c++11" "-arch=compute_61" "-code=sm_61")
 
+  string(TOUPPER ${CMAKE_BUILD_TYPE} CMAKE_BUILD_TYPE_UPPER)
+
   if (CMAKE_BUILD_TYPE_UPPER STREQUAL "RELEASE")
-    set(CUDA_NVCC_FLAGS_RELEASE -O3 -DNDEBG)
+    set(CUDA_NVCC_FLAGS_RELEASE -O3;-DNDEBG)
+  elseif (CMAKE_BUILD_TYPE_UPPER STREQUAL "RELWITHDEBINFO")
+    set(CUDA_NVCC_FLAGS_RELWITHDEBINFO -O3;-lineinfo;-Xcompiler;-rdynamic)
   elseif (CMAKE_BUILD_TYPE_UPPER STREQUAL "DEBUG")
-    set(CUDA_NVCC_FLAGS_DEBUG -O0)
-  endif (CMAKE_BUILD_TYPE_UPPER STREQUAL "RELEASE")
+    set(CUDA_NVCC_FLAGS_DEBUG -O3;-g;-G)
+  endIf ()
 
   cuda_add_executable(cuda_planner
     ./src/cuda_planner.cu
