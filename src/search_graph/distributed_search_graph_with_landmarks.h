@@ -83,6 +83,11 @@ class DistributedSearchGraphWithLandmarks : public DistributedSearchGraph {
 
   uint8_t* ParentLandmark(int i) override;
 
+  void SetLandmark(int i, const uint8_t *landmark) {
+    memcpy(landmarks_.data() + i * n_landmarks_bytes_, landmark,
+           n_landmarks_bytes_ * sizeof(uint8_t));
+  }
+
  private:
   std::size_t n_landmarks_bytes_;
   std::vector<uint8_t> parent_landmark_;

@@ -291,7 +291,7 @@ int CudaHetroGBFS::Search() {
                                    cuda_closed_);
     CUDA_CHECK(cudaEventRecord(pop_fin, 0));
 
-    while(cudaEventQuery(pop_fin) == cudaErrorNotReady){
+    while (cudaEventQuery(pop_fin) == cudaErrorNotReady) {
       goal = CpuExpand();
 
       if (goal != -1) {
@@ -309,7 +309,7 @@ int CudaHetroGBFS::Search() {
                                       cuda_goal);
     CUDA_CHECK(cudaEventRecord(expand_fin, 0));
 
-    while(cudaEventQuery(expand_fin) == cudaErrorNotReady){
+    while (cudaEventQuery(expand_fin) == cudaErrorNotReady) {
       goal = CpuExpand();
 
       if (goal != -1) {
