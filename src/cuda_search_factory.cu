@@ -2,6 +2,7 @@
 
 #include "cuda_search/cuda_bmrw.cuh"
 #include "cuda_search/cuda_bmrw_gbfs.cuh"
+#include "cuda_search/cuda_bmrw_gbfs_share.cuh"
 #include "cuda_search/cuda_hetro_gbfs.cuh"
 #include "cuda_search/cuda_hdgbfs.cuh"
 #include "cuda_search/cuda_rwagbfs.cuh"
@@ -23,6 +24,10 @@ std::unique_ptr<Search> CudaSearchFactory(
   if (search.get() == "bmrw_gbfs")
     return std::unique_ptr<CudaBMRWGBFS>(
         new CudaBMRWGBFS(problem, option.get()));
+
+  if (search.get() == "bmrw_gbfs_share")
+    return std::unique_ptr<CudaBMRWGBFSShare>(
+        new CudaBMRWGBFSShare(problem, option.get()));
 
   if (search.get() == "hetro_gbfs")
     return std::unique_ptr<CudaHetroGBFS>(

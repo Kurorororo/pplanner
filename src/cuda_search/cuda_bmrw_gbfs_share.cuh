@@ -1,5 +1,5 @@
-#ifndef CUDA_RWAGBFS_H_
-#define CUDA_RWAGBFS_H_
+#ifndef CUDA_BMRW_GBFS_SHARE_H_
+#define CUDA_BMRW_GBFS_SHARE_H_
 
 #include <array>
 #include <memory>
@@ -20,10 +20,10 @@
 
 namespace pplanner {
 
-class CudaRWAGBFS : public Search {
+class CudaBMRWGBFSShare : public Search {
  public:
-  CudaRWAGBFS(std::shared_ptr<const SASPlus> problem,
-           const boost::property_tree::ptree &pt)
+  CudaBMRWGBFSShare(std::shared_ptr<const SASPlus> problem,
+                    const boost::property_tree::ptree &pt)
     : n_grid_(20),
       n_block_(256),
       n_elite_(100),
@@ -32,37 +32,40 @@ class CudaRWAGBFS : public Search {
       expanded_(0),
       evaluated_(0),
       dead_ends_(0),
+      plateau_(0),
       problem_(problem),
       generator_(std::make_shared<SuccessorGenerator>(problem)),
       graph_(nullptr),
       lmcount_(nullptr),
-      open_list_(nullptr),
+      open_(nullptr),
+      rw_open_(nullptr),
       cuda_problem_(new CudaSASPlus),
       cuda_generator_(new CudaSuccessorGenerator),
       cuda_landmark_graph_(new CudaLandmarkGraph) { Init(pt); }
 
-  ~CudaRWAGBFS();
+  ~CudaBMRWGBFSShare();
 
-  std::vector<int> Plan() override {
-    int goal = Search();
-
-    return ExtractPlan(goal);
-  }
+  std::vector<int> Plan() override;
 
   void DumpStatistics() const override;
 
  private:
   void Init(const boost::property_tree::ptree &pt);
 
-  void GenerateChildren(int parent, const std::vector<int> &state);
+  bool PopStates(std::vector<int> &parents);
 
-  void InitialEvaluate();
+  void GenerateChildren(int parent, std::vector<int> &values,
+                        const std::vector<int> &state);
 
-  int PushStates(const std::vector<int> &parents, const RandomWalkMessage &m);
+  int PushStates(const std::vector<int> &parents, std::vector<int> &arg_h);
+
+  void Restart();
 
   int Search();
 
-  int Expand(std::vector<int> &parents, int *counter, RandomWalkMessage *m, bool flag);
+  void InitialEvaluate();
+
+  int CpuExpand();
 
   std::vector<int> ExtractPlan(int node);
 
@@ -76,22 +79,23 @@ class CudaRWAGBFS : public Search {
   int evaluated_;
   int dead_ends_;
   int best_h_;
+  int plateau_;
   int landmark_id_max_;
   int n_landmark_bytes_;
-  std::vector<int> ranking;
   std::vector<std::vector<int> > sequences_;
   std::shared_ptr<const SASPlus> problem_;
   std::shared_ptr<SuccessorGenerator> generator_;
   std::shared_ptr<SearchGraphWithLandmarks> graph_;
   std::shared_ptr<LandmarkCountBase> lmcount_;
-  std::unique_ptr<OpenList> open_list_;
+  std::unique_ptr<OpenList> open_;
+  std::unique_ptr<OpenList> rw_open_;
   CudaSASPlus *cuda_problem_;
   CudaSuccessorGenerator *cuda_generator_;
   CudaLandmarkGraph *cuda_landmark_graph_;
-  std::array<RandomWalkMessage, 2> ms_;
+  RandomWalkMessage m_;
   RandomWalkMessage cuda_m_;
 };
 
 } // namespace pplaner
 
-#endif // CUDA_RWAGBFS_H_
+#endif // CUDA_BMRW_GBFS_H_

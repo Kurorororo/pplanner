@@ -28,6 +28,8 @@ class CudaHetroGBFS : public Search {
       n_block_(128),
       generated_(0),
       expanded_(0),
+      n_plateau_(0),
+      gpu_threshold_(-1),
       goal_on_gpu_(false),
       cuda_steps_(nullptr),
       cuda_offsets_(nullptr),
@@ -79,6 +81,8 @@ class CudaHetroGBFS : public Search {
   int best_h_;
   int best_node_;
   int gpu_start_;
+  int n_plateau_;
+  int gpu_threshold_;
   bool goal_on_gpu_;
   int *cuda_steps_;
   int *cuda_offsets_;

@@ -35,6 +35,9 @@ void CudaHetroGBFS::Init(const boost::property_tree::ptree &pt) {
 
   n_threads_ = n_grid_ * n_block_;
 
+  if (auto opt = pt.get_optional<int>("gpu_threshold"))
+    gpu_threshold_ = opt.get();
+
   graph_->InitLandmarks(lmcount_->landmark_graph());
 
   size_t ram = 5000000000;
@@ -138,8 +141,6 @@ void CudaHetroGBFS::ClearGPU() {
   std::size_t n_bytes = graph_->n_landmarks_bytes();
   CUDA_CHECK(cudaMemcpy(plans.data(), cuda_plans, offsets.back() * sizeof(int),
                         cudaMemcpyDeviceToHost));
-  CUDA_CHECK(cudaMemcpy(m_.h_min, cuda_m_.h_min, n_threads_ * sizeof(int),
-                        cudaMemcpyDeviceToHost));
   CUDA_CHECK(cudaMemcpy(m_.states, cuda_m_.states,
                         n_threads_ * problem_->n_variables() * sizeof(int),
                         cudaMemcpyDeviceToHost));
@@ -174,6 +175,7 @@ void CudaHetroGBFS::ClearGPU() {
       if (h < best_h_) {
         best_h_ = h;
         best_node_ = node;
+        n_plateau_ = 0;
         std::cout << "New best heuristic value: " << best_h_
                   << " (found by GPU)" << std::endl;
         std::cout << "[" << expanded_ << " expanded]" << std::endl;
@@ -181,10 +183,6 @@ void CudaHetroGBFS::ClearGPU() {
     }
   }
 
-  CudaClearOpenList(n_threads_, &cuda_open_);
-  CudaClearClosedList(n_threads_, &cuda_closed_);
-  m_.n_nodes = 0;
-  cuda_m_.n_nodes = 0;
   CUDA_CHECK(cudaFree(cuda_plans));
 }
 
@@ -262,10 +260,12 @@ int CudaHetroGBFS::CpuExpand() {
     graph_->SetH(child_node, h);
     values[0] = h;
     open_->Push(values, child_node, false);
+    ++n_plateau_;
 
     if (h < best_h_) {
       best_h_ = h;
       best_node_ = child_node;
+      n_plateau_ = 0;
       std::cout << "New best heuristic value: " << best_h_ << std::endl;
       std::cout << "[" << expanded_ << " expanded]" << std::endl;
     }
@@ -330,11 +330,39 @@ int CudaHetroGBFS::Search() {
 
     generated_ += PrepareSort(n_threads_, &m_, &cuda_m_);
 
-    if (m_.n_nodes >= static_cast<int>(cuda_graph_.node_max - 1)) {
+    CUDA_CHECK(cudaMemcpy(m_.h_min, cuda_m_.h_min, n_threads_ * sizeof(int),
+                          cudaMemcpyDeviceToHost));
+
+    int h_min = -1;
+
+    for (int i = 0; i < n_threads_; ++i) {
+      if (m_.h_min[i] != -1 && (h_min == -1 || m_.h_min[i] < h_min))
+        h_min = m_.h_min[i];
+    }
+
+    if (m_.n_nodes >= static_cast<int>(cuda_graph_.node_max - 1)
+        || h_min < best_h_) {
       std::cout << "clear GPU RAM" << std::endl;
       ClearGPU();
+      CudaClearOpenList(n_threads_, &cuda_open_);
+      CudaClearClosedList(n_threads_, &cuda_closed_);
+      m_.n_nodes = 0;
+      cuda_m_.n_nodes = 0;
       InitialPushGPU(best_node_, best_h_);
       continue;
+    } else if (gpu_threshold_ > 0 && n_plateau_ > gpu_threshold_) {
+      std::cout << "clear GPU RAM" << std::endl;
+      ClearGPU();
+
+      if (gpu_threshold_ > 0 && n_plateau_ > gpu_threshold_) {
+        CudaClearOpenList(n_threads_, &cuda_open_);
+        CudaClearClosedList(n_threads_, &cuda_closed_);
+        m_.n_nodes = 0;
+        cuda_m_.n_nodes = 0;
+        InitialPushGPU(best_node_, best_h_);
+        n_plateau_ = 0;
+        continue;
+      }
     }
 
     cudaEvent_t sort_fin;
