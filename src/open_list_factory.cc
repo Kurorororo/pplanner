@@ -88,5 +88,6 @@ std::shared_ptr<OpenList> SharedOpenListFactory(
 
   return std::make_shared<SingleOpenList>(tie_breaking, evaluators);
 }
+
 } // namespace pplanner
 
