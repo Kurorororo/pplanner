@@ -31,6 +31,11 @@ class SearchGraphWithLandmarks : public SearchGraph {
     landmarks_.reserve(n_landmarks_bytes_ * size);
   }
 
+  virtual void AllocateProperties() override {
+    SearchGraph::AllocateProperties();
+    landmarks_.resize(landmarks_.size() + n_landmarks_bytes_, 0);
+  }
+
   virtual void AddProperties(int action, int parent_node, uint32_t hash_value)
     override {
     SearchGraph::AddProperties(action, parent_node, hash_value);

@@ -6,15 +6,15 @@
 
 namespace pplanner {
 
-std::unique_ptr<OpenListImpl> OpenListImplFactory(
+std::shared_ptr<OpenListImpl> OpenListImplFactory(
     const std::string &tie_breaking) {
   if (tie_breaking == "lifo")
-    return std::unique_ptr<LIFOOpenListImpl>(new LIFOOpenListImpl());
+    return std::make_shared<LIFOOpenListImpl>();
 
   if (tie_breaking == "ro")
-    return std::unique_ptr<ROOpenListImpl>(new ROOpenListImpl());
+    return std::make_shared<ROOpenListImpl>();
 
-  return std::unique_ptr<FIFOOpenListImpl>(new FIFOOpenListImpl());
+  return std::make_shared<FIFOOpenListImpl>();
 }
 
 } // namespace pplanner

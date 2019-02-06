@@ -9,7 +9,7 @@
 
 namespace pplanner {
 
-std::unique_ptr<OpenListImpl> OpenListImplFactory(
+std::shared_ptr<OpenListImpl> OpenListImplFactory(
     const std::string &tie_breaking);
 
 } // namespace pplanner

@@ -68,7 +68,7 @@ class PreferredOpenList : public OpenList {
   int boost_;
   std::vector<int> values_;
   std::array<int, 2> priorities_;
-  std::array<std::unique_ptr<OpenListImpl>, 2> lists_;
+  std::array<std::shared_ptr<OpenListImpl>, 2> lists_;
   std::vector<std::shared_ptr<Evaluator> > evaluators_;
 };
 

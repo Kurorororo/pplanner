@@ -62,7 +62,7 @@ class SingleOpenList : public OpenList {
 
  private:
   std::vector<int> values_;
-  std::unique_ptr<OpenListImpl> list_;
+  std::shared_ptr<OpenListImpl> list_;
   std::vector<std::shared_ptr<Evaluator> > evaluators_;
 };
 

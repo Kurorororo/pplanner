@@ -46,6 +46,12 @@ class SearchGraph {
     capacity_ = size;
   }
 
+  virtual void AllocateProperties() {
+    actions_.resize(actions_.size() + 1);
+    parents_.push_back(parents_.size() + 1);
+    hash_values_.push_back(hash_values_.size() + 1);
+  }
+
   virtual void AddProperties(int action, int parent, uint32_t hash_value) {
     actions_.push_back(action);
     parents_.push_back(parent);
@@ -86,6 +92,8 @@ class SearchGraph {
 
   std::size_t closed_size() const { return closed_.size() * sizeof(int); }
 
+  std::size_t block_size() const { return packer_->block_size(); }
+
   std::size_t state_size() const {
     return packer_->block_size() * sizeof(uint32_t);
   }
@@ -118,6 +126,24 @@ class SearchGraph {
   const uint32_t* PackedState(int i) const {
     std::size_t block_size = packer_->block_size();
     return states_.data() + static_cast<std::size_t>(i) * block_size;
+  }
+
+  int AllocateNode() {
+    ReserveIfFull();
+    AllocateProperties();
+    AllocatePacked();
+
+    return size() - 1;
+  }
+
+  void WriteNode(int node, int action, int parent, uint32_t hash,
+                 const uint32_t *packed) {
+    std::size_t block_size = packer_->block_size();
+    actions_[node] = action;
+    parents_[node] = parent;
+    hash_values_[node] = hash;
+    memcpy(states_.data() + static_cast<std::size_t>(node) * block_size,
+           packed, block_size * sizeof(uint32_t));
   }
 
   int GenerateNode(int action, int parent_node, const std::vector<int> &state) {
@@ -256,8 +282,6 @@ class SearchGraph {
     packer_->Unpack(packed, state);
   }
 
-  std::size_t block_size() const { return packer_->block_size(); }
-
   std::size_t Find(int i) const {
     uint32_t hash_value = HashValue(i);
     std::size_t block_size = packer_->block_size();
@@ -282,6 +306,11 @@ class SearchGraph {
   void ReserveIfFull() {
     if (actions_.size() == capacity_)
       Reserve(capacity_ * resize_factor_);
+  }
+
+  void AllocatePacked() {
+    std::size_t old_size = states_.size();
+    states_.resize(old_size + packer_->block_size());
   }
 
   void AddPacked(const std::vector<int> &state) {
