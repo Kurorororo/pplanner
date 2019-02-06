@@ -1,8 +1,11 @@
 #ifndef RANDOM_WALK_EVALUATOR_H_
 #define RANDOM_WALK_EVALUATOR_H_
 
+#include <memory>
 #include <unordered_set>
 #include <vector>
+
+#include "search_graph.h"
 
 namespace pplanner {
 
@@ -21,6 +24,9 @@ class RandomWalkEvaluator {
   virtual void LocalRestart() = 0;
 
   virtual void GlobalRestart() = 0;
+
+  virtual void CopyBestToSearchGraph(int node,
+                                     std::shared_ptr<SearchGraph> graph) = 0;
 };
 
 } // namespace pplanner

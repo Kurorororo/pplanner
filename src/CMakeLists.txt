@@ -47,6 +47,7 @@ add_library(search STATIC
   ./search/orbit_gbfs.cc
   ./search/symmetry_breaking_gbfs.cc
   ./search/mrw13.cc
+  ./search/multi_focus_gbfs.cc
   ./search/simhdgbfs.cc
   ./search/simhdgbfs1.cc
   ./symmetry/symmetry.cc

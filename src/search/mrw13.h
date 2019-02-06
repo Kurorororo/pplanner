@@ -125,6 +125,14 @@ class Mrw13 : public Search {
   std::vector<int> tmp_n_successors_;
 };
 
+void Feedback(int arg_rl, int value, int cost, std::vector<int> &value_rls,
+              std::vector<int> &cost_rls);
+
+int RandomRl(std::size_t size, std::mt19937 &engine);
+
+int ChoiceRl(double eps, const std::vector<int> &value_rls,
+             const std::vector<int> &cost_rls, std::mt19937 &engine);
+
 template<typename T>
 T GetRl(int arg_rl, const std::vector<T> &rls) {
   return rls[arg_rl];

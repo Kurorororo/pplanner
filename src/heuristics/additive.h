@@ -89,6 +89,9 @@ class RWAdditive : public RandomWalkEvaluator {
 
   void GlobalRestart() override {}
 
+  void CopyBestToSearchGraph(int node,
+                             std::shared_ptr<SearchGraph> graph) override {}
+
   private:
    std::unique_ptr<Additive> additive_;
 };

@@ -9,6 +9,7 @@
 #include "search/symmetry_breaking_gbfs.h"
 #include "search/simhdgbfs.h"
 #include "search/simhdgbfs1.h"
+#include "search/multi_focus_gbfs.h"
 #include "multithread_search/multi_gbfs.h"
 
 namespace pplanner {
@@ -49,6 +50,10 @@ std::unique_ptr<Search> SearchFactory(std::shared_ptr<const SASPlus> problem,
 
   if (search.get() == "simhdgbfs1")
     return std::unique_ptr<SIMHDGBFS1>(new SIMHDGBFS1(problem, option.get()));
+
+  if (search.get() == "multi_focus_gbfs")
+    return std::unique_ptr<MultiFocusGBFS>(
+        new MultiFocusGBFS(problem, option.get()));
 
   if (search.get() == "multi_gbfs")
     return std::unique_ptr<MultiGBFS>(new MultiGBFS(problem, option.get()));

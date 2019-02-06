@@ -140,6 +140,13 @@ class RWLandmarkCount : public RandomWalkEvaluator {
     accepted_index_ = 0;
   }
 
+  void CopyBestToSearchGraph(int node,
+                             std::shared_ptr<SearchGraph> graph) override {
+    auto landmark = graph->Landmark(node);
+    memcpy(landmark, best_accepted_.data(),
+           best_accepted_.size() * sizeof(uint8_t));
+  }
+
  private:
   void PrepareEvaluation(uint8_t **parent_accepted, uint8_t **accepted) {
     std::fill(accepted_[accepted_index_].begin(),
