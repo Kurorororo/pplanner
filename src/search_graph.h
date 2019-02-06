@@ -97,6 +97,8 @@ class SearchGraph {
     return size;
   }
 
+  void ClearClosed();
+
   int Action(int i) const { return actions_[i]; }
 
   int Parent(int i) const { return parents_[i]; }
