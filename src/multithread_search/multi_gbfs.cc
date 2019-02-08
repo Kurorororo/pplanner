@@ -5,9 +5,8 @@
 
 #include <boost/foreach.hpp>
 
-#include "evaluator_factory.h"
 #include "open_list_factory.h"
-#include "search_graph_factory.h"
+#include "multithread_search/heuristic_factory.h"
 
 namespace pplanner {
 
@@ -16,76 +15,76 @@ using std::size_t;
 using std::unordered_set;
 using std::vector;
 
-void MultiGBFS::Init(const boost::property_tree::ptree &pt) {
-  int closed_exponent = 22;
-
-  if (auto closed_exponent_opt = pt.get_optional<int>("closed_exponent"))
-    closed_exponent = closed_exponent_opt.get();
-
-  if (auto opt = pt.get_optional<int>("n_threads")) n_threads_ = opt.get();
-
-  bool keep_cost = false;
-  if (auto opt = pt.get_optional<int>("keep_cost")) keep_cost = true;
-
-  bool use_landmark = false;
-  if (auto opt = pt.get_optional<int>("landmark")) use_landmark = true;
-
-  bool dump_nodes = false;
-  if (auto opt = pt.get_optional<int>("dump_nodes")) dump_nodes = true;
-
-  graph_ = SearchGraphFactory(
-      problem_, closed_exponent, keep_cost, use_landmark, dump_nodes);
-
-  std::shared_ptr<Evaluator> friend_evaluator = nullptr;
-
+void MultiGBFS::InitHeuristics(int i, const boost::property_tree::ptree pt) {
   BOOST_FOREACH (const boost::property_tree::ptree::value_type& child,
                  pt.get_child("evaluators")) {
     auto e = child.second;
-    auto evaluator = EvaluatorFactory(problem_, graph_, friend_evaluator, e);
-    evaluators_.push_back(evaluator);
-    friend_evaluator = evaluator;
+    auto evaluator = HeuristicFactory(problem_, e);
+    evaluators_[i].push_back(evaluator);
   }
 
   if (auto preferring = pt.get_child_optional("preferring")) {
     use_preferred_ = true;
 
     if (auto name = preferring.get().get_optional<std::string>("name")) {
-      if (name.get() == "same") {
-        preferring_ = evaluators_[0];
-      } else {
-        preferring_ = EvaluatorFactory(problem_, graph_, nullptr,
-                                       preferring.get());
-      }
+      if (name.get() == "same")
+        preferring_[i] = evaluators_[i][0];
+      else
+        preferring_[i] = HeuristicFactory(problem_, preferring.get());
     }
   }
+}
+
+void MultiGBFS::Init(const boost::property_tree::ptree &pt) {
+  int closed_exponent = 22;
+
+  if (auto closed_exponent_opt = pt.get_optional<int>("closed_exponent"))
+    closed_exponent = closed_exponent_opt.get();
 
   auto open_list_option = pt.get_child("open_list");
-  open_list_ = OpenListFactory(open_list_option, evaluators_);
+  open_list_ = OpenListFactory<std::shared_ptr<SearchNode> >(open_list_option);
 
-  size_t ram = 5000000000;
+  if (auto opt = pt.get_optional<int>("n_threads")) n_threads_ = opt.get();
 
-  if (auto opt = pt.get_optional<size_t>("ram"))
-    ram = opt.get();
+  closed_.resize(n_threads_ * 3, std::make_shared<ClosedList>(closed_exponent));
 
-  graph_->ReserveByRAMSize(ram);
+  for (int i = 0; i < n_threads_ * 3; ++i)
+    closed_mtx_.push_back(std::make_unique<std::shared_timed_mutex>());
+
+  preferring_.resize(n_threads_);
+  evaluators_.resize(n_threads_);
+
+  vector<std::thread> ts;
+
+  for (int i = 0; i < n_threads_; ++i)
+    ts.push_back(std::thread([this, i, pt] { this->InitHeuristics(i, pt); }));
+
+  for (int i = 0; i < n_threads_; ++i)
+    ts[i].join();
 }
 
-void MultiGBFS::InitialExpand() {
+void MultiGBFS::InitialEvaluate() {
   auto state = problem_->initial();
-  int node = graph_->GenerateNode(-1, -1, state);
+  auto node = std::make_shared<SearchNode>();
+  node->cost = 0;
+  node->action = -1;
+  node->parent = nullptr;
+  node->packed_state.resize(packer_->block_size());
+  packer_->Pack(state, node->packed_state.data());
+  node->hash = hash1_->operator()(state);
 
   std::vector<int> values;
-  int h = Evaluate(state, node, values);
-  graph_->SetH(node, h);
+  node->h = Evaluate(0, state, node, values);
   open_list_->Push(values, node, false);
-  std::cout << "Initial heuristic value: " << h << std::endl;
+  std::cout << "Initial heuristic value: " << node->h << std::endl;
 }
 
-int MultiGBFS::Evaluate(const vector<int> &state, int node,
+int MultiGBFS::Evaluate(int i, const vector<int> &state,
+                        std::shared_ptr<SearchNode> node,
                         vector<int> &values) {
   values.clear();
 
-  for (auto e : evaluators_) {
+  for (auto e : evaluators_[i]) {
     int h = e->Evaluate(state, node);
     values.push_back(h);
 
@@ -95,15 +94,13 @@ int MultiGBFS::Evaluate(const vector<int> &state, int node,
   return values[0];
 }
 
-void MultiGBFS::Expand() {
-  WriteReporter();
-
+void MultiGBFS::Expand(int i) {
   vector<int> state(problem_->n_variables());
   vector<int> child(problem_->n_variables());
   vector<int> applicable;
   unordered_set<int> preferred;
   vector<int> values;
-  vector<uint32_t> packed(graph_->block_size(), 0);
+  vector<uint32_t> packed(packer_->block_size(), 0);
 
   int best_h = -1;
   int expanded = 0;
@@ -112,18 +109,19 @@ void MultiGBFS::Expand() {
   int dead_ends = 0;
 
   while (!LockedReadGoal()) {
-    int node = LockedPop();
+    auto node = LockedPop();
 
-    if (node == -1) continue;
+    if (node == nullptr) continue;
 
-    auto current_packed = graph_->PackedState(node);
-    uint32_t hash = graph_->HashValue(node);
+    packer_->Unpack(node->packed_state.data(), state);
+    uint32_t hash = hash2_->operator()(state);
+    int idx = hash % (n_threads_ * 3);
 
-    if (LockedClosedCheck(hash, current_packed)) continue;
+    if (LockedIsClosed(idx, node->hash, node->packed_state))
+      continue;
 
-    LockedClose(node);
+    LockedClose(idx, node);
 
-    graph_->Expand(node, state);
     ++expanded;
 
     if (problem_->IsGoal(state)) {
@@ -139,32 +137,37 @@ void MultiGBFS::Expand() {
     }
 
     if (use_preferred_)
-      preferring_->Evaluate(state, node, applicable, preferred);
+      preferring_[i]->Evaluate(state, applicable, preferred, node);
 
     for (auto o : applicable) {
       child = state;
       problem_->ApplyEffect(o, child);
 
-      uint32_t hash = graph_->HashByDifference(o, node, state, child);
-      graph_->Pack(child, packed.data());
+      uint32_t hash1 = hash1_->HashByDifference(o, node->hash, state, child);
+      packer_->Pack(child, packed.data());
+      uint32_t hash2 = hash2_->operator()(state);
+      int idx = hash2 % (n_threads_ * 3);
 
-      if (LockedClosedCheck(hash, packed.data())) continue;
+      if (LockedIsClosed(idx, hash1, packed)) continue;
 
-      int child_node = LockedAllocateNode();
-      graph_->WriteNode(child_node, o, node, hash, packed.data());
+      auto child_node = std::make_shared<SearchNode>();
+      child_node->cost = node->cost + problem_->ActionCost(o);
+      child_node->action = o;
+      child_node->parent = node;
+      child_node->packed_state = packed;
+      child_node->hash = hash1;
       ++generated;
 
-      int h = Evaluate(child, child_node, values);
+      int h = Evaluate(i, child, child_node, values);
+      child_node->h = h;
       ++evaluated;
-      graph_->SetH(child_node, h);
 
       if (h == -1) {
         ++dead_ends;
         continue;
       }
 
-      if ((best_h == -1 || h < best_h)
-          && reporter_tid_ == std::this_thread::get_id()) {
+      if ((best_h == -1 || h < best_h) && i == 0) {
         best_h = h;
         std::cout << "New best heuristic value: " << best_h << std::endl;
         std::cout << "[" << generated << " generated, "
@@ -180,12 +183,12 @@ void MultiGBFS::Expand() {
   WriteStat(expanded, evaluated, generated, dead_ends);
 }
 
-int MultiGBFS::Search() {
-  InitialExpand();
+std::shared_ptr<SearchNode> MultiGBFS::Search() {
+  InitialEvaluate();
   vector<std::thread> ts;
 
   for (int i = 0; i < n_threads_; ++i)
-    ts.push_back(std::thread([this] { this->Expand(); }));
+    ts.push_back(std::thread([this, i] { this->Expand(i); }));
 
   for (int i = 0; i < n_threads_; ++i)
     ts[i].join();
@@ -198,7 +201,6 @@ void MultiGBFS::DumpStatistics() const {
   std::cout << "Evaluated " << evaluated_ << " state(s)" << std::endl;
   std::cout << "Generated " << generated_ << " state(s)" << std::endl;
   std::cout << "Dead ends " << dead_ends_ << " state(s)" << std::endl;
-  graph_->Dump();
 }
 
 } // namespace pplanner

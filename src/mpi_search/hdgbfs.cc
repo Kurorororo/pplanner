@@ -76,7 +76,7 @@ void HDGBFS::Init(const boost::property_tree::ptree &pt) {
   }
 
   auto open_list_option = pt.get_child("open_list");
-  open_list_ = OpenListFactory(open_list_option, evaluators_);
+  open_list_ = OpenListFactory(open_list_option);
 
   if (auto opt = pt.get_child_optional("sss")) {
     use_sss_ = true;

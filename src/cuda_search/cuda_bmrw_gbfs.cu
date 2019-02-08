@@ -48,11 +48,9 @@ void CudaBMRWGBFS::Init(const boost::property_tree::ptree &pt) {
   graph_->InitLandmarks(lmcount_->landmark_graph());
   rw_graph_->InitLandmarks(lmcount_->landmark_graph());
 
-  std::vector<std::shared_ptr<Evaluator> > evaluators;
-
   auto open_option = pt.get_child("open_list");
-  open_ = OpenListFactory(open_option, evaluators);
-  rw_open_ = OpenListFactory(open_option, evaluators);
+  open_ = OpenListFactory(open_option);
+  rw_open_ = OpenListFactory(open_option);
 
   size_t ram = 5000000000;
 

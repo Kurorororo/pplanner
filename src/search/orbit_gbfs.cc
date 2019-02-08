@@ -43,14 +43,13 @@ void OrbitGBFS::Init(const boost::property_tree::ptree &pt) {
   graph_ = SearchGraphFactory(
       problem_, closed_exponent, keep_cost, use_landmark, dump_nodes);
 
-  vector<std::shared_ptr<Evaluator> > evaluators;
   std::shared_ptr<Evaluator> friend_evaluator = nullptr;
 
   BOOST_FOREACH (const boost::property_tree::ptree::value_type& child,
                  pt.get_child("evaluators")) {
     auto e = child.second;
     auto evaluator = EvaluatorFactory(problem_, graph_, friend_evaluator, e);
-    evaluators.push_back(evaluator);
+    evaluators_.push_back(evaluator);
     friend_evaluator = evaluator;
   }
 
@@ -59,7 +58,7 @@ void OrbitGBFS::Init(const boost::property_tree::ptree &pt) {
 
     if (auto name = preferring.get().get_optional<std::string>("name")) {
       if (name.get() == "same") {
-        preferring_ = evaluators[0];
+        preferring_ = evaluators_[0];
       } else {
         preferring_ = EvaluatorFactory(problem_, graph_, nullptr,
                                        preferring.get());
@@ -68,7 +67,7 @@ void OrbitGBFS::Init(const boost::property_tree::ptree &pt) {
   }
 
   auto open_list_option = pt.get_child("open_list");
-  open_list_ = OpenListFactory(open_list_option, evaluators);
+  open_list_ = OpenListFactory(open_list_option);
 
   if (auto ram = pt.get_optional<size_t>("ram"))
     graph_->ReserveByRAMSize(ram.get());
@@ -89,8 +88,10 @@ vector<int> OrbitGBFS::InitialExpand() {
   int node = graph_->GenerateNode(-1, -1, state);
   ++generated_;
 
-  best_h_ = open_list_->EvaluateAndPush(state, node, true);
+  std::vector<int> values;
+  best_h_ = Evaluate(evaluators_, state, node, values);
   graph_->SetH(node, best_h_);
+  open_list_->Push(values, node, true);
   std::cout << "Initial heuristic value: " << best_h_ << std::endl;
   ++evaluated_;
 
@@ -100,6 +101,7 @@ vector<int> OrbitGBFS::InitialExpand() {
 int OrbitGBFS::Expand(int node, vector<int> &state, vector<int> &child,
                  vector<int> &applicable, unordered_set<int> &preferred) {
   static std::vector<int> canonical(state);
+  static std::vector<int> values;
   static vector<bool> sss;
 
   if (!graph_->CloseIfNot(node)) return -1;
@@ -131,16 +133,13 @@ int OrbitGBFS::Expand(int node, vector<int> &state, vector<int> &child,
     child = state;
     problem_->ApplyEffect(o, child);
 
-    bool is_preferred = use_preferred_ && preferred.find(o) != preferred.end();
-    if (is_preferred) ++n_preferreds_;
-
     manager_->ToCanonical(child, canonical);
 
     int child_node = graph_->GenerateNodeIfNotClosed(o, node, canonical);
     if (child_node == -1) continue;
     ++generated_;
 
-    int h = open_list_->EvaluateAndPush(canonical, child_node, is_preferred);
+    int h = Evaluate(evaluators_, child, child_node, values);
     graph_->SetH(child_node, h);
     ++evaluated_;
 
@@ -148,6 +147,10 @@ int OrbitGBFS::Expand(int node, vector<int> &state, vector<int> &child,
       ++dead_ends_;
       continue;
     }
+
+    bool is_preferred = use_preferred_ && preferred.find(o) != preferred.end();
+    if (is_preferred) ++n_preferreds_;
+    open_list_->Push(values, child_node, is_preferred);
 
     if (h < best_h_) {
       best_h_ = h;

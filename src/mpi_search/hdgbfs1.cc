@@ -74,14 +74,14 @@ void HDGBFS1::Init(const boost::property_tree::ptree &pt) {
   }
 
   auto open_list_option = pt.get_child("open_list");
-  open_list_ = OpenListFactory(open_list_option, evaluators_);
+  open_list_ = OpenListFactory(open_list_option);
 
   if (auto opt = pt.get_optional<int>("take"))
     take_= opt.get();
 
   if (auto opt = pt.get_optional<int>("local_open")) {
     use_local_open_ = true;
-    local_open_list_ = OpenListFactory(open_list_option, evaluators_);
+    local_open_list_ = OpenListFactory(open_list_option);
   }
 
   if (auto opt = pt.get_optional<int>("reset_best"))

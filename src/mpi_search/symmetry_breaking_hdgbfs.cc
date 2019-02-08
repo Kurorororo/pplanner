@@ -76,7 +76,7 @@ void SBHDGBFS::Init(const boost::property_tree::ptree &pt) {
   }
 
   auto open_list_option = pt.get_child("open_list");
-  open_list_ = OpenListFactory(open_list_option, evaluators_);
+  open_list_ = OpenListFactory(open_list_option);
 
   if (auto ram = pt.get_optional<size_t>("ram"))
     graph_->ReserveByRAMSize(ram.get());

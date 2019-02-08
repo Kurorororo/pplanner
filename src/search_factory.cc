@@ -24,39 +24,37 @@ std::unique_ptr<Search> SearchFactory(std::shared_ptr<const SASPlus> problem,
   if (!option) throw std::runtime_error("Parameter option is needed.");
 
   if (search.get() == "mrw")
-    return std::unique_ptr<Mrw13>(
-        new Mrw13(problem, option.get(), max_expansion));
+    return std::make_unique<Mrw13>(problem, option.get(), max_expansion);
 
   if (search.get() == "gbfs")
-    return std::unique_ptr<GBFS>(new GBFS(problem, option.get()));
+    return std::make_unique<GBFS>(problem, option.get());
 
   if (search.get() == "lazy_gbfs")
-    return std::unique_ptr<LazyGBFS>(new LazyGBFS(problem, option.get()));
+    return std::make_unique<LazyGBFS>(problem, option.get());
 
   if (search.get() == "kgbfs")
-    return std::unique_ptr<KGBFS>(new KGBFS(problem, option.get()));
+    return std::make_unique<KGBFS>(problem, option.get());
 
   if (search.get() == "ogbfs")
-    return std::unique_ptr<OrbitGBFS>(new OrbitGBFS(problem, option.get()));
+    return std::make_unique<OrbitGBFS>(problem, option.get());
 
   if (search.get() == "sbgbfs")
-    return std::unique_ptr<SBGBFS>(new SBGBFS(problem, option.get()));
+    return std::make_unique<SBGBFS>(problem, option.get());
 
   if (search.get() == "dehc")
-    return std::unique_ptr<DEHC>(new DEHC(problem, option.get()));
+    return std::make_unique<DEHC>(problem, option.get());
 
   if (search.get() == "simhdgbfs")
-    return std::unique_ptr<SIMHDGBFS>(new SIMHDGBFS(problem, option.get()));
+    return std::make_unique<SIMHDGBFS>(problem, option.get());
 
   if (search.get() == "simhdgbfs1")
-    return std::unique_ptr<SIMHDGBFS1>(new SIMHDGBFS1(problem, option.get()));
+    return std::make_unique<SIMHDGBFS1>(problem, option.get());
 
   if (search.get() == "multi_focus_gbfs")
-    return std::unique_ptr<MultiFocusGBFS>(
-        new MultiFocusGBFS(problem, option.get()));
+    return std::make_unique<MultiFocusGBFS>(problem, option.get());
 
   if (search.get() == "multi_gbfs")
-    return std::unique_ptr<MultiGBFS>(new MultiGBFS(problem, option.get()));
+    return std::make_unique<MultiGBFS>(problem, option.get());
 
   throw std::runtime_error("No such search algorithm.");
 }

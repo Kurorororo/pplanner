@@ -7,7 +7,6 @@
 
 #include <boost/property_tree/ptree.hpp>
 
-#include "evaluator.h"
 #include "open_list.h"
 #include "open_lists/alternating_open_list.h"
 #include "open_lists/preferred_open_list.h"
@@ -18,8 +17,7 @@ namespace pplanner {
 
 template<typename T = int>
 std::unique_ptr<OpenList<T> > OpenListFactory(
-    const boost::property_tree::ptree &pt,
-    const std::vector<std::shared_ptr<Evaluator> > &evaluators) {
+    const boost::property_tree::ptree &pt) {
   std::string tie_breaking = "fifo";
 
   if (auto option = pt.get_optional<std::string>("tie_breaking"))
@@ -29,9 +27,6 @@ std::unique_ptr<OpenList<T> > OpenListFactory(
 
   if (auto option = pt.get_optional<int>("alternating"))
     alternating = option.get() == 1;
-
-  if (alternating)
-    return std::make_unique<AlternatingOpenList<T> >(tie_breaking, evaluators);
 
   int preferred = 0;
 
@@ -45,22 +40,19 @@ std::unique_ptr<OpenList<T> > OpenListFactory(
 
   switch (preferred) {
     case 0:
-      return std::make_unique<SingleOpenList<T> >(tie_breaking, evaluators);
+      return std::make_unique<SingleOpenList<T> >(tie_breaking);
     case 1:
-      return std::make_unique<PreferredOpenList<T> >(
-          tie_breaking, evaluators, n_boost);
+      return std::make_unique<PreferredOpenList<T> >(tie_breaking, n_boost);
     case 2:
-      return std::make_unique<PreferredPlusOpenList<T> >(
-          tie_breaking, evaluators);
+      return std::make_unique<PreferredPlusOpenList<T> >(tie_breaking);
   }
 
-  return std::make_unique<SingleOpenList<T> >(tie_breaking, evaluators);
+  return std::make_unique<SingleOpenList<T> >(tie_breaking);
 }
 
 template<typename T = int>
 std::shared_ptr<OpenList<T> > SharedOpenListFactory(
-    const boost::property_tree::ptree &pt,
-    const std::vector<std::shared_ptr<Evaluator> > &evaluators) {
+    const boost::property_tree::ptree &pt) {
   std::string tie_breaking = "fifo";
 
   if (auto option = pt.get_optional<std::string>("tie_breaking"))
@@ -70,9 +62,6 @@ std::shared_ptr<OpenList<T> > SharedOpenListFactory(
 
   if (auto option = pt.get_optional<int>("alternating"))
     alternating = option.get() == 1;
-
-  if (alternating)
-    return std::make_shared<AlternatingOpenList<T> >(tie_breaking, evaluators);
 
   int preferred = 0;
 
@@ -86,12 +75,11 @@ std::shared_ptr<OpenList<T> > SharedOpenListFactory(
 
   switch (preferred) {
     case 0:
-      return std::make_shared<SingleOpenList<T> >(tie_breaking, evaluators);
+      return std::make_shared<SingleOpenList<T> >(tie_breaking);
   }
 
-  return std::make_shared<SingleOpenList<T> >(tie_breaking, evaluators);
+  return std::make_shared<SingleOpenList<T> >(tie_breaking);
 }
-
 } // namespace pplanner
 
 #endif // OPEN_LIST_FACTORY_H_

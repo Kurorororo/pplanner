@@ -148,6 +148,7 @@ add_executable(planner
   ./src/postprocess/action_elimination.cc
   ./src/utils/file_utils.cc)
 target_link_libraries(planner
+  multithread
   search
   evaluators
   landmark
@@ -156,6 +157,7 @@ target_link_libraries(planner
   dominance
   sas_plus
   bliss
+  jemalloc
   ${Boost_PROGRAM_OPTIONS_LIBRARY})
 
 # execute relaxed graphplan from SAS+

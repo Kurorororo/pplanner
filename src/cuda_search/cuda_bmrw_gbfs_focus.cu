@@ -45,10 +45,8 @@ void CudaBMRWGBFSFocus::Init(const boost::property_tree::ptree &pt) {
   n_landmark_bytes_ = (landmark_id_max_ + 7) / 8;
   graph_->InitLandmarks(lmcount_->landmark_graph());
 
-  std::vector<std::shared_ptr<Evaluator> > evaluators;
-
   open_option_ = pt.get_child("open_list");
-  rw_open_ = OpenListFactory(open_option_, evaluators);
+  rw_open_ = OpenListFactory(open_option_);
 
   size_t ram = 5000000000;
 
@@ -188,7 +186,7 @@ int CudaBMRWGBFSFocus::PushStates(const vector<int> &parents, vector<int> &arg_h
       best_h_ = h;
       plateau_ = 0;
       std::cout << "New best heuristic value: " << best_h_ << std::endl;
-      opens_.push_back(std::move(OpenListFactory(open_option_, evaluators_)));
+      opens_.push_back(std::move(OpenListFactory(open_option_)));
       opens_.back()->Push(values, node, true);
       std::cout << "new focus" << std::endl;
     }
@@ -225,7 +223,7 @@ void CudaBMRWGBFSFocus::InitialEvaluate() {
   ++evaluated_;
 
   std::vector<int> values{best_h_};
-  opens_.push_back(std::move(OpenListFactory(open_option_, evaluators_)));
+  opens_.push_back(std::move(OpenListFactory(open_option_)));
   opens_[0]->Push(values, node, false);
   //GenerateChildren(node, values, state);
   rw_open_->Push(values, node, false);

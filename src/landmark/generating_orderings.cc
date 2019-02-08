@@ -34,13 +34,13 @@ inline bool IsInConsistent(shared_ptr<const SASPlus> problem,
 bool Interfere(shared_ptr<const SASPlus> problem,
                shared_ptr<const LandmarkGraph> graph, const Landmark &l,
                const Landmark &l_p) {
-  static unordered_map<pair<int, int>, int, PairHash<int, int> > counter;
-  static vector<pair<int, int> > effect;
 
   if (IsInConsistent(problem, l, l_p)) return true;
 
   // I wonder why commenting out this improves performance on woodworking.
   /**
+  //unordered_map<pair<int, int>, int, PairHash<int, int> > counter;
+  //vector<pair<int, int> > effect;
   const auto &achievers = graph->GetPossibleAchievers(graph->ToId(l));
   counter.clear();
 

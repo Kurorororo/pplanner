@@ -84,8 +84,8 @@ class SIMHDGBFS1 : public Search {
 
   int Expand(int node, std::vector<int> &state);
 
-  int Evaluate(const std::vector<int> &state, int node, int parent,
-               std::vector<int> &values);
+  int EvaluateWithParent(const std::vector<int> &state, int node, int parent,
+                         std::vector<int> &values);
 
   void Push(std::vector<int> &values, int node, bool is_local);
 

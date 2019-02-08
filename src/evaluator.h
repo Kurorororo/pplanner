@@ -1,6 +1,7 @@
 #ifndef EVALUATOR_H_
 #define EVALUATOR_H_
 
+#include <memory>
 #include <unordered_set>
 #include <vector>
 
@@ -22,6 +23,9 @@ class Evaluator {
                        const std::vector<int> &applicable,
                        std::unordered_set<int> &preferred) = 0;
 };
+
+int Evaluate(const std::vector<std::shared_ptr<Evaluator> > evaluators,
+             const std::vector<int> &state, int node, std::vector<int> &values);
 
 } // namespace pplanner
 

@@ -43,10 +43,8 @@ void CudaBMRW::Init(const boost::property_tree::ptree &pt) {
   n_landmark_bytes_ = (landmark_id_max_ + 7) / 8;
   graph_->InitLandmarks(lmcount_->landmark_graph());
 
-  std::vector<std::shared_ptr<Evaluator> > evaluators;
-
   auto open_list_option = pt.get_child("open_list");
-  open_list_ = OpenListFactory(open_list_option, evaluators);
+  open_list_ = OpenListFactory(open_list_option);
 
   size_t ram = 5000000000;
 

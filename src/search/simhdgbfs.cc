@@ -78,8 +78,7 @@ void SIMHDGBFS::Init(const boost::property_tree::ptree &pt) {
       friend_evaluator = evaluator;
     }
 
-    open_lists_.push_back(
-        OpenListFactory(open_list_option, evaluators_[rank_]));
+    open_lists_.push_back(OpenListFactory(open_list_option));
 
     graphs_[rank_]->ReserveByRAMSize(ram);
   }
@@ -147,9 +146,11 @@ vector<int> SIMHDGBFS::InitialEvaluate() {
   int node = graphs_[rank_]->GenerateNode(-1, -1, state, -1);
 
   IncrementGenerated();
-  int h = open_lists_[rank_]->EvaluateAndPush(state, node, true);
+  std::vector<int> values;
+  int h = Evaluate(state, node, values);
   graphs_[rank_]->SetH(node, h);
   set_best_h(h);
+  open_lists_[rank_]->Push(values, node, true);
   std::cout << "Initial heuristic value: " << best_h() << std::endl;
   ++evaluated_;
 

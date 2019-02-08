@@ -82,12 +82,10 @@ void SIMHDGBFS1::Init(const boost::property_tree::ptree &pt) {
       friend_evaluator = evaluator;
     }
 
-    open_lists_.push_back(
-        OpenListFactory(open_list_option, evaluators_[rank_]));
+    open_lists_.push_back(OpenListFactory(open_list_option));
 
     if (use_local_open_)
-      local_open_lists_.push_back(
-          OpenListFactory(open_list_option, evaluators_[rank_]));
+      local_open_lists_.push_back(OpenListFactory(open_list_option));
 
     graphs_[rank_]->ReserveByRAMSize(ram);
   }
@@ -161,12 +159,13 @@ vector<int> SIMHDGBFS1::InitialEvaluate() {
 
   IncrementGenerated();
 
-  int h = -1;
+  std::vector<int> values;
+  int h = Evaluate(evaluators_[0], state, node, values);
 
   if (use_local_open_)
-    h = local_open_lists_[rank_]->EvaluateAndPush(state, node, true);
+    local_open_lists_[rank_]->Push(values, node, true);
   else
-    h = open_lists_[rank_]->EvaluateAndPush(state, node, true);
+    open_lists_[rank_]->Push(values, node, true);
 
   graphs_[rank_]->SetH(node, h);
   set_best_h(h);
@@ -223,7 +222,7 @@ int SIMHDGBFS1::Expand(int node, vector<int> &state) {
     if (closed != -1) continue;
 
     auto &values = value_array[index];
-    int h = Evaluate(child, -(index + 1), node, values);
+    int h = EvaluateWithParent(child, -(index + 1), node, values);
 
     if (h == -1) {
       IncrementDeadEnds();
@@ -292,8 +291,8 @@ int SIMHDGBFS1::Expand(int node, vector<int> &state) {
   return -1;
 }
 
-int SIMHDGBFS1::Evaluate(const vector<int> &state, int node, int parent,
-                         vector<int> &values) {
+int SIMHDGBFS1::EvaluateWithParent(const vector<int> &state, int node,
+                                   int parent, vector<int> &values) {
   ++evaluated_;
 
   values.clear();

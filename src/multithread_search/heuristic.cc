@@ -1,11 +1,11 @@
-#include "evaluator.h"
+#include "multithread_search/heuristic.h"
 
 namespace pplanner {
 
-Evaluator::~Evaluator() {}
+Heuristic::~Heuristic() {}
 
-int Evaluate(const std::vector<std::shared_ptr<Evaluator> > evaluators,
-             const std::vector<int> &state, int node,
+int Evaluate(const std::vector<std::shared_ptr<Heuristic> > evaluators,
+             const std::vector<int> &state, std::shared_ptr<SearchNode> node,
              std::vector<int> &values) {
   values.clear();
 
@@ -18,5 +18,4 @@ int Evaluate(const std::vector<std::shared_ptr<Evaluator> > evaluators,
 
   return values[0];
 }
-
 } // namespace pplanner

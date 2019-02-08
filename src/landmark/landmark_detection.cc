@@ -31,7 +31,7 @@ void SetPossibleAchievers(const Landmark &psi,
                           shared_ptr<const SASPlus> problem,
                           shared_ptr<const RelaxedSASPlus> r_problem,
                           shared_ptr<LandmarkGraph> graph) {
-  static vector<bool> closed(problem->n_actions(), false);
+  vector<bool> closed(problem->n_actions(), false);
 
   std::fill(closed.begin(), closed.end(), false);
   int psi_id = graph->ToId(psi);
@@ -55,7 +55,7 @@ void SetPossibleAchievers(const Landmark &psi,
 void RRPG(const Landmark &psi, shared_ptr<const SASPlus> problem,
           shared_ptr<const RelaxedSASPlus> r_problem,
           const vector<int> &initial, shared_ptr<RPG> rrpg) {
-  static vector<bool> black_list(r_problem->n_actions(), false);
+  vector<bool> black_list(r_problem->n_actions(), false);
 
   std::fill(black_list.begin(), black_list.end(), false);
 
@@ -90,7 +90,7 @@ void SetFirstAchievers(const Landmark &psi, shared_ptr<const RPG> rrpg,
 vector<pair<int, int> > ExtendedPreconditions(const Landmark &psi,
                                               shared_ptr<const SASPlus> problem,
                                               int action) {
-  static vector<bool> has_precondition(problem->n_variables(), false);
+  vector<bool> has_precondition(problem->n_variables(), false);
 
   std::fill(has_precondition.begin(), has_precondition.end(), false);
   vector<pair<int, int> > precondition;
@@ -139,10 +139,9 @@ vector<pair<int, int> > ExtendedPreconditions(const Landmark &psi,
   return precondition;
 }
 
-const pair_map& PreShared(const Landmark &psi,
-                          shared_ptr<const SASPlus> problem,
-                          shared_ptr<const LandmarkGraph> graph) {
-  static pair_map pre_shared;
+pair_map PreShared(const Landmark &psi, shared_ptr<const SASPlus> problem,
+                   shared_ptr<const LandmarkGraph> graph) {
+  pair_map pre_shared;
 
   pre_shared.clear();
   int psi_id = graph->ToId(psi);
@@ -173,12 +172,12 @@ const pair_map& PreShared(const Landmark &psi,
   return pre_shared;
 }
 
-const unordered_map<string, Landmark>& PreDisj(
+unordered_map<string, Landmark> PreDisj(
     const Landmark &psi,
     shared_ptr<const SASPlus> problem,
     shared_ptr<const LandmarkGraph> graph,
     unordered_map<string, int> &candidate_counts) {
-  static unordered_map<string, Landmark> pre_disj;
+  unordered_map<string, Landmark> pre_disj;
 
   candidate_counts.clear();
   pre_disj.clear();
@@ -350,14 +349,14 @@ void IdentifyLandmarks(shared_ptr<const SASPlus> problem,
 
     RRPG(psi, problem, r_problem, initial_facts, rrpg);
     SetFirstAchievers(psi, rrpg, graph);
-    auto &pre_shared = PreShared(psi, problem, graph);
+    auto pre_shared = PreShared(psi, problem, graph);
 
     for (auto p : pre_shared) {
       Landmark phi(p.first);
       AddLandmarkAndOrdering(phi, psi_id, LandmarkGraph::GREEDY, q, graph);
     }
 
-    auto &pre_disj = PreDisj(psi, problem, graph, candidate_counts);
+    auto pre_disj = PreDisj(psi, problem, graph, candidate_counts);
 
     for (auto v : pre_disj) {
       Landmark &phi = v.second;

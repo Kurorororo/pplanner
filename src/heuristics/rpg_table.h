@@ -76,8 +76,8 @@ class RPGTable : public RPG {
   };
 
   using PQueue = std::priority_queue<std::pair<int, int>,
-                                      std::vector<std::pair<int, int> >,
-                                      FirstGreater>;
+                                     std::vector<std::pair<int, int> >,
+                                     FirstGreater>;
 
   bool more_helpful_;
   int goal_counter_;

@@ -86,13 +86,12 @@ void HetroHDGBFSLG::Init(const boost::property_tree::ptree &pt) {
   if (auto opt = pt.get_optional<int>("take"))
     take_= opt.get();
 
-  std::vector<std::shared_ptr<Evaluator> > evaluators;
   auto open_list_option = pt.get_child("open_list");
-  open_ = OpenListFactory(open_list_option, evaluators);
+  open_ = OpenListFactory(open_list_option);
 
   if (auto opt = pt.get_optional<int>("local_open")) {
     use_local_open_ = true;
-    local_open_list_ = OpenListFactory(open_list_option, evaluators);
+    local_open_list_ = OpenListFactory(open_list_option);
   }
 
   if (auto opt = pt.get_optional<int>("reset_best"))

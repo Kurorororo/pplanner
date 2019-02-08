@@ -27,7 +27,7 @@ class ROOpenListImpl : public OpenListImpl<T> {
     auto &bucket = it->second;
     std::uint32_t r = engine_();
     std::uint32_t index = r % bucket.size();
-    int result = bucket[index];
+    auto result = bucket[index];
     bucket[index] = bucket.back();
     bucket.pop_back();
     if (bucket.empty()) buckets_.erase(it);

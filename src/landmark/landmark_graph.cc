@@ -144,8 +144,8 @@ void LandmarkGraph::Delete(const Landmark &landmark) {
 }
 
 void LandmarkGraph::GetAncestors(int start, vector<int> &ancestors) const {
-  static stack<int> open;
-  static unordered_set<int> closed;
+  stack<int> open;
+  unordered_set<int> closed;
 
   ancestors.clear();
   closed.clear();
@@ -219,8 +219,8 @@ bool LandmarkGraph::FindCycle(int current, vector<int> &path,
 }
 
 int LandmarkGraph::RemoveCycles(int start) {
-  static unordered_set<int> closed;
-  static vector<int> path;
+  unordered_set<int> closed;
+  vector<int> path;
 
   int cycles = -1;
 

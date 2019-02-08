@@ -150,8 +150,7 @@ void MultiFocusGBFS::AddNewFocus(int h, const vector<int> &state,
   rw_evaluator_->CopyBestToSearchGraph(node, graph_);
 
   best_h_ = h;
-  open_lists_.push_back(SharedOpenListFactory(open_list_option_,
-                                              evaluators_));
+  open_lists_.push_back(SharedOpenListFactory(open_list_option_));
   open_lists_.back()->Push(values, node, true);
   rw_plan_to_node_[node] = sequence;
   std::cout << "new focus h=" << h << std::endl;
@@ -294,7 +293,7 @@ void MultiFocusGBFS::InitialEvaluate() {
   std::vector<int> values;
   best_h_ = Evaluate(state, node, values);
   graph_->SetH(node, best_h_);
-  open_lists_.push_back(OpenListFactory(open_list_option_, evaluators_));
+  open_lists_.push_back(OpenListFactory(open_list_option_));
   open_lists_[0]->Push(values, node, false);
   std::cout << "Initial heuristic value for GBFS: " << best_h_ << std::endl;
 }

@@ -6,7 +6,6 @@
 #include <string>
 #include <vector>
 
-#include "evaluator.h"
 #include "open_list.h"
 #include "open_lists/open_list_impl.h"
 #include "open_lists/open_list_impl_factory.h"
@@ -21,11 +20,6 @@ class PreferredOpenList : public OpenList<T> {
   PreferredOpenList(const std::string &tie_breaking, int boost=0)
       : boost_(boost) { Init(tie_breaking); }
 
-  PreferredOpenList(const std::string &tie_breaking,
-                    const std::vector<std::shared_ptr<Evaluator> > &evaluators,
-                    int boost=0)
-      : boost_(boost), evaluators_(evaluators) { Init(tie_breaking); }
-
   ~PreferredOpenList() {}
 
   std::size_t size() const override { return lists_[0]->size(); }
@@ -34,9 +28,6 @@ class PreferredOpenList : public OpenList<T> {
     lists_[0]->Push(values, node);
     if (preferred) lists_[1]->Push(values, node);
   }
-
-  int EvaluateAndPush(const std::vector<int> &state, T node, bool preferred)
-    override;
 
   T Pop() override;
 
@@ -70,29 +61,10 @@ class PreferredOpenList : public OpenList<T> {
   std::vector<int> values_;
   std::array<int, 2> priorities_;
   std::array<std::shared_ptr<OpenListImpl<T> >, 2> lists_;
-  std::vector<std::shared_ptr<Evaluator> > evaluators_;
 };
 
 template<typename T>
-int PreferredOpenList<T>::EvaluateAndPush(const std::vector<int> &state, T node,
-                                          bool preferred) {
-  values_.clear();
-
-  for (auto evaluator : evaluators_) {
-    int value = evaluator->Evaluate(state, node);
-    if (value == -1) return value;
-    values_.push_back(value);
-  }
-
-  Push(values_, node, preferred);
-
-  return values_[0];
-}
-
-template<typename T>
 T PreferredOpenList<T>::Pop() {
-  if (lists_[0]->IsEmpty() && lists_[1]->IsEmpty()) return -1;
-
   if (lists_[0]->IsEmpty()) {
     --priorities_[1];
 

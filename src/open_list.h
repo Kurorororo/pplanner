@@ -14,9 +14,6 @@ class OpenList {
 
   virtual void Push(std::vector<int> &values, T node, bool preferred) = 0;
 
-  virtual int EvaluateAndPush(const std::vector<int> &state, T node,
-                              bool preferred) = 0;
-
   virtual T Pop() = 0;
 
   virtual bool IsEmpty() const = 0;

@@ -7,7 +7,6 @@
 #include <string>
 #include <vector>
 
-#include "evaluator.h"
 #include "open_lists/single_open_list.h"
 
 namespace pplanner {
@@ -19,11 +18,6 @@ class PreferredPlusOpenList : public SingleOpenList<T> {
 
   explicit PreferredPlusOpenList(const std::string &tie_breaking)
       : SingleOpenList<T>(tie_breaking), weight_(1) {}
-
-  PreferredPlusOpenList(
-      const std::string &tie_breaking,
-      const std::vector<std::shared_ptr<Evaluator> > &evaluators)
-        : SingleOpenList<T>(tie_breaking, evaluators), weight_(1) {}
 
   ~PreferredPlusOpenList() {}
 

@@ -7,7 +7,6 @@
 #include <string>
 #include <vector>
 
-#include "evaluator.h"
 #include "open_list.h"
 #include "open_lists/open_list_impl.h"
 #include "open_lists/open_list_impl_factory.h"
@@ -22,10 +21,6 @@ class SingleOpenList : public OpenList<T> {
   explicit SingleOpenList(const std::string &tie_breaking)
       : list_(OpenListImplFactory<T>(tie_breaking)) {}
 
-  SingleOpenList(const std::string &tie_breaking,
-                 const std::vector<std::shared_ptr<Evaluator> > &evaluators)
-      : list_(OpenListImplFactory<T>(tie_breaking)), evaluators_(evaluators) {}
-
   ~SingleOpenList() {}
 
   std::size_t size() const override { return list_->size(); }
@@ -34,21 +29,6 @@ class SingleOpenList : public OpenList<T> {
     assert(list_ != nullptr);
 
     list_->Push(values, node);
-  }
-
-  int EvaluateAndPush(const std::vector<int> &state, T node, bool preferred)
-    override {
-    values_.clear();
-
-    for (auto evaluator : evaluators_) {
-      int value = evaluator->Evaluate(state, node);
-      if (value == -1) return value;
-      values_.push_back(value);
-    }
-
-    Push(values_, node, preferred);
-
-    return values_[0];
   }
 
   T Pop() override {
@@ -76,7 +56,6 @@ class SingleOpenList : public OpenList<T> {
  private:
   std::vector<int> values_;
   std::shared_ptr<OpenListImpl<T> > list_;
-  std::vector<std::shared_ptr<Evaluator> > evaluators_;
 };
 
 } // namespace pplanner

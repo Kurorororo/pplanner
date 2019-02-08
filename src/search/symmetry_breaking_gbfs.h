@@ -87,6 +87,7 @@ class SBGBFS : public Search {
   int n_preferreds_;
   int best_h_;
   std::shared_ptr<const SASPlus> problem_;
+  std::vector<std::shared_ptr<Evaluator> > evaluators_;
   std::shared_ptr<Evaluator> preferring_;
   std::unique_ptr<SuccessorGenerator> generator_;
   std::shared_ptr<SearchGraph> graph_;
