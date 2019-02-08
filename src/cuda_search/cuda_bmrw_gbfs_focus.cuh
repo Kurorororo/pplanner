@@ -91,7 +91,7 @@ class CudaBMRWGBFSFocus : public Search {
   std::shared_ptr<LandmarkCountBase> lmcount_;
   boost::property_tree::ptree open_option_;
   std::vector<std::shared_ptr<Evaluator> > evaluators_;
-  std::vector<std::unique_ptr<OpenList> > opens_;
+  std::vector<std::unique_ptr<OpenList<int> > > opens_;
   std::unique_ptr<OpenList> rw_open_;
   CudaSASPlus *cuda_problem_;
   CudaSuccessorGenerator *cuda_generator_;

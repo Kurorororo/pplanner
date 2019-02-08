@@ -8,7 +8,8 @@
 
 namespace pplanner {
 
-class FIFOOpenListImpl : public OpenListImpl {
+template<typename T>
+class FIFOOpenListImpl : public OpenListImpl<T> {
  public:
   FIFOOpenListImpl() : size_(0) {}
 
@@ -16,12 +17,12 @@ class FIFOOpenListImpl : public OpenListImpl {
 
   std::size_t size() const override { return size_; }
 
-  void Push(const std::vector<int> &values, int node) override {
+  void Push(const std::vector<int> &values, T node) override {
     buckets_[values].push_back(node);
     ++size_;
   }
 
-  int Pop() override {
+  T Pop() override {
     auto it = buckets_.begin();
     auto &bucket = it->second;
     auto result = bucket.front();
@@ -44,7 +45,7 @@ class FIFOOpenListImpl : public OpenListImpl {
 
  private:
   std::size_t size_;
-  std::map<std::vector<int>, std::deque<int> > buckets_;
+  std::map<std::vector<int>, std::deque<T> > buckets_;
 };
 
 } // namespace pplanner

@@ -299,14 +299,14 @@ void MultiFocusGBFS::InitialEvaluate() {
   std::cout << "Initial heuristic value for GBFS: " << best_h_ << std::endl;
 }
 
-std::shared_ptr<OpenList> MultiFocusGBFS::GreedyOpen() {
+std::shared_ptr<OpenList<int> > MultiFocusGBFS::GreedyOpen() {
   thread_local std::vector<int> minimum_values;
 
   auto iter = std::remove_if(open_lists_.begin(), open_lists_.end(),
-                             [](std::shared_ptr<OpenList> p)->bool
+                             [](std::shared_ptr<OpenList<int> > p)->bool
                              { return p->IsEmpty(); });
   open_lists_.erase(iter, open_lists_.end());
-  std::shared_ptr<OpenList> result = nullptr;
+  std::shared_ptr<OpenList<int> > result = nullptr;
 
   for (auto open : open_lists_) {
     if (result == nullptr || open->MinimumValues() < minimum_values) {

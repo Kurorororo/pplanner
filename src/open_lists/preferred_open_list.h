@@ -13,7 +13,8 @@
 
 namespace pplanner {
 
-class PreferredOpenList : public OpenList {
+template<typename T>
+class PreferredOpenList : public OpenList<T> {
  public:
   PreferredOpenList() : boost_(0) {}
 
@@ -29,15 +30,15 @@ class PreferredOpenList : public OpenList {
 
   std::size_t size() const override { return lists_[0]->size(); }
 
-  void Push(std::vector<int> &values, int node, bool preferred) override {
+  void Push(std::vector<int> &values, T node, bool preferred) override {
     lists_[0]->Push(values, node);
     if (preferred) lists_[1]->Push(values, node);
   }
 
-  int EvaluateAndPush(const std::vector<int> &state, int node, bool preferred)
+  int EvaluateAndPush(const std::vector<int> &state, T node, bool preferred)
     override;
 
-  int Pop() override;
+  T Pop() override;
 
   bool IsEmpty() const override {
     return lists_[0]->IsEmpty() && lists_[1]->IsEmpty();
@@ -58,8 +59,8 @@ class PreferredOpenList : public OpenList {
 
  private:
   void Init(const std::string &tie_breaking) {
-    lists_[0] = OpenListImplFactory(tie_breaking);
-    lists_[1] = OpenListImplFactory(tie_breaking);
+    lists_[0] = OpenListImplFactory<T>(tie_breaking);
+    lists_[1] = OpenListImplFactory<T>(tie_breaking);
 
     priorities_[0] = 0;
     priorities_[1] = 0;
@@ -68,9 +69,47 @@ class PreferredOpenList : public OpenList {
   int boost_;
   std::vector<int> values_;
   std::array<int, 2> priorities_;
-  std::array<std::shared_ptr<OpenListImpl>, 2> lists_;
+  std::array<std::shared_ptr<OpenListImpl<T> >, 2> lists_;
   std::vector<std::shared_ptr<Evaluator> > evaluators_;
 };
+
+template<typename T>
+int PreferredOpenList<T>::EvaluateAndPush(const std::vector<int> &state, T node,
+                                          bool preferred) {
+  values_.clear();
+
+  for (auto evaluator : evaluators_) {
+    int value = evaluator->Evaluate(state, node);
+    if (value == -1) return value;
+    values_.push_back(value);
+  }
+
+  Push(values_, node, preferred);
+
+  return values_[0];
+}
+
+template<typename T>
+T PreferredOpenList<T>::Pop() {
+  if (lists_[0]->IsEmpty() && lists_[1]->IsEmpty()) return -1;
+
+  if (lists_[0]->IsEmpty()) {
+    --priorities_[1];
+
+    return lists_[1]->Pop();
+  }
+
+  if (lists_[1]->IsEmpty()) {
+    --priorities_[0];
+
+    return lists_[0]->Pop();
+  }
+
+  int arg_max = priorities_[0] > priorities_[1] ? 0 : 1;
+  --priorities_[arg_max];
+
+  return lists_[arg_max]->Pop();
+}
 
 } // namespace pplanner
 

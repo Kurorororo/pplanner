@@ -17,22 +17,22 @@ std::queue<std::string> ExampleSASPlusLines();
 class PreferredOpenListTest: public ::testing::Test {
  protected:
   virtual void SetUp() {
-    list_0_ = std::unique_ptr<PreferredOpenList>(
-        new PreferredOpenList("fifo", 2));
+    list_0_ = std::unique_ptr<PreferredOpenList<int> >(
+        new PreferredOpenList<int>("fifo", 2));
 
     std::vector<std::shared_ptr<Evaluator> > evaluators;
     auto lines = ExampleSASPlusLines();
     auto sas = std::make_shared<SASPlus>();
     sas->InitFromLines(lines);
     evaluators.push_back(std::make_shared<Blind>(sas));
-    list_1_ = std::unique_ptr<PreferredOpenList>(
-       new PreferredOpenList("fifo", evaluators, 2));
+    list_1_ = std::unique_ptr<PreferredOpenList<int> >(
+       new PreferredOpenList<int>("fifo", evaluators, 2));
 
     state_ = sas->initial();
   }
 
-  std::unique_ptr<PreferredOpenList> list_0_;
-  std::unique_ptr<PreferredOpenList> list_1_;
+  std::unique_ptr<PreferredOpenList<int> > list_0_;
+  std::unique_ptr<PreferredOpenList<int> > list_1_;
   std::vector<int> state_;
 };
 

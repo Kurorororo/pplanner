@@ -8,7 +8,7 @@ class FIFOOpenListImplTest: public ::testing::Test {
  protected:
   virtual void SetUp() {}
 
-  FIFOOpenListImpl list_;
+  FIFOOpenListImpl<int> list_;
 };
 
 TEST_F(FIFOOpenListImplTest, IsEmptyWorks) {

@@ -87,8 +87,8 @@ class CudaBMRWGBFSShare : public Search {
   std::shared_ptr<SuccessorGenerator> generator_;
   std::shared_ptr<SearchGraphWithLandmarks> graph_;
   std::shared_ptr<LandmarkCountBase> lmcount_;
-  std::unique_ptr<OpenList> open_;
-  std::unique_ptr<OpenList> rw_open_;
+  std::unique_ptr<OpenList<int> > open_;
+  std::unique_ptr<OpenList<int> > rw_open_;
   CudaSASPlus *cuda_problem_;
   CudaSuccessorGenerator *cuda_generator_;
   CudaLandmarkGraph *cuda_landmark_graph_;

@@ -8,7 +8,8 @@
 
 namespace pplanner {
 
-class LIFOOpenListImpl : public OpenListImpl {
+template<typename T>
+class LIFOOpenListImpl : public OpenListImpl<T> {
  public:
   LIFOOpenListImpl() : size_(0) {}
 
@@ -16,12 +17,12 @@ class LIFOOpenListImpl : public OpenListImpl {
 
   std::size_t size() const override { return size_; }
 
-  void Push(const std::vector<int> &values, int node) override {
+  void Push(const std::vector<int> &values, T node) override {
     buckets_[values].push(node);
     ++size_;
   }
 
-  int Pop() override {
+  T Pop() override {
     auto it = buckets_.begin();
     auto &bucket = it->second;
     auto result = bucket.top();
@@ -44,7 +45,7 @@ class LIFOOpenListImpl : public OpenListImpl {
 
  private:
   std::size_t size_;
-  std::map<std::vector<int>, std::stack<int> > buckets_;
+  std::map<std::vector<int>, std::stack<T> > buckets_;
 };
 
 } // namespace pplanner

@@ -5,7 +5,8 @@
 
 namespace pplanner {
 
-class ROOpenListImpl : public OpenListImpl {
+template<typename T>
+class ROOpenListImpl : public OpenListImpl<T> {
  public:
   ROOpenListImpl() : size_(0) {
     std::random_device rng;
@@ -16,12 +17,12 @@ class ROOpenListImpl : public OpenListImpl {
 
   std::size_t size() const override { return size_; }
 
-  void Push(const std::vector<int> &values, int node) override {
+  void Push(const std::vector<int> &values, T node) override {
     buckets_[values].push_back(node);
     ++size_;
   }
 
-  int Pop() override {
+  T Pop() override {
     auto it = buckets_.begin();
     auto &bucket = it->second;
     std::uint32_t r = engine_();
@@ -47,7 +48,7 @@ class ROOpenListImpl : public OpenListImpl {
 
  private:
   std::size_t size_;
-  std::map<std::vector<int>, std::vector<int> > buckets_;
+  std::map<std::vector<int>, std::vector<T> > buckets_;
   std::mt19937 engine_;
 };
 

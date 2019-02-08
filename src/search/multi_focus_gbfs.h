@@ -93,7 +93,7 @@ class MultiFocusGBFS : public Search {
 
   void InitialEvaluate();
 
-  std::shared_ptr<OpenList> GreedyOpen();
+  std::shared_ptr<OpenList<int> > GreedyOpen();
 
   int Expand();
 
@@ -138,7 +138,7 @@ class MultiFocusGBFS : public Search {
   std::vector<std::shared_ptr<Evaluator> > evaluators_;
   std::shared_ptr<Evaluator> preferring_;
   boost::property_tree::ptree open_list_option_;
-  std::vector<std::shared_ptr<OpenList> > open_lists_;
+  std::vector<std::shared_ptr<OpenList<int> > > open_lists_;
 };
 
 } // namespace pplanner

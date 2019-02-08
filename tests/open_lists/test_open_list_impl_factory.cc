@@ -5,7 +5,7 @@
 namespace pplanner {
 
 TEST(OpenListImplFactoryTest, FIFO) {
-  auto list = OpenListImplFactory("fifo");
+  auto list = OpenListImplFactory<int>("fifo");
   int node = 0;
   std::vector<int> values{0, 1, 2};
   list->Push(values, node);

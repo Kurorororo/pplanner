@@ -12,24 +12,25 @@
 
 namespace pplanner {
 
-class PreferredPlusOpenList : public SingleOpenList {
+template<typename T>
+class PreferredPlusOpenList : public SingleOpenList<T> {
  public:
-  PreferredPlusOpenList() : SingleOpenList(), weight_(1) {}
+  PreferredPlusOpenList() : SingleOpenList<T>(), weight_(1) {}
 
   explicit PreferredPlusOpenList(const std::string &tie_breaking)
-      : SingleOpenList(tie_breaking), weight_(1) {}
+      : SingleOpenList<T>(tie_breaking), weight_(1) {}
 
   PreferredPlusOpenList(
       const std::string &tie_breaking,
       const std::vector<std::shared_ptr<Evaluator> > &evaluators)
-        : SingleOpenList(tie_breaking, evaluators), weight_(1) {}
+        : SingleOpenList<T>(tie_breaking, evaluators), weight_(1) {}
 
   ~PreferredPlusOpenList() {}
 
-  void Push(std::vector<int> &values, int node, bool preferred) override {
+  void Push(std::vector<int> &values, T node, bool preferred) override {
     if (!preferred) values[0] += weight_;
 
-    SingleOpenList::Push(values, node, preferred);
+    SingleOpenList<T>::Push(values, node, preferred);
   }
 
   void Boost() override {}

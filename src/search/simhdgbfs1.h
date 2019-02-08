@@ -157,8 +157,8 @@ class SIMHDGBFS1 : public Search {
   std::shared_ptr<DistributionHash> z_hash_;
   std::vector<std::vector<std::shared_ptr<Evaluator> > > evaluators_;
   std::vector<std::shared_ptr<DistributedSearchGraph> > graphs_;
-  std::vector<std::unique_ptr<OpenList> > open_lists_;
-  std::vector<std::unique_ptr<OpenList> > local_open_lists_;
+  std::vector<std::unique_ptr<OpenList<int> > > open_lists_;
+  std::vector<std::unique_ptr<OpenList<int> > > local_open_lists_;
 };
 
 } // namespace pplanner

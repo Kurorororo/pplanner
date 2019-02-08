@@ -219,7 +219,7 @@ class SBHDGBFS : public Search {
   std::shared_ptr<Evaluator> preferring_;
   std::unique_ptr<SuccessorGenerator> generator_;
   std::shared_ptr<DistributedSearchGraph> graph_;
-  std::unique_ptr<OpenList> open_list_;
+  std::unique_ptr<OpenList<int> > open_list_;
   std::shared_ptr<DistributionHash> z_hash_;
   std::shared_ptr<SymmetryManager> manager_;
   std::vector<uint32_t> states_;

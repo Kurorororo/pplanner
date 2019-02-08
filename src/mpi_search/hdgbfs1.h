@@ -220,8 +220,8 @@ class HDGBFS1 : public Search {
   std::shared_ptr<Evaluator> preferring_;
   std::unique_ptr<SuccessorGenerator> generator_;
   std::shared_ptr<DistributedSearchGraph> graph_;
-  std::unique_ptr<OpenList> open_list_;
-  std::unique_ptr<OpenList> local_open_list_;
+  std::unique_ptr<OpenList<int> > open_list_;
+  std::unique_ptr<OpenList<int> > local_open_list_;
   std::shared_ptr<DistributionHash> z_hash_;
   std::unique_ptr<SSSApproximater> sss_aproximater_;
   std::unique_ptr<LDS> lds_;

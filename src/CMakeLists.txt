@@ -28,15 +28,6 @@ add_library(evaluators STATIC
   ./heuristics/new_operator.cc
   ./heuristics/width.cc)
 
-add_library(open_lists STATIC
-  open_list.cc
-  open_list_factory.cc
-  ./open_lists/alternating_open_list.cc
-  ./open_lists/single_open_list.cc
-  ./open_lists/preferred_open_list.cc
-  ./open_lists/open_list_impl_factory.cc
-  ./open_lists/open_list_impl.cc)
-
 add_library(search STATIC
   search.cc
   search_factory.cc

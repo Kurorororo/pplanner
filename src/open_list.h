@@ -5,18 +5,19 @@
 
 namespace pplanner {
 
+template<typename T = int >
 class OpenList {
  public:
   virtual ~OpenList() = 0;
 
   virtual std::size_t size() const = 0;
 
-  virtual void Push(std::vector<int> &values, int node, bool preferred) = 0;
+  virtual void Push(std::vector<int> &values, T node, bool preferred) = 0;
 
-  virtual int EvaluateAndPush(const std::vector<int> &state, int node,
+  virtual int EvaluateAndPush(const std::vector<int> &state, T node,
                               bool preferred) = 0;
 
-  virtual int Pop() = 0;
+  virtual T Pop() = 0;
 
   virtual bool IsEmpty() const = 0;
 
@@ -28,6 +29,9 @@ class OpenList {
 
   virtual void Boost() = 0;
 };
+
+template<typename T>
+OpenList<T>::~OpenList() {}
 
 } // namespace pplanner
 
