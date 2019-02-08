@@ -42,7 +42,8 @@ void MultiGBFS::Init(const boost::property_tree::ptree &pt) {
     closed_exponent = closed_exponent_opt.get();
 
   auto open_list_option = pt.get_child("open_list");
-  open_list_ = OpenListFactory<std::shared_ptr<SearchNode> >(open_list_option);
+  open_list_ = OpenListFactory<std::shared_ptr<SearchNodeWithHash> >(
+      open_list_option);
 
   if (auto opt = pt.get_optional<int>("n_threads")) n_threads_ = opt.get();
 
@@ -65,13 +66,14 @@ void MultiGBFS::Init(const boost::property_tree::ptree &pt) {
 
 void MultiGBFS::InitialEvaluate() {
   auto state = problem_->initial();
-  auto node = std::make_shared<SearchNode>();
+  auto node = std::make_shared<SearchNodeWithHash>();
   node->cost = 0;
   node->action = -1;
   node->parent = nullptr;
   node->packed_state.resize(packer_->block_size());
   packer_->Pack(state, node->packed_state.data());
   node->hash = hash1_->operator()(state);
+  node->hash2 = hash2_->operator()(state);
 
   std::vector<int> values;
   node->h = Evaluate(0, state, node, values);
@@ -80,7 +82,7 @@ void MultiGBFS::InitialEvaluate() {
 }
 
 int MultiGBFS::Evaluate(int i, const vector<int> &state,
-                        std::shared_ptr<SearchNode> node,
+                        std::shared_ptr<SearchNodeWithHash> node,
                         vector<int> &values) {
   values.clear();
 
@@ -114,8 +116,7 @@ void MultiGBFS::Expand(int i) {
     if (node == nullptr) continue;
 
     packer_->Unpack(node->packed_state.data(), state);
-    uint32_t hash = hash2_->operator()(state);
-    int idx = hash % (n_threads_ * 1);
+    int idx = node->hash2 % (n_threads_ * 1);
 
     if (LockedIsClosed(idx, node->hash, node->packed_state))
       continue;
@@ -145,12 +146,12 @@ void MultiGBFS::Expand(int i) {
 
       uint32_t hash1 = hash1_->HashByDifference(o, node->hash, state, child);
       packer_->Pack(child, packed.data());
-      uint32_t hash2 = hash2_->operator()(state);
+      uint32_t hash2 = hash2_->HashByDifference(o, node->hash2, state, child);
       int idx = hash2 % (n_threads_ * 1);
 
       if (LockedIsClosed(idx, hash1, packed)) continue;
 
-      auto child_node = std::make_shared<SearchNode>();
+      auto child_node = std::make_shared<SearchNodeWithHash>();
       child_node->cost = node->cost + problem_->ActionCost(o);
       child_node->action = o;
       child_node->parent = node;
@@ -183,7 +184,7 @@ void MultiGBFS::Expand(int i) {
   WriteStat(expanded, evaluated, generated, dead_ends);
 }
 
-std::shared_ptr<SearchNode> MultiGBFS::Search() {
+std::shared_ptr<SearchNodeWithHash> MultiGBFS::Search() {
   InitialEvaluate();
   vector<std::thread> ts;
 

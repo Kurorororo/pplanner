@@ -18,6 +18,10 @@ struct SearchNode {
   std::vector<uint8_t> landmark;
 };
 
+struct SearchNodeWithHash : public SearchNode {
+  uint32_t hash2;
+};
+
 std::vector<int> ExtractPath(std::shared_ptr<const SearchNode> node);
 
 }

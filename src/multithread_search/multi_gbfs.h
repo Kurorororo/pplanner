@@ -54,16 +54,17 @@ class MultiGBFS : public Search {
 
   void DumpStatistics() const override;
 
-  std::shared_ptr<SearchNode> Search();
+  std::shared_ptr<SearchNodeWithHash> Search();
 
   void InitialEvaluate();
 
   void Expand(int i);
 
   int Evaluate(int i, const std::vector<int> &state,
-               std::shared_ptr<SearchNode> node, std::vector<int> &values);
+               std::shared_ptr<SearchNodeWithHash> node,
+               std::vector<int> &values);
 
-  std::shared_ptr<SearchNode> LockedPop() {
+  std::shared_ptr<SearchNodeWithHash> LockedPop() {
     std::lock_guard<std::mutex> lock(open_mtx_);
 
     if (open_list_->IsEmpty()) return nullptr;
@@ -71,14 +72,15 @@ class MultiGBFS : public Search {
     return open_list_->Pop();
   }
 
-  void LockedPush(std::vector<int> &values, std::shared_ptr<SearchNode> node,
+  void LockedPush(std::vector<int> &values,
+                  std::shared_ptr<SearchNodeWithHash> node,
                   bool is_preferred) {
     std::lock_guard<std::mutex> lock(open_mtx_);
 
     open_list_->Push(values, node, is_preferred);
   }
 
-  void LockedClose(int i, std::shared_ptr<SearchNode> node) {
+  void LockedClose(int i, std::shared_ptr<SearchNodeWithHash> node) {
     std::lock_guard<std::shared_timed_mutex> lock(*closed_mtx_[i]);
 
     closed_[i]->Close(node);
@@ -97,7 +99,7 @@ class MultiGBFS : public Search {
     return goal_ != nullptr;
   }
 
-  void LockedWriteGoal(std::shared_ptr<SearchNode> goal) {
+  void LockedWriteGoal(std::shared_ptr<SearchNodeWithHash> goal) {
     std::lock_guard<std::shared_timed_mutex> lock(goal_mtx_);
 
     goal_ = goal;
@@ -123,7 +125,7 @@ class MultiGBFS : public Search {
   int evaluated_;
   int generated_;
   int dead_ends_;
-  std::shared_ptr<SearchNode> goal_;
+  std::shared_ptr<SearchNodeWithHash> goal_;
   std::shared_ptr<const SASPlus> problem_;
   std::unique_ptr<SuccessorGenerator> generator_;
   std::unique_ptr<StatePacker> packer_;
@@ -132,7 +134,7 @@ class MultiGBFS : public Search {
   std::vector<std::shared_ptr<ClosedList> > closed_;
   std::vector<std::shared_ptr<Heuristic> > preferring_;
   std::vector<std::vector<std::shared_ptr<Heuristic> > > evaluators_;
-  std::shared_ptr<OpenList<std::shared_ptr<SearchNode> > > open_list_;
+  std::shared_ptr<OpenList<std::shared_ptr<SearchNodeWithHash> > > open_list_;
   std::mutex open_mtx_;
   std::mutex stat_mtx_;
   std::vector<std::unique_ptr<std::shared_timed_mutex> > closed_mtx_;
