@@ -11,7 +11,7 @@ set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/lib)
-set(CMAKE_CXX_FLAGS "-Wall")
+set(CMAKE_CXX_FLAGS "-pthread -Wall")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
 set(CMAKE_CXX_FLAGS_DEBUG "-O3 -g")
 set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O3 -g")
@@ -56,7 +56,6 @@ if (MPI_CXX_FOUND)
     ${MPI_CXX_COMPILE_FLAGS} "-Wall" "-O3" "-DNDEBG")
   target_link_libraries(mpi_planner
     search
-    open_lists
     evaluators
     landmark
     ff
@@ -110,7 +109,6 @@ if (CUDA_FOUND)
     ./src/utils/file_utils.cc)
   target_link_libraries(cuda_planner
     search
-    open_lists
     evaluators
     landmark
     ff
@@ -151,7 +149,6 @@ add_executable(planner
   ./src/utils/file_utils.cc)
 target_link_libraries(planner
   search
-  open_lists
   evaluators
   landmark
   ff
@@ -300,38 +297,27 @@ target_link_libraries(test_ff_add sas_plus gtest gtest_main pthread)
 add_test(NAME FFAddTest COMMAND test_ff_add)
 
 add_executable(test_fifo_open_list_impl
-  ./tests/open_lists/test_fifo_open_list_impl.cc
-  ./src/open_lists/open_list_impl.cc)
+  ./tests/open_lists/test_fifo_open_list_impl.cc)
 target_link_libraries(test_fifo_open_list_impl gtest gtest_main pthread)
 add_test(NAME FIFOOpenListImplTest COMMAND test_fifo_open_list_impl)
 
 add_executable(test_open_list_impl_factory
-  ./tests/open_lists/test_open_list_impl_factory.cc
-  ./src/open_lists/open_list_impl_factory.cc
-  ./src/open_lists/open_list_impl.cc)
+  ./tests/open_lists/test_open_list_impl_factory.cc)
 target_link_libraries(test_open_list_impl_factory gtest gtest_main pthread)
 add_test(NAME OpenListImplFactoryTest COMMAND test_open_list_impl_factory)
 
 add_executable(test_single_open_list
   ./tests/open_lists/test_single_open_list.cc
-  ./src/open_lists/single_open_list.cc
-  ./src/open_lists/open_list_impl_factory.cc
-  ./src/open_lists/open_list_impl.cc
   ./src/heuristics/blind.cc
-  ./src/evaluator.cc
-  ./src/open_list.cc)
+  ./src/evaluator.cc)
 target_link_libraries(test_single_open_list
   sas_plus search_graph gtest gtest_main pthread)
 add_test(NAME SingleOpenListTest COMMAND test_single_open_list)
 
 add_executable(test_preferred_open_list
   ./tests/open_lists/test_preferred_open_list.cc
-  ./src/open_lists/preferred_open_list.cc
-  ./src/open_lists/open_list_impl_factory.cc
-  ./src/open_lists/open_list_impl.cc
   ./src/heuristics/blind.cc
-  ./src/evaluator.cc
-  ./src/open_list.cc)
+  ./src/evaluator.cc)
 target_link_libraries(test_preferred_open_list
   sas_plus search_graph gtest gtest_main pthread)
 add_test(NAME PreferredOpenListTest COMMAND test_preferred_open_list)
