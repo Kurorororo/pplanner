@@ -23,11 +23,6 @@ std::unique_ptr<OpenList<T> > OpenListFactory(
   if (auto option = pt.get_optional<std::string>("tie_breaking"))
     tie_breaking = option.get();
 
-  bool alternating = false;
-
-  if (auto option = pt.get_optional<int>("alternating"))
-    alternating = option.get() == 1;
-
   int preferred = 0;
 
   if (auto option = pt.get_optional<int>("preferred"))
@@ -58,11 +53,6 @@ std::shared_ptr<OpenList<T> > SharedOpenListFactory(
   if (auto option = pt.get_optional<std::string>("tie_breaking"))
     tie_breaking = option.get();
 
-  bool alternating = false;
-
-  if (auto option = pt.get_optional<int>("alternating"))
-    alternating = option.get() == 1;
-
   int preferred = 0;
 
   if (auto option = pt.get_optional<int>("preferred"))
@@ -76,6 +66,10 @@ std::shared_ptr<OpenList<T> > SharedOpenListFactory(
   switch (preferred) {
     case 0:
       return std::make_shared<SingleOpenList<T> >(tie_breaking);
+    case 1:
+      return std::make_shared<PreferredOpenList<T> >(tie_breaking, n_boost);
+    case 2:
+      return std::make_shared<PreferredPlusOpenList<T> >(tie_breaking);
   }
 
   return std::make_shared<SingleOpenList<T> >(tie_breaking);

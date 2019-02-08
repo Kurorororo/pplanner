@@ -17,16 +17,12 @@ std::queue<std::string> ExampleSASPlusLines();
 class SingleOpenListTest: public ::testing::Test {
  protected:
   virtual void SetUp() {
-    list_0_ = std::unique_ptr<SingleOpenList<int> >(
-        new SingleOpenList<int>("fifo"));
+    list_0_ = std::make_unique<SingleOpenList<int> >("fifo");
 
-    std::vector<std::shared_ptr<Evaluator> > evaluators;
     auto lines = ExampleSASPlusLines();
     auto sas = std::make_shared<SASPlus>();
     sas->InitFromLines(lines);
-    evaluators.push_back(std::make_shared<Blind>(sas));
-    list_1_ = std::unique_ptr<SingleOpenList<int> >(
-       new SingleOpenList<int>("fifo", evaluators));
+    list_1_ = std::make_unique<SingleOpenList<int> >("fifo");
 
     state_ = sas->initial();
   }
@@ -46,12 +42,6 @@ TEST_F(SingleOpenListTest, PushWorks) {
   std::vector<int> values{0, 1, 2};
   list_0_->Push(values, node, false);
   EXPECT_FALSE(list_0_->IsEmpty());
-}
-
-TEST_F(SingleOpenListTest, EvaluateAndPushWorks) {
-  int node = 0;
-  list_1_->Push(state_, node, false);
-  EXPECT_FALSE(list_1_->IsEmpty());
 }
 
 TEST_F(SingleOpenListTest, PopWorks) {

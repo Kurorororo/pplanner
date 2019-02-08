@@ -41,9 +41,7 @@ add_library(search STATIC
   ./search/multi_focus_gbfs.cc
   ./search/simhdgbfs.cc
   ./search/simhdgbfs1.cc
-  ./symmetry/symmetry.cc)
-
-add_library(multithread STATIC
+  ./symmetry/symmetry.cc
   ./multithread_search/search_node.cc
   ./multithread_search/closed_list.cc
   ./multithread_search/heuristic.cc

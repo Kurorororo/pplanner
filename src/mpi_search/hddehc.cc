@@ -156,9 +156,11 @@ vector<int> HDDEHC::InitialEvaluate(bool eager_dd) {
       node = graph_->GenerateNode(-1, -1, state, -1);
 
     IncrementGenerated();
-    int h = open_list_->EvaluateAndPush(state, node, true);
+    std::vector<int> values;
+    int h = Evaluate(state, node, values);
     graph_->SetH(node, h);
     set_best_h(h);
+    open_list_->Push(values, node, true);
     std::cout << "Initial heuristic value: " << best_h() << std::endl;
     ++evaluated_;
   }

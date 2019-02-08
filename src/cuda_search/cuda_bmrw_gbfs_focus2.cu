@@ -235,7 +235,7 @@ void CudaBMRWGBFSFocus2::InitialEvaluate() {
   ++evaluated_;
 
   std::vector<int> values{best_h_};
-  opens_.push_back(SharedOpenListFactory(open_option_, evaluators_));
+  opens_.push_back(SharedOpenListFactory(open_option_));
   opens_[0]->Push(values, node, false);
 }
 
@@ -243,7 +243,7 @@ int CudaBMRWGBFSFocus2::GreedyOpen() {
   int arg_min = -1;
 
   auto iter = std::remove_if(opens_.begin(), opens_.end(),
-                             [](std::shared_ptr<OpenList> p)->bool
+                             [](std::shared_ptr<OpenList<int> > p)->bool
                              { return p->IsEmpty(); });
   opens_.erase(iter, opens_.end());
   std::vector<int> minimum_values;

@@ -46,9 +46,9 @@ void MultiGBFS::Init(const boost::property_tree::ptree &pt) {
 
   if (auto opt = pt.get_optional<int>("n_threads")) n_threads_ = opt.get();
 
-  closed_.resize(n_threads_ * 3, std::make_shared<ClosedList>(closed_exponent));
+  closed_.resize(n_threads_ * 1, std::make_shared<ClosedList>(closed_exponent));
 
-  for (int i = 0; i < n_threads_ * 3; ++i)
+  for (int i = 0; i < n_threads_ * 1; ++i)
     closed_mtx_.push_back(std::make_unique<std::shared_timed_mutex>());
 
   preferring_.resize(n_threads_);
@@ -115,7 +115,7 @@ void MultiGBFS::Expand(int i) {
 
     packer_->Unpack(node->packed_state.data(), state);
     uint32_t hash = hash2_->operator()(state);
-    int idx = hash % (n_threads_ * 3);
+    int idx = hash % (n_threads_ * 1);
 
     if (LockedIsClosed(idx, node->hash, node->packed_state))
       continue;
@@ -146,7 +146,7 @@ void MultiGBFS::Expand(int i) {
       uint32_t hash1 = hash1_->HashByDifference(o, node->hash, state, child);
       packer_->Pack(child, packed.data());
       uint32_t hash2 = hash2_->operator()(state);
-      int idx = hash2 % (n_threads_ * 3);
+      int idx = hash2 % (n_threads_ * 1);
 
       if (LockedIsClosed(idx, hash1, packed)) continue;
 

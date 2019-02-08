@@ -148,7 +148,6 @@ add_executable(planner
   ./src/postprocess/action_elimination.cc
   ./src/utils/file_utils.cc)
 target_link_libraries(planner
-  multithread
   search
   evaluators
   landmark

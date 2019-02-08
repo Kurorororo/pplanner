@@ -1,5 +1,7 @@
 #include "multithread_search/closed_list.h"
 
+#include <iostream>
+
 namespace pplanner {
 
 bool ClosedList::IsClosed(uint32_t hash,
@@ -46,6 +48,7 @@ void ClosedList::Resize() {
   closed_mask_ = (1u << closed_exponent_) - 1;
   std::vector<std::shared_ptr<SearchNode> > new_closed(
       1 << closed_exponent_, nullptr);
+
 
   for (int k = 0, m = closed_.size(); k < m; ++k) {
     auto node = closed_[k];
