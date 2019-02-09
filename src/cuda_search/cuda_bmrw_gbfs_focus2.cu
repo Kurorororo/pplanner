@@ -286,7 +286,7 @@ int CudaBMRWGBFSFocus2::CpuExpand() {
   }
 
   for (auto o : applicable) {
-    problem_->ApplyEffect(o, staate, child);
+    problem_->ApplyEffect(o, state, child);
 
     int child_node = graph_->GenerateNodeIfNotClosed(o, node, state, child);
     if (child_node == -1) continue;

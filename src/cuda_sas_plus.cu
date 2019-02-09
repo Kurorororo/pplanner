@@ -13,6 +13,12 @@ void ApplyEffect(const CudaSASPlus &problem, int i, const int *state,
                  int *child) {
   memcpy(child, state, problem.n_variables * sizeof(int));
 
+  int b = problem.effect_offsets[i];
+  int e = problem.effect_offsets[i + 1];
+
+  for (int j = b; j < e; ++j)
+    child[problem.effect_vars[j]] = problem.effect_values[j];
+
   if (problem.use_conditional) {
     int b1 = problem.effect_condition_offsets_1[i];
     int e1 = problem.effect_condition_offsets_1[i + 1];
@@ -39,12 +45,6 @@ void ApplyEffect(const CudaSASPlus &problem, int i, const int *state,
       }
     }
   }
-
-  int b = problem.effect_offsets[i];
-  int e = problem.effect_offsets[i + 1];
-
-  for (int j = b; j < e; ++j)
-    child[problem.effect_vars[j]] = problem.effect_values[j];
 }
 
 __device__

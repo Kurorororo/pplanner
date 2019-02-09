@@ -108,6 +108,7 @@ void ApplyEffectTest(std::shared_ptr<const SASPlus> problem,
                      const CudaSASPlus &cuda_problem) {
   auto state = problem->initial();
   auto child = state;
+  auto tmp = state;
   int *cuda_state = nullptr;
   CudaMallocAndCopy((void**)&cuda_state, state.data(),
                     problem->n_variables() * sizeof(int));
@@ -116,47 +117,47 @@ void ApplyEffectTest(std::shared_ptr<const SASPlus> problem,
                     problem->n_variables() * sizeof(int));
 
   ApplyEffectKernel<<<1, 1>>>(cuda_problem, 4, cuda_state, cuda_child);
-  problem->ApplyEffect(4, state);
+  problem->ApplyEffect(4, state, tmp);
   CUDA_CHECK(cudaMemcpy(child.data(), cuda_child,
                         problem->n_variables() * sizeof(int),
                         cudaMemcpyDeviceToHost));
-  assert(state == child);
+  assert(tmp == child);
 
   ApplyEffectKernel<<<1, 1>>>(cuda_problem, 2, cuda_child, cuda_state);
-  problem->ApplyEffect(2, state);
+  problem->ApplyEffect(2, state, tmp);
   CUDA_CHECK(cudaMemcpy(child.data(), cuda_state,
                         problem->n_variables() * sizeof(int),
                         cudaMemcpyDeviceToHost));
-  assert(state == child);
+  assert(tmp == child);
 
   ApplyEffectKernel<<<1, 1>>>(cuda_problem, 1, cuda_state, cuda_child);
-  problem->ApplyEffect(1, state);
+  problem->ApplyEffect(1, state, tmp);
   CUDA_CHECK(cudaMemcpy(child.data(), cuda_child,
                         problem->n_variables() * sizeof(int),
                         cudaMemcpyDeviceToHost));
-  assert(state == child);
+  assert(tmp == child);
 
   state = std::vector<int>{1, 1, 1, 0};
   CUDA_CHECK(cudaMemcpy(cuda_state, state.data(),
                         problem->n_variables() * sizeof(int),
                         cudaMemcpyHostToDevice));
   ApplyEffectKernel<<<1, 1>>>(cuda_problem, 6, cuda_state, cuda_child);
-  problem->ApplyEffect(6, state);
+  problem->ApplyEffect(6, state, tmp);
   CUDA_CHECK(cudaMemcpy(child.data(), cuda_child,
                         problem->n_variables() * sizeof(int),
                         cudaMemcpyDeviceToHost));
-  assert(state == child);
+  assert(tmp == child);
 
   state = std::vector<int>{1, 1, 1, 1};
   CUDA_CHECK(cudaMemcpy(cuda_state, state.data(),
                         problem->n_variables() * sizeof(int),
                         cudaMemcpyHostToDevice));
   ApplyEffectKernel<<<1, 1>>>(cuda_problem, 6, cuda_state, cuda_child);
-  problem->ApplyEffect(6, state);
+  problem->ApplyEffect(6, state, tmp);
   CUDA_CHECK(cudaMemcpy(child.data(), cuda_child,
                         problem->n_variables() * sizeof(int),
                         cudaMemcpyDeviceToHost));
-  assert(state == child);
+  assert(tmp == child);
 
   CUDA_CHECK(cudaFree(cuda_state));
   CUDA_CHECK(cudaFree(cuda_child));
