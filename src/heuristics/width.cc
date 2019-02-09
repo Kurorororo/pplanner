@@ -41,8 +41,7 @@ int Width::Evaluate(const vector<int> &state, int node,
   preferred.clear();
 
   for (auto o : applicable) {
-    tmp_state_ = state;
-    problem_->ApplyEffect(o, tmp_state_);
+    problem_->ApplyEffect(o, state, tmp_state_);
     StateToFactVector(*problem_, tmp_state_, tmp_facts_);
 
     for (auto f : tmp_facts_) {

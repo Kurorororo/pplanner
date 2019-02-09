@@ -201,6 +201,7 @@ void MultiFocusMrwGBFS::GlobalRestart(int li) {
 
 bool MultiFocusMrwGBFS::Walk(int *w, int *li) {
   thread_local vector<int> state;
+  thread_local vector<int> successor;
   thread_local vector<int> applicable;
   thread_local unordered_set<int> preferred;
   thread_local vector<int> sequence;
@@ -219,7 +220,8 @@ bool MultiFocusMrwGBFS::Walk(int *w, int *li) {
     int a = MHA(applicable, preferred);
     ++expanded_;
 
-    problem_->ApplyEffect(a, state);
+    problem_->ApplyEffect(a, state, successor);
+    state = successor;
     ++generated_;
     sequence.push_back(a);
 
@@ -348,8 +350,7 @@ int MultiFocusMrwGBFS::Expand() {
     preferring_->Evaluate(state, node, applicable, preferred);
 
   for (auto o : applicable) {
-    child = state;
-    problem_->ApplyEffect(o, child);
+    problem_->ApplyEffect(o, state, child);
 
     int child_node = graph_->GenerateNodeIfNotClosed(o, node, state, child);
     if (child_node == -1) continue;

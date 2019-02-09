@@ -112,8 +112,7 @@ void CudaRWAGBFS::GenerateChildren(int parent, const vector<int> &state) {
   }
 
   for (auto o : applicable) {
-    child = state;
-    problem_->ApplyEffect(o, child);
+    problem_->ApplyEffect(o, state, child);
     int node = graph_->GenerateNode(o, parent, state, child);
     int h = lmcount_->Evaluate(child, graph_->Landmark(parent),
                                graph_->Landmark(node));
@@ -273,8 +272,7 @@ int CudaRWAGBFS::Expand(vector<int> &parents, int *counter,
   }
 
   for (auto o : applicable) {
-    child = state;
-    problem_->ApplyEffect(o, child);
+    problem_->ApplyEffect(o, state, child);
 
     int child_node = graph_->GenerateNodeIfNotClosed(o, node, state, child);
     if (child_node == -1) continue;

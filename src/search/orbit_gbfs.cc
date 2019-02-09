@@ -130,8 +130,7 @@ int OrbitGBFS::Expand(int node, vector<int> &state, vector<int> &child,
   for (auto o : applicable) {
     if (use_sss_ && !sss[o]) continue;
 
-    child = state;
-    problem_->ApplyEffect(o, child);
+    problem_->ApplyEffect(o, state, child);
 
     manager_->ToCanonical(child, canonical);
 
@@ -218,8 +217,7 @@ vector<int> OrbitGBFS::TraceForward(const vector<pair<int, int> > &trace)
   s_0 = s_p_0;
 
   for (auto itr = trace.begin() + 1; itr != trace.end(); ++itr) {
-    s_p_0_o = s_p_0;
-    problem_->ApplyEffect(itr->first, s_p_0_o);
+    problem_->ApplyEffect(itr->first, s_p_0, s_p_0_o);
     manager_->ToCanonical(s_p_0_o, tmp_s, sigma_i);
     graph_->State(itr->second, s_p_1);
 
@@ -247,8 +245,7 @@ vector<int> OrbitGBFS::TraceForward(const vector<pair<int, int> > &trace)
       int cost = problem_->ActionCost(o);
       if (min_cost != -1 && cost >= min_cost) continue;
 
-      s_0_o = s_0;
-      problem_->ApplyEffect(o, s_0_o);
+      problem_->ApplyEffect(o, s_0, s_0_o);
 
       if (s_0_o == s_1) {
         min_cost = cost;

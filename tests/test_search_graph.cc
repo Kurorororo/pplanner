@@ -61,9 +61,11 @@ TEST_F(SearchGraphTest, NodeSizeWorks) {
 
 TEST_F(SearchGraphTest, GenerateNodeWorks) {
   int node = graph_0_->GenerateNode(-1, -1, state_0_);
+  auto tmp = state_0_;
   EXPECT_EQ(0, node);
   EXPECT_EQ(1, graph_0_->size());
-  sas_0_->ApplyEffect(4, state_0_);
+  sas_0_->ApplyEffect(4, state_0_, tmp);
+  state_0_ = tmp;
   node = graph_0_->GenerateNode(4, node, state_0_);
   EXPECT_EQ(1, node);
   EXPECT_EQ(2, graph_0_->size());
@@ -71,18 +73,21 @@ TEST_F(SearchGraphTest, GenerateNodeWorks) {
   node = graph_1_->GenerateNode(-1, -1, state_1_);
   EXPECT_EQ(0, node);
   EXPECT_EQ(1, graph_1_->size());
-  sas_1_->ApplyEffect(4, state_1_);
+  sas_1_->ApplyEffect(4, state_1_, tmp);
+  state_1_ = tmp;
   node = graph_1_->GenerateNode(4, node, state_1_);
   EXPECT_EQ(1, node);
   EXPECT_EQ(2, graph_1_->size());
 }
 
 TEST_F(SearchGraphTest, GenerateNodeWithParentWorks) {
+  auto tmp = state_0_;
   int node = graph_0_->GenerateNode(-1, -1, state_0_);
   EXPECT_EQ(0, node);
   EXPECT_EQ(1, graph_0_->size());
   std::vector<int> tmp_state_0_(state_0_);
-  sas_0_->ApplyEffect(4, state_0_);
+  sas_0_->ApplyEffect(4, state_0_, tmp);
+  state_0_ = tmp;
   node = graph_0_->GenerateNode(4, node, tmp_state_0_, state_0_);
   EXPECT_EQ(1, node);
   EXPECT_EQ(2, graph_0_->size());
@@ -91,7 +96,8 @@ TEST_F(SearchGraphTest, GenerateNodeWithParentWorks) {
   EXPECT_EQ(0, node);
   EXPECT_EQ(1, graph_1_->size());
   std::vector<int> tmp_state_1_(state_1_);
-  sas_1_->ApplyEffect(4, state_1_);
+  sas_1_->ApplyEffect(4, state_1_, tmp);
+  state_1_ = tmp;
   node = graph_1_->GenerateNode(4, node, tmp_state_1_, state_1_);
   EXPECT_EQ(1, node);
   EXPECT_EQ(2, graph_1_->size());
@@ -159,17 +165,21 @@ TEST_F(SearchGraphTest, ClosedSizeWorks) {
 }
 
 TEST_F(SearchGraphTest, ActionWorks) {
+  auto tmp = state_0_;
   int node = graph_0_->GenerateNode(-1, -1, state_0_);
   EXPECT_EQ(-1, graph_0_->Action(node));
-  sas_0_->ApplyEffect(4, state_0_);
+  sas_0_->ApplyEffect(4, state_0_, tmp);
+  state_0_ = tmp;
   node = graph_0_->GenerateNode(4, node, state_0_);
   EXPECT_EQ(4, graph_0_->Action(node));
 }
 
 TEST_F(SearchGraphTest, ParentWorks) {
+  auto tmp = state_0_;
   int node = graph_0_->GenerateNode(-1, -1, state_0_);
   EXPECT_EQ(-1, graph_0_->Parent(node));
-  sas_0_->ApplyEffect(4, state_0_);
+  sas_0_->ApplyEffect(4, state_0_, tmp);
+  state_0_ = tmp;
   node = graph_0_->GenerateNode(4, node, state_0_);
   EXPECT_EQ(0, graph_0_->Parent(node));
 }
@@ -274,12 +284,16 @@ TEST_F(SearchGraphTest, CloseIfNotWorks) {
 }
 
 TEST_F(SearchGraphTest, ExtractPathWorks) {
+  auto tmp = state_0_;
   int node = graph_0_->GenerateNode(-1, -1, state_0_);
-  sas_0_->ApplyEffect(4, state_0_);
+  sas_0_->ApplyEffect(4, state_0_, tmp);
+  state_0_ = tmp;
   node = graph_0_->GenerateNode(4, node, state_0_);
-  sas_0_->ApplyEffect(2, state_0_);
+  sas_0_->ApplyEffect(2, state_0_, tmp);
+  state_0_ = tmp;
   node = graph_0_->GenerateNode(2, node, state_0_);
-  sas_0_->ApplyEffect(1, state_0_);
+  sas_0_->ApplyEffect(1, state_0_, tmp);
+  state_0_ = tmp;
   node = graph_0_->GenerateNode(1, node, state_0_);
   auto result = ExtractPath(graph_0_, node);
   ASSERT_EQ(3, result.size());

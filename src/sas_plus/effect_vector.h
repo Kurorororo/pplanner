@@ -15,13 +15,32 @@ class EffectVector : public PartialStateVector {
 
   void Dump(int i) const override;
 
-  void Apply(int i, std::vector<int> &state) const;
+  void Apply(int i, const std::vector<int> &state, std::vector<int> &child)
+    const;
 
   void AddConditionalEffect(
       const std::vector<std::vector<std::pair<int, int> > > &conditions,
       const std::vector<std::pair<int, int> > &effects);
 
   bool HasConditionalEffects(int i) const { return has_conditional_[i]; }
+
+  int NConditionalEffects(int i) const {
+    return effect_condition_offsets_1_[i + 1] - effect_condition_offsets_1_[i];
+  }
+
+  bool Condition(int i, int j, const std::vector<int> &state) const;
+
+  int ConditionalEffectVar(int i, int j) const {
+    return conditional_effect_vars_[effect_condition_offsets_1_[i] + j];
+  }
+
+  int ConditionalEffectValue(int i, int j) const {
+    return conditional_effect_values_[effect_condition_offsets_1_[i] + j];
+  }
+
+  void ApplyConditionalEffect(int i, int j, std::vector<int> &state) const {
+    state[ConditionalEffectVar(i, j)] = ConditionalEffectValue(i, j);
+  }
 
   void CopyEffectConditions(
       int i,

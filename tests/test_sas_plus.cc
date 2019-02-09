@@ -222,20 +222,26 @@ TEST_F(SASPlusTest, CopyPreconditionWorks) {
 
 TEST_F(SASPlusTest, ApplyEffectWorks) {
   auto state = sas_1_.initial();
-  sas_1_.ApplyEffect(4, state);
+  auto tmp = sas_1_.initial();
+  sas_1_.ApplyEffect(4, state, tmp);
+  state = tmp;
   EXPECT_EQ(0, state[1]);
-  sas_1_.ApplyEffect(2, state);
+  sas_1_.ApplyEffect(2, state, tmp);
+  state = tmp;
   EXPECT_EQ(1, state[0]);
-  sas_1_.ApplyEffect(1, state);
+  sas_1_.ApplyEffect(1, state, tmp);
+  state = tmp;
   EXPECT_EQ(1, state[2]);
 
   state = std::vector<int>{1, 1, 1, 0};
   auto expected = std::vector<int>{1, 0, 2, 0};
-  sas_1_.ApplyEffect(6, state);
+  sas_1_.ApplyEffect(6, state, tmp);
+  state = tmp;
   EXPECT_EQ(expected, state);
   state = std::vector<int>{1, 1, 1, 1};
   expected = std::vector<int>{0, 0, 2, 1};
-  sas_1_.ApplyEffect(6, state);
+  sas_1_.ApplyEffect(6, state, tmp);
+  state = tmp;
   EXPECT_EQ(expected, state);
 }
 

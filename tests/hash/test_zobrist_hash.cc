@@ -1,6 +1,11 @@
 #include "hash/zobrist_hash.h"
 
+#include <memory>
+#include <vector>
+
 #include "gtest/gtest.h"
+
+#include "sas_plus.h"
 
 namespace pplanner {
 
@@ -34,9 +39,22 @@ TEST_F(ZobristHashTest, HashByDifferenceWorks) {
   std::vector<int> state_1(state_0);
 
   uint32_t seed = hash_->operator()(state_0);
-  sas_->ApplyEffect(4, state_1);
+  sas_->ApplyEffect(4, state_0, state_1);
   EXPECT_EQ(hash_->operator()(state_1),
             hash_->HashByDifference(4, seed, state_0, state_1));
+
+  state_0 = std::vector<int>{1, 1, 1, 0};
+  state_1 = std::vector<int>{1, 0, 2, 0};
+  seed = hash_->operator()(state_0);
+  sas_->ApplyEffect(6, state_0, state_1);
+  EXPECT_EQ(hash_->operator()(state_1),
+            hash_->HashByDifference(6, seed, state_0, state_1));
+
+  state_0 = std::vector<int>{1, 1, 1, 1};
+  state_1 = std::vector<int>{0, 0, 2, 1};
+  sas_->ApplyEffect(6, state_0, state_1);
+  EXPECT_EQ(hash_->operator()(state_1),
+            hash_->HashByDifference(6, seed, state_0, state_1));
 }
 
 std::queue<std::string> ExampleSASPlusLines() {
@@ -87,7 +105,7 @@ std::queue<std::string> ExampleSASPlusLines() {
   q.push("1");
   q.push("2 1");
   q.push("end_goal");
-  q.push("6");
+  q.push("7");
   q.push("begin_operator");
   q.push("drop ball1 rooma left");
   q.push("1");
@@ -136,6 +154,16 @@ std::queue<std::string> ExampleSASPlusLines() {
   q.push("2");
   q.push("0 2 1 2");
   q.push("0 1 1 0");
+  q.push("1");
+  q.push("end_operator");
+  q.push("begin_operator");
+  q.push("pick_conditional ball1 roomb left");
+  q.push("1");
+  q.push("0 1");
+  q.push("3");
+  q.push("0 2 1 2");
+  q.push("0 1 1 0");
+  q.push("1 3 1 0 -1 0");
   q.push("1");
   q.push("end_operator");
   q.push("0");

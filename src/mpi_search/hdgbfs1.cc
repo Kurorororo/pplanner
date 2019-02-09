@@ -239,8 +239,7 @@ int HDGBFS1::Expand(int node, vector<int> &state) {
     }
 
     auto &child = state_array[index];
-    child = state;
-    problem_->ApplyEffect(o, child);
+    problem_->ApplyEffect(o, state, child);
 
     if (use_dominance_ && (lds_->Dominance(child, state)
           || lds_->Dominance(child, problem_->initial()))) {

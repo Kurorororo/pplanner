@@ -133,8 +133,7 @@ void CudaBMRW::GenerateChildren(int parent, vector<int> &values,
   }
 
   for (auto o : applicable) {
-    child = state;
-    problem_->ApplyEffect(o, child);
+    problem_->ApplyEffect(o, state, child);
     int node = graph_->GenerateNode(o, parent, state, child);
     ++generated_;
     open_list_->Push(values, node, false);

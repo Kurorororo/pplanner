@@ -149,8 +149,7 @@ int SBGBFS::Expand(int node, vector<int> &state, vector<int> &child,
   for (auto o : applicable) {
     if (use_sss_ && !sss[o]) continue;
 
-    child = state;
-    problem_->ApplyEffect(o, child);
+    problem_->ApplyEffect(o, state, child);
 
     manager_->ToCanonical(child, canonical);
 

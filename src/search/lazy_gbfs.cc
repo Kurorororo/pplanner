@@ -106,8 +106,7 @@ int LazyGBFS::Search() {
     }
 
     for (auto o : applicable) {
-      child = state;
-      problem_->ApplyEffect(o, child);
+      problem_->ApplyEffect(o, state, child);
 
       bool is_preferred = use_preferred_
         && preferred.find(o) != preferred.end();

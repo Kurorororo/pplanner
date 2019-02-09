@@ -466,8 +466,7 @@ int HetroHDGBFSLG::CpuExpand() {
 
   for (auto o : applicable) {
     auto &child = state_array[index];
-    child = state;
-    problem_->ApplyEffect(o, child);
+    problem_->ApplyEffect(o, state, child);
 
     auto &packed = packed_array[index];
     packed.resize(graph_->block_size());

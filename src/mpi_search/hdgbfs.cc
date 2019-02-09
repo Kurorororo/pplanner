@@ -234,8 +234,7 @@ int HDGBFS::Expand(int node, vector<int> &state, bool eager_dd) {
       continue;
     }
 
-    child = state;
-    problem_->ApplyEffect(o, child);
+    problem_->ApplyEffect(o, state, child);
 
     if (use_dominance_ && (lds_->Dominance(child, state)
           || lds_->Dominance(child, problem_->initial())))
@@ -345,8 +344,7 @@ int HDGBFS::IndependentExpand(int node, vector<int> &state, bool eager_dd) {
   n_branching_ += applicable.size();
 
   for (auto o : applicable) {
-    child = state;
-    problem_->ApplyEffect(o, child);
+    problem_->ApplyEffect(o, state, child);
 
     bool is_preferred = use_preferred_ && preferred.find(o) != preferred.end();
     if (is_preferred) ++n_preferreds_;
@@ -406,8 +404,7 @@ int HDGBFS::Distribute(bool eager_dd) {
     n_branching_ += applicable.size();
 
     for (auto o : applicable) {
-      child = state;
-      problem_->ApplyEffect(o, child);
+      problem_->ApplyEffect(o, state, child);
 
       bool is_preferred = use_preferred_
         && preferred.find(o) != preferred.end();

@@ -17,6 +17,7 @@ vector<int> ActionElimination(const SASPlus &problem, vector<int> plan) {
   while (i < n) {
     marked[i] = true;
     auto successor = state;
+    auto tmp = state;
     vector<pair<int, int> > precondition;
 
     for (int j=i+1; j<n; ++j) {
@@ -29,7 +30,8 @@ vector<int> ActionElimination(const SASPlus &problem, vector<int> plan) {
         }
       }
 
-      if (!marked[j]) problem.ApplyEffect(plan[j], successor);
+      if (!marked[j]) problem.ApplyEffect(plan[j], successor, tmp);
+      successor = tmp;
     }
 
     if (problem.IsGoal(successor)) {
@@ -43,7 +45,8 @@ vector<int> ActionElimination(const SASPlus &problem, vector<int> plan) {
       n = plan.size();
       continue;
     } else {
-      problem.ApplyEffect(plan[i], state);
+      problem.ApplyEffect(plan[i], state, tmp);
+      state = tmp;
       ++i;
     }
 

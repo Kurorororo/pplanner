@@ -37,6 +37,16 @@ uint32_t ZobristHash::HashByDifference(int action, uint32_t seed,
                 ^ array_[problem_->Fact(var, state[var])];
   }
 
+  if (problem_->use_conditional() && problem_->HasConditionalEffects(action)) {
+    int n = problem_->NConditionalEffects(action);
+
+    for (int j = 0; j < n; ++j) {
+      int var = problem_->ConditionalEffectVar(action, j);
+      seed = seed ^ array_[problem_->Fact(var, parent[var])]
+                  ^ array_[problem_->Fact(var, state[var])];
+    }
+  }
+
   return seed;
 }
 

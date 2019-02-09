@@ -208,8 +208,7 @@ int SIMHDGBFS1::Expand(int node, vector<int> &state) {
 
   for (auto o : applicable) {
     auto &child = state_array[index];
-    child = state;
-    problem_->ApplyEffect(o, child);
+    problem_->ApplyEffect(o, state, child);
 
     auto &packed = packed_array[index];
     packed.resize(graphs_[rank_]->block_size());

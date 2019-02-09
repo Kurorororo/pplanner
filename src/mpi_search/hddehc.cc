@@ -201,8 +201,7 @@ int HDDEHC::Expand(int node, vector<int> &state, bool eager_dd) {
   for (auto o : applicable) {
     if (use_sss_ && !sss[o]) continue;
 
-    child = state;
-    problem_->ApplyEffect(o, child);
+    problem_->ApplyEffect(o, state, child);
 
     if (lds_->Dominance(child, state)
         || lds_->Dominance(child, current_initial_))
@@ -322,8 +321,7 @@ int HDDEHC::IndependentExpand(int node, vector<int> &state, bool eager_dd) {
   n_branching_ += applicable.size();
 
   for (auto o : applicable) {
-    child = state;
-    problem_->ApplyEffect(o, child);
+    problem_->ApplyEffect(o, state, child);
 
     bool is_preferred = use_preferred_ && preferred.find(o) != preferred.end();
     if (is_preferred) ++n_preferreds_;
@@ -383,8 +381,7 @@ int HDDEHC::Distribute(bool eager_dd) {
     n_branching_ += applicable.size();
 
     for (auto o : applicable) {
-      child = state;
-      problem_->ApplyEffect(o, child);
+      problem_->ApplyEffect(o, state, child);
 
       bool is_preferred = use_preferred_
         && preferred.find(o) != preferred.end();

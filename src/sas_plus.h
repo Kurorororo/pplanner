@@ -135,6 +135,22 @@ class SASPlus {
     return effects_->HasConditionalEffects(i);
   }
 
+  int NConditionalEffects(int i) const {
+    return effects_->NConditionalEffects(i);
+  }
+
+  bool EffectCondition(int i, int j, const std::vector<int> &state) const {
+    return effects_->Condition(i, j, state);
+  }
+
+  int ConditionalEffectVar(int i, int j) const {
+    return effects_->ConditionalEffectVar(i, j);
+  }
+
+  int ConditionalEffectValue(int i, int j) const {
+    return effects_->ConditionalEffectValue(i, j);
+  }
+
   void CopyEffectConditions(
       int i,
       std::vector<std::vector<std::pair<int, int> > > &conditions) const {
@@ -147,8 +163,9 @@ class SASPlus {
     effects_->CopyConditionalEffects(i, effects);
   }
 
-  void ApplyEffect(int i, std::vector<int> &state) const {
-    effects_->Apply(i, state);
+  void ApplyEffect(int i, const std::vector<int> &state,
+                   std::vector<int> &child) const {
+    effects_->Apply(i, state, child);
   }
 
   void Dump() const;

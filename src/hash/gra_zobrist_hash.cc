@@ -51,6 +51,15 @@ uint32_t GRAZobristHash::HashByDifference(int action, uint32_t seed,
                 ^ array_[var][cuts_[var][state[var]]];
   }
 
+  if (problem_->use_conditional() && problem_->HasConditionalEffects(action)) {
+    int n = problem_->NConditionalEffects(action);
+
+    for (int j = 0; j < n; ++j) {
+      int var = problem_->ConditionalEffectVar(action, j);
+      seed = seed ^ array_[var][cuts_[var][parent[var]]]
+                  ^ array_[var][cuts_[var][state[var]]];
+    }
+  }
   return seed;
 }
 

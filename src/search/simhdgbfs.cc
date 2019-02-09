@@ -177,8 +177,7 @@ int SIMHDGBFS::Expand(int node, vector<int> &state) {
   n_branching_ += applicable.size();
 
   for (auto o : applicable) {
-    child = state;
-    problem_->ApplyEffect(o, child);
+    problem_->ApplyEffect(o, state, child);
 
     uint32_t hash = z_hash_->operator()(child);
     int to_rank = hash % static_cast<uint32_t>(world_size_);

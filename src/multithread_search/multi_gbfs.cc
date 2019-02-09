@@ -142,8 +142,7 @@ void MultiGBFS::Expand(int i) {
       preferring_[i]->Evaluate(state, applicable, preferred, node);
 
     for (auto o : applicable) {
-      child = state;
-      problem_->ApplyEffect(o, child);
+      problem_->ApplyEffect(o, state, child);
 
       uint32_t hash1 = hash1_->HashByDifference(o, node->hash, state, child);
       packer_->Pack(child, packed.data());

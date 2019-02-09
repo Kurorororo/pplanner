@@ -244,8 +244,7 @@ int CudaHetroGBFS::CpuExpand() {
   if (applicable.empty()) return -1;
 
   for (auto o : applicable) {
-    child = state;
-    problem_->ApplyEffect(o, child);
+    problem_->ApplyEffect(o, state, child);
 
     int child_node = graph_->GenerateNodeIfNotClosed(o, node, state, child);
     if (child_node == -1) continue;

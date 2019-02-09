@@ -149,8 +149,7 @@ void CudaBMRWGBFS::GenerateChildren(int parent, vector<int> &values,
   }
 
   for (auto o : applicable) {
-    child = state;
-    problem_->ApplyEffect(o, child);
+    problem_->ApplyEffect(o, state, child);
     int node = rw_graph_->GenerateNode(o, parent, state, child);
     ++generated_;
     rw_open_->Push(values, node, false);
@@ -259,8 +258,7 @@ int CudaBMRWGBFS::CpuExpand() {
   }
 
   for (auto o : applicable) {
-    child = state;
-    problem_->ApplyEffect(o, child);
+    problem_->ApplyEffect(o, state, child);
 
     int child_node = graph_->GenerateNodeIfNotClosed(o, node, state, child);
     if (child_node == -1) continue;

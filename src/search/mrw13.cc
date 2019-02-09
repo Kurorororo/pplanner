@@ -269,6 +269,7 @@ int Mrw13::Walk(int best_h, int length, vector<int> &state,
                 unordered_set<int> &preferred) {
   sequence.clear();
   auto current_state = state;
+  auto successor = state;
   auto current_applicable = applicable;
   auto current_preferred = preferred;
   int path_length = 0;
@@ -277,7 +278,8 @@ int Mrw13::Walk(int best_h, int length, vector<int> &state,
     int a = MHA(current_applicable, current_preferred);
     ++expanded_;
 
-    problem_->ApplyEffect(a, current_state);
+    problem_->ApplyEffect(a, current_state, successor);
+    current_state = successor;
     ++generated_;
 
     sequence.push_back(a);
@@ -344,12 +346,14 @@ int Mrw13::Walk(int best_h, double rl, vector<int> &state,
                 vector<int> &sequence, vector<int> &applicable,
                 unordered_set<int> &preferred) {
   sequence.clear();
+  auto successor = state;
 
   while (true) {
     int a = MHA(applicable, preferred);
     ++expanded_;
 
-    problem_->ApplyEffect(a, state);
+    problem_->ApplyEffect(a, state, successor);
+    state = successor;
     ++generated_;
     sequence.push_back(a);
 
@@ -452,6 +456,7 @@ void Mrw13::ActionElimination() {
   while (i < n) {
     marked[i] = true;
     auto successor = state;
+    auto tmp = state;
     vector<pair<int, int> > precondition;
 
     for (int j=i+1; j<n; ++j) {
@@ -464,7 +469,8 @@ void Mrw13::ActionElimination() {
         }
       }
 
-      if (!marked[j]) problem_->ApplyEffect(plan_[j], successor);
+      if (!marked[j]) problem_->ApplyEffect(plan_[j], successor, tmp);
+      successor = tmp;
     }
 
     if (problem_->IsGoal(successor)) {
@@ -490,7 +496,8 @@ void Mrw13::ActionElimination() {
       n = plan_.size();
       continue;
     } else {
-      problem_->ApplyEffect(plan_[i], state);
+      problem_->ApplyEffect(plan_[i], state, tmp);
+      state = tmp;
       ++i;
     }
 

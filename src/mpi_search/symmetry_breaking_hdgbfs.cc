@@ -234,8 +234,7 @@ int SBHDGBFS::Expand(int node, vector<int> &state, bool eager_dd) {
   for (auto o : applicable) {
     if (use_sss_ && !sss[o]) continue;
 
-    child = state;
-    problem_->ApplyEffect(o, child);
+    problem_->ApplyEffect(o, state, child);
 
     bool is_preferred = use_preferred_ && preferred.find(o) != preferred.end();
     if (is_preferred) ++n_preferreds_;
@@ -347,8 +346,7 @@ int SBHDGBFS::IndependentExpand(int node, vector<int> &state, bool eager_dd) {
   n_branching_ += applicable.size();
 
   for (auto o : applicable) {
-    child = state;
-    problem_->ApplyEffect(o, child);
+    problem_->ApplyEffect(o, state, child);
 
     bool is_preferred = use_preferred_ && preferred.find(o) != preferred.end();
     if (is_preferred) ++n_preferreds_;
@@ -408,8 +406,7 @@ int SBHDGBFS::Distribute(bool eager_dd) {
     n_branching_ += applicable.size();
 
     for (auto o : applicable) {
-      child = state;
-      problem_->ApplyEffect(o, child);
+      problem_->ApplyEffect(o, state, child);
 
       bool is_preferred = use_preferred_
         && preferred.find(o) != preferred.end();

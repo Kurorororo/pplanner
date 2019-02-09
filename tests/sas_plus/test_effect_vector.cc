@@ -41,49 +41,52 @@ class EffectVectorTest : public ::testing::Test {
 
 TEST_F(EffectVectorTest, ApplyWorks) {
   std::vector<int> state{0, 2, 2, 1};
+  std::vector<int> tmp;
   std::vector<int> expect{2, 1, 2, 3};
-  e_v_1_.Apply(0, state);
+  e_v_1_.Apply(0, state, tmp);
+  state = tmp;
   EXPECT_EQ(expect, state);
 
   expect = std::vector<int>{1, 1, 0, 3};
-  e_v_1_.Apply(1, state);
+  e_v_1_.Apply(1, state, tmp);
+  state = tmp;
   EXPECT_EQ(expect, state);
 
   // no conditional effect
   state = std::vector<int>{2, 2, 0, 0};
   expect = std::vector<int>{1, 2, 0, 3};
-  e_v_1_.Apply(2, state);
-  EXPECT_EQ(expect, state);
+  e_v_1_.Apply(2, state, tmp);
+  EXPECT_EQ(expect, tmp);
 
   // fire one conditoonal effect
   state = std::vector<int>{2, 1, 0, 0};
   expect = std::vector<int>{1, 0, 0, 3};
-  e_v_1_.Apply(2, state);
-  EXPECT_EQ(expect, state);
+  e_v_1_.Apply(2, state, tmp);
+  EXPECT_EQ(expect, tmp);
 
   // satisfy partial condition
   state = std::vector<int>{0, 2, 0, 0};
   expect = std::vector<int>{1, 2, 0, 3};
-  e_v_1_.Apply(2, state);
-  EXPECT_EQ(expect, state);
+  e_v_1_.Apply(2, state, tmp);
+  EXPECT_EQ(expect, tmp);
 
   // satisfy partial condition
   state = std::vector<int>{2, 2, 0, 2};
   expect = std::vector<int>{1, 2, 0, 3};
-  e_v_1_.Apply(2, state);
-  EXPECT_EQ(expect, state);
+  e_v_1_.Apply(2, state, tmp);
+  EXPECT_EQ(expect, tmp);
 
   // satisfy condition
   state = std::vector<int>{0, 2, 0, 2};
   expect = std::vector<int>{1, 2, 2, 3};
-  e_v_1_.Apply(2, state);
-  EXPECT_EQ(expect, state);
+  e_v_1_.Apply(2, state, tmp);
+  EXPECT_EQ(expect, tmp);
 
   // fire all conditional effects
   state = std::vector<int>{0, 1, 0, 2};
   expect = std::vector<int>{1, 0, 2, 3};
-  e_v_1_.Apply(2, state);
-  EXPECT_EQ(expect, state);
+  e_v_1_.Apply(2, state, tmp);
+  EXPECT_EQ(expect, tmp);
 }
 
 TEST_F(EffectVectorTest, HasConditionalEffectsWorks) {

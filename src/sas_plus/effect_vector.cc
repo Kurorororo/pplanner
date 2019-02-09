@@ -7,39 +7,37 @@ namespace pplanner {
 using std::vector;
 using std::pair;
 
-void EffectVector::Apply(int i, vector<int> &state) const {
-  thread_local vector<int> backup(state);
+bool EffectVector::Condition(int i, int j, const vector<int> &state) const {
+  int b = effect_condition_offsets_2_[effect_condition_offsets_1_[i] + j];
+  int e = effect_condition_offsets_2_[effect_condition_offsets_1_[i] + j + 1];
 
-  if (use_conditional_ && has_conditional_[i]) {
-    backup = state;
-    int begin = effect_condition_offsets_1_[i];
-    int end = effect_condition_offsets_1_[i + 1];
+  for (int k = b; k < e; ++k) {
+    int var = effect_condition_vars_[k];
+    int value = effect_condition_values_[k];
 
-    for (int j = begin; j < end; ++j) {
-      int b = effect_condition_offsets_2_[j];
-      int e = effect_condition_offsets_2_[j + 1];
-      bool all = true;
-
-      for (int k = b; k < e; ++k) {
-        int var = effect_condition_vars_[k];
-        int value = effect_condition_values_[k];
-
-        if (backup[var] != value) {
-          all = false;
-          break;
-        }
-      }
-
-      if (all)
-        state[conditional_effect_vars_[j]] = conditional_effect_values_[j];
-    }
+    if (state[var] != value) return false;
   }
 
+  return true;
+}
+
+
+void EffectVector::Apply(int i, const vector<int> &state, vector<int> &child)
+  const {
+  child = state;
   auto value_iter = ValuesBegin(i);
 
   for (auto iter = VarsBegin(i); iter != VarsEnd(i); ++iter) {
-    state[*iter] = *value_iter;
+    child[*iter] = *value_iter;
     ++value_iter;
+  }
+
+  if (use_conditional_ && has_conditional_[i]) {
+    int n = NConditionalEffects(i);
+
+    for (int j = 0; j < n; ++j)
+      if (Condition(i, j, state))
+        ApplyConditionalEffect(i, j, child);
   }
 }
 
