@@ -46,7 +46,8 @@ add_library(search STATIC
   ./multithread_search/closed_list.cc
   ./multithread_search/heuristic.cc
   ./multithread_search/heuristic_factory.cc
-  ./multithread_search/multi_gbfs.cc)
+  ./multithread_search/multi_gbfs.cc
+  ./multithread_search/multi_focus_gbfs.cc)
 
 add_library(ff STATIC
   ./heuristics/rpg.cc

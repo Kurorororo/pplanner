@@ -21,10 +21,12 @@ class PreferredPlusOpenList : public SingleOpenList<T> {
 
   ~PreferredPlusOpenList() {}
 
-  void Push(std::vector<int> &values, T node, bool preferred) override {
-    if (!preferred) values[0] += weight_;
+  void Push(const std::vector<int> &values, T node, bool preferred) override {
+    auto v = values;
 
-    SingleOpenList<T>::Push(values, node, preferred);
+    if (!preferred) v[0] += weight_;
+
+    SingleOpenList<T>::Push(v, node, preferred);
   }
 
   void Boost() override {}

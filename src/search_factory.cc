@@ -11,6 +11,7 @@
 #include "search/simhdgbfs1.h"
 #include "search/multi_focus_gbfs.h"
 #include "multithread_search/multi_gbfs.h"
+#include "multithread_search/multi_focus_gbfs.h"
 
 namespace pplanner {
 

@@ -12,7 +12,7 @@ class OpenList {
 
   virtual std::size_t size() const = 0;
 
-  virtual void Push(std::vector<int> &values, T node, bool preferred) = 0;
+  virtual void Push(const std::vector<int> &values, T node, bool preferred) = 0;
 
   virtual T Pop() = 0;
 

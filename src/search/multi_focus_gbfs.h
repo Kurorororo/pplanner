@@ -1,5 +1,5 @@
-#ifndef MULTI_FOCUS_GBFS_H_
-#define MULTI_FOCUS_GBFS_H_
+#ifndef MULTI_FOCUS_MRW_GBFS_H_
+#define MULTI_FOCUS_MRW_GBFS_H_
 
 #include <cmath>
 
@@ -21,9 +21,9 @@
 
 namespace pplanner {
 
-class MultiFocusGBFS : public Search {
+class MultiFocusMrwGBFS : public Search {
  public:
-  MultiFocusGBFS(std::shared_ptr<const SASPlus> problem,
+  MultiFocusMrwGBFS(std::shared_ptr<const SASPlus> problem,
                  const boost::property_tree::ptree &pt)
     : uniform_(false),
       use_preferred_(false),
@@ -55,7 +55,7 @@ class MultiFocusGBFS : public Search {
       graph_(nullptr),
       preferring_(nullptr) { Init(pt); }
 
-  ~MultiFocusGBFS() {}
+  ~MultiFocusMrwGBFS() {}
 
   std::vector<int> Plan() override;
 
@@ -143,4 +143,4 @@ class MultiFocusGBFS : public Search {
 
 } // namespace pplanner
 
-#endif // MULTI_FOCUS_GBFS_H_
+#endif // MULTI_FOCUS_MRW_GBFS_H_

@@ -25,7 +25,7 @@ class SingleOpenList : public OpenList<T> {
 
   std::size_t size() const override { return list_->size(); }
 
-  void Push(std::vector<int> &values, T node, bool preferred) override {
+  void Push(const std::vector<int> &values, T node, bool preferred) override {
     assert(list_ != nullptr);
 
     list_->Push(values, node);

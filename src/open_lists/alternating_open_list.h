@@ -25,7 +25,7 @@ class AlternatingOpenList : public OpenList<T> {
 
   std::size_t size() const override;
 
-  void Push(std::vector<int> &values, T node, bool preferred) override;
+  void Push(const std::vector<int> &values, T node, bool preferred) override;
 
   T Pop() override;
 
@@ -55,7 +55,7 @@ std::size_t AlternatingOpenList<T>::size() const {
 }
 
 template<typename T>
-void AlternatingOpenList<T>::Push(std::vector<int> &values, T node,
+void AlternatingOpenList<T>::Push(const std::vector<int> &values, T node,
                                   bool preferred) {
   for (int i = 0, n = values.size(); i < n; ++i)
     lists_[i]->Push(std::vector<int>{values[i]}, node);

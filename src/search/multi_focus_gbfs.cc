@@ -1,4 +1,4 @@
-#include "multi_focus_gbfs.h"
+#include "search/multi_focus_gbfs.h"
 
 #include <array>
 #include <iostream>
@@ -19,7 +19,7 @@ using std::pair;
 using std::unordered_set;
 using std::vector;
 
-void MultiFocusGBFS::Init(const boost::property_tree::ptree &pt) {
+void MultiFocusMrwGBFS::Init(const boost::property_tree::ptree &pt) {
   std::random_device seed_gen;
   engine_ = std::mt19937(seed_gen());
   //engine_ = std::mt19937(3694943095);
@@ -75,7 +75,7 @@ void MultiFocusGBFS::Init(const boost::property_tree::ptree &pt) {
   graph_->ReserveByRAMSize(ram);
 }
 
-void MultiFocusGBFS::UpdateQ(const vector<int> &applicable,
+void MultiFocusMrwGBFS::UpdateQ(const vector<int> &applicable,
                              const unordered_set<int> &preferred) {
   qw_max_ = 1.0;
 
@@ -87,7 +87,7 @@ void MultiFocusGBFS::UpdateQ(const vector<int> &applicable,
   }
 }
 
-int MultiFocusGBFS::RWEvaluate(const vector<int> &state,
+int MultiFocusMrwGBFS::RWEvaluate(const vector<int> &state,
                                const vector<int> &applicable,
                                unordered_set<int> &preferred) {
   if (uniform_) return rw_evaluator_->Evaluate(state);
@@ -98,7 +98,7 @@ int MultiFocusGBFS::RWEvaluate(const vector<int> &state,
   return h;
 }
 
-void MultiFocusGBFS::RWInitialEvaluate() {
+void MultiFocusMrwGBFS::RWInitialEvaluate() {
   rw_best_state_ = problem_->initial();
   generator_->Generate(rw_best_state_, rw_best_applicable_);
   rw_best_h_ = RWEvaluate(rw_best_state_, rw_best_applicable_,
@@ -113,7 +113,7 @@ void MultiFocusGBFS::RWInitialEvaluate() {
   rw_initial_preferred_ = rw_best_preferred_;
 }
 
-int MultiFocusGBFS::MHA(const vector<int> &applicable,
+int MultiFocusMrwGBFS::MHA(const vector<int> &applicable,
                         unordered_set<int> &preferred) {
   assert(!applicable.empty());
   double cumsum = 0.0;
@@ -141,7 +141,7 @@ int MultiFocusGBFS::MHA(const vector<int> &applicable,
   return best;
 }
 
-void MultiFocusGBFS::AddNewFocus(int h, const vector<int> &state,
+void MultiFocusMrwGBFS::AddNewFocus(int h, const vector<int> &state,
                                  const vector<int> &sequence) {
   thread_local vector<int> values;
 
@@ -156,7 +156,7 @@ void MultiFocusGBFS::AddNewFocus(int h, const vector<int> &state,
   std::cout << "new focus h=" << h << std::endl;
 }
 
-void MultiFocusGBFS::UpdateBest(int h, const std::vector<int> &state,
+void MultiFocusMrwGBFS::UpdateBest(int h, const std::vector<int> &state,
                                 const std::vector<int> &applicable,
                                 const std::unordered_set<int> &preferred,
                                 const std::vector<int> &sequence) {
@@ -173,7 +173,7 @@ void MultiFocusGBFS::UpdateBest(int h, const std::vector<int> &state,
   }
 }
 
-void MultiFocusGBFS::GlobalRestart(int li) {
+void MultiFocusMrwGBFS::GlobalRestart(int li) {
   ++n_restarts_;
 
   if (li != 0) {
@@ -199,7 +199,7 @@ void MultiFocusGBFS::GlobalRestart(int li) {
   //std::cout << "restart new tg=" << tg_ << std::endl;
 }
 
-bool MultiFocusGBFS::Walk(int *w, int *li) {
+bool MultiFocusMrwGBFS::Walk(int *w, int *li) {
   thread_local vector<int> state;
   thread_local vector<int> applicable;
   thread_local unordered_set<int> preferred;
@@ -273,7 +273,7 @@ bool MultiFocusGBFS::Walk(int *w, int *li) {
   return false;
 }
 
-int MultiFocusGBFS::Evaluate(const vector<int> &state, int node,
+int MultiFocusMrwGBFS::Evaluate(const vector<int> &state, int node,
                              vector<int> &values) {
   values.clear();
 
@@ -287,7 +287,7 @@ int MultiFocusGBFS::Evaluate(const vector<int> &state, int node,
   return values[0];
 }
 
-void MultiFocusGBFS::InitialEvaluate() {
+void MultiFocusMrwGBFS::InitialEvaluate() {
   auto state = problem_->initial();
   int node = graph_->GenerateNode(-1, -1, state);
   std::vector<int> values;
@@ -295,10 +295,10 @@ void MultiFocusGBFS::InitialEvaluate() {
   graph_->SetH(node, best_h_);
   open_lists_.push_back(OpenListFactory(open_list_option_));
   open_lists_[0]->Push(values, node, false);
-  std::cout << "Initial heuristic value for GBFS: " << best_h_ << std::endl;
+  std::cout << "Initial heuristic value for MrwGBFS: " << best_h_ << std::endl;
 }
 
-std::shared_ptr<OpenList<int> > MultiFocusGBFS::GreedyOpen() {
+std::shared_ptr<OpenList<int> > MultiFocusMrwGBFS::GreedyOpen() {
   thread_local std::vector<int> minimum_values;
 
   auto iter = std::remove_if(open_lists_.begin(), open_lists_.end(),
@@ -317,7 +317,7 @@ std::shared_ptr<OpenList<int> > MultiFocusGBFS::GreedyOpen() {
   return result;
 }
 
-int MultiFocusGBFS::Expand() {
+int MultiFocusMrwGBFS::Expand() {
   thread_local vector<int> state(problem_->n_variables());
   thread_local vector<int> child(problem_->n_variables());
   thread_local vector<int> applicable;
@@ -369,7 +369,7 @@ int MultiFocusGBFS::Expand() {
 
     if (h < best_h_) {
       best_h_ = h;
-      std::cout << "New best heuristic value for GBFS: "
+      std::cout << "New best heuristic value for MrwGBFS: "
                 << best_h_ << std::endl;
       std::cout << "[" << evaluated_ << " evaluated, "
                 << expanded_ << " expanded]" << std::endl;
@@ -381,7 +381,7 @@ int MultiFocusGBFS::Expand() {
   return -1;
 }
 
-vector<int> MultiFocusGBFS::Plan() {
+vector<int> MultiFocusMrwGBFS::Plan() {
   InitialEvaluate();
   RWInitialEvaluate();
   int w = 0;
@@ -398,7 +398,7 @@ vector<int> MultiFocusGBFS::Plan() {
   return vector<int>{-1};
 }
 
-std::vector<int> MultiFocusGBFS::ExtractPlan(int node) {
+std::vector<int> MultiFocusMrwGBFS::ExtractPlan(int node) {
   if (node == -1) return std::vector<int>{-1};
 
   vector<int> result;
@@ -406,7 +406,7 @@ std::vector<int> MultiFocusGBFS::ExtractPlan(int node) {
   while (graph_->Parent(node) != -1
          || rw_plan_to_node_.find(node) != rw_plan_to_node_.end()) {
     if (graph_->Parent(node) == -1) {
-      std::cout << "GBFS searched a state found by MRW" << std::endl;
+      std::cout << "MrwGBFS searched a state found by MRW" << std::endl;
       result.insert(result.begin(), rw_plan_to_node_[node].begin(),
                     rw_plan_to_node_[node].end());
 
@@ -420,7 +420,7 @@ std::vector<int> MultiFocusGBFS::ExtractPlan(int node) {
 
   return result;
 }
-void MultiFocusGBFS::DumpStatistics() const {
+void MultiFocusMrwGBFS::DumpStatistics() const {
   std::cout << "Expanded " << expanded_ << " state(s)" << std::endl;
   std::cout << "Evaluated " << evaluated_ << " state(s)" << std::endl;
   std::cout << "Generated " << generated_ << " state(s)" << std::endl;
