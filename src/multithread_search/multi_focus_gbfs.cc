@@ -101,9 +101,10 @@ void MultiFocusGBFS::Expand(int i) {
   vector<int> child(problem_->n_variables());
   vector<int> applicable;
   unordered_set<int> preferred;
-  vector<int> values;
   vector<uint32_t> packed(packer_->block_size(), 0);
-  vector<int> best_values;
+  vector<vector<int> > values;
+  vector<std::shared_ptr<SearchNodeWithHash> > nodes;
+  vector<bool> is_pref_vec;
 
   int expanded = 0;
   int evaluated = 0;
@@ -144,7 +145,11 @@ void MultiFocusGBFS::Expand(int i) {
       if (use_preferred_)
         preferring_[i]->Evaluate(state, applicable, preferred, node);
 
-      std::shared_ptr<SearchNodeWithHash> best_node = nullptr;
+      values.resize(applicable.size());
+      nodes.resize(applicable.size());
+      is_pref_vec.resize(applicable.size());
+      int arg_best = -1;
+      int c = 0;
 
       for (auto o : applicable) {
         problem_->ApplyEffect(o, state, child);
@@ -165,7 +170,7 @@ void MultiFocusGBFS::Expand(int i) {
         child_node->hash2 = hash2;
         ++generated;
 
-        int h = Evaluate(i, child, child_node, values);
+        int h = Evaluate(i, child, child_node, values[c]);
         child_node->h = h;
         ++evaluated;
 
@@ -175,25 +180,30 @@ void MultiFocusGBFS::Expand(int i) {
         }
 
         bool is_pref = use_preferred_ && preferred.find(o) != preferred.end();
-        focus->Push(values, child_node, is_pref);
+        nodes[c] = child_node;
+        is_pref_vec[c] = is_pref;
 
         if (h < focus->best_h()) {
           focus->set_best_h(h);
-          best_node = child_node;
-          best_values = values;
+          arg_best = c;
           focus->Boost();
         }
+
+        ++c;
       }
 
-      if (best_node != nullptr) {
-        CreateNewFocus(best_values, best_node, true);
-        ++counter;
+      for (int k = 0; k < c; ++k) {
+        if (k == arg_best) {
+          CreateNewFocus(values[k], nodes[k], true);
 
-        if (i == 0) {
-          std::cout << "New best heuristic value: " << best_node->h
-                    << std::endl;
-          std::cout << "[" << generated << " generated, " << expanded
-                    << " expanded]"  << std::endl;
+          if (i == 0) {
+            std::cout << "New best heuristic value: " << nodes[k]->h
+                      << std::endl;
+            std::cout << "[" << generated << " generated, " << expanded
+                      << " expanded]"  << std::endl;
+          }
+        } else {
+          focus->Push(values[k], nodes[k], is_pref_vec[k]);
         }
       }
 
