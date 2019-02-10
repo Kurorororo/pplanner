@@ -9,22 +9,35 @@
 
 namespace pplanner {
 
+template<typename T>
 class Heuristic {
  public:
   virtual ~Heuristic() = 0;
 
-  virtual int Evaluate(const std::vector<int> &state,
-                       std::shared_ptr<SearchNode> node) = 0;
+  virtual int Evaluate(const std::vector<int> &state, T node) = 0;
 
   virtual int Evaluate(const std::vector<int> &state,
                        const std::vector<int> &applicable,
-                       std::unordered_set<int> &preferred,
-                       std::shared_ptr<SearchNode> node) = 0;
+                       std::unordered_set<int> &preferred, T node) = 0;
 };
 
-int Evaluate(const std::vector<std::shared_ptr<Heuristic> > evaluators,
-             const std::vector<int> &state, std::shared_ptr<SearchNode> node,
-             std::vector<int> &values);
+template<typename T>
+Heuristic<T>::~Heuristic() {}
+
+template<typename T>
+int Evaluate(const std::vector<std::shared_ptr<Heuristic<T> > > evaluators,
+             const std::vector<int> &state, T node, std::vector<int> &values) {
+  values.clear();
+
+  for (auto e : evaluators) {
+    int h = e->Evaluate(state, node);
+    values.push_back(h);
+
+    if (h == -1) return -1;
+  }
+
+  return values[0];
+}
 
 } // namespace pplanner
 

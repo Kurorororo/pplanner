@@ -26,9 +26,6 @@ class ClosedList {
   void Clear();
 
  private:
-  std::size_t Find(uint32_t hash,
-                   const std::vector<uint32_t> &packed_state) const;
-
   void Resize();
 
   uint32_t closed_mask_;

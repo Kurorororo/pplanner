@@ -19,7 +19,7 @@ void MultiGBFS::InitHeuristics(int i, const boost::property_tree::ptree pt) {
   BOOST_FOREACH (const boost::property_tree::ptree::value_type& child,
                  pt.get_child("evaluators")) {
     auto e = child.second;
-    auto evaluator = HeuristicFactory(problem_, e);
+    auto evaluator = HeuristicFactory<SearchNode*>(problem_, e);
     evaluators_[i].push_back(evaluator);
   }
 
@@ -30,28 +30,24 @@ void MultiGBFS::InitHeuristics(int i, const boost::property_tree::ptree pt) {
       if (name.get() == "same")
         preferring_[i] = evaluators_[i][0];
       else
-        preferring_[i] = HeuristicFactory(problem_, preferring.get());
+        preferring_[i] = HeuristicFactory<SearchNode*>(problem_,
+                                                       preferring.get());
     }
   }
 }
 
 void MultiGBFS::Init(const boost::property_tree::ptree &pt) {
-  int closed_exponent = 22;
+  goal_.store(nullptr);
+  int closed_exponent = 26;
 
   if (auto closed_exponent_opt = pt.get_optional<int>("closed_exponent"))
     closed_exponent = closed_exponent_opt.get();
 
   auto open_list_option = pt.get_child("open_list");
-  open_list_ = OpenListFactory<std::shared_ptr<SearchNodeWithHash> >(
-      open_list_option);
+  open_list_ = OpenListFactory<SearchNodeWithNext*>(open_list_option);
+  closed_ = std::make_unique<LockFreeClosedList>(closed_exponent);
 
   if (auto opt = pt.get_optional<int>("n_threads")) n_threads_ = opt.get();
-
-  for (int i = 0; i < n_threads_ * 2; ++i)
-    closed_.emplace_back(std::make_shared<ClosedList>(closed_exponent));
-
-  for (int i = 0; i < n_threads_ * 2; ++i)
-    closed_mtx_.emplace_back(std::make_unique<std::shared_timed_mutex>());
 
   preferring_.resize(n_threads_);
   evaluators_.resize(n_threads_);
@@ -67,14 +63,14 @@ void MultiGBFS::Init(const boost::property_tree::ptree &pt) {
 
 void MultiGBFS::InitialEvaluate() {
   auto state = problem_->initial();
-  auto node = std::make_shared<SearchNodeWithHash>();
+  auto node = new SearchNodeWithNext();
   node->cost = 0;
   node->action = -1;
   node->parent = nullptr;
   node->packed_state.resize(packer_->block_size());
   packer_->Pack(state, node->packed_state.data());
-  node->hash = hash1_->operator()(state);
-  node->hash2 = hash2_->operator()(state);
+  node->hash = hash_->operator()(state);
+  node->next.store(nullptr);
 
   std::vector<int> values;
   node->h = Evaluate(0, state, node, values);
@@ -82,9 +78,25 @@ void MultiGBFS::InitialEvaluate() {
   std::cout << "Initial heuristic value: " << node->h << std::endl;
 }
 
+void MultiGBFS::DeleteAllNodes() {
+  while (auto node = LockedPop())
+    delete node;
+}
+
+MultiGBFS::~MultiGBFS() {
+  vector<std::thread> ts;
+
+  for (int i = 0; i < n_threads_; ++i)
+    ts.push_back(std::thread([this] { this->DeleteAllNodes(); }));
+
+  for (int i = 0; i < n_threads_; ++i)
+    ts[i].join();
+
+  closed_->DeleteAllNodes();
+}
+
 int MultiGBFS::Evaluate(int i, const vector<int> &state,
-                        std::shared_ptr<SearchNodeWithHash> node,
-                        vector<int> &values) {
+                        SearchNodeWithNext* node, vector<int> &values) {
   values.clear();
 
   for (auto e : evaluators_[i]) {
@@ -111,23 +123,19 @@ void MultiGBFS::Expand(int i) {
   int generated = 0;
   int dead_ends = 0;
 
-  while (!LockedReadGoal()) {
+  while (goal_.load() == nullptr) {
     auto node = LockedPop();
 
     if (node == nullptr) continue;
 
+    if (closed_->IsClosed(node->hash, node->packed_state)) continue;
+
     packer_->Unpack(node->packed_state.data(), state);
-    int idx = node->hash2 % (n_threads_ * 2);
-
-    if (LockedIsClosed(idx, node->hash, node->packed_state))
-      continue;
-
-    LockedClose(idx, node);
-
+    closed_->Close(node);
     ++expanded;
 
     if (problem_->IsGoal(state)) {
-      LockedWriteGoal(node);
+      WriteGoal(node);
       break;
     }
 
@@ -144,20 +152,18 @@ void MultiGBFS::Expand(int i) {
     for (auto o : applicable) {
       problem_->ApplyEffect(o, state, child);
 
-      uint32_t hash1 = hash1_->HashByDifference(o, node->hash, state, child);
+      uint32_t hash = hash_->HashByDifference(o, node->hash, state, child);
       packer_->Pack(child, packed.data());
-      uint32_t hash2 = hash2_->HashByDifference(o, node->hash2, state, child);
-      int idx = hash2 % (n_threads_ * 2);
 
-      if (LockedIsClosed(idx, hash1, packed)) continue;
+      if (closed_->IsClosed(hash, packed)) continue;
 
-      auto child_node = std::make_shared<SearchNodeWithHash>();
+      auto child_node = new SearchNodeWithNext();
       child_node->cost = node->cost + problem_->ActionCost(o);
       child_node->action = o;
       child_node->parent = node;
       child_node->packed_state = packed;
-      child_node->hash = hash1;
-      child_node->hash2 = hash2;
+      child_node->hash = hash;
+      child_node->next.store(nullptr);
       ++generated;
 
       int h = Evaluate(i, child, child_node, values);
@@ -185,7 +191,7 @@ void MultiGBFS::Expand(int i) {
   WriteStat(expanded, evaluated, generated, dead_ends);
 }
 
-std::shared_ptr<SearchNodeWithHash> MultiGBFS::Search() {
+SearchNodeWithNext* MultiGBFS::Search() {
   InitialEvaluate();
   vector<std::thread> ts;
 
@@ -195,7 +201,7 @@ std::shared_ptr<SearchNodeWithHash> MultiGBFS::Search() {
   for (int i = 0; i < n_threads_; ++i)
     ts[i].join();
 
-  return goal_;
+  return goal_.load();
 }
 
 void MultiGBFS::DumpStatistics() const {

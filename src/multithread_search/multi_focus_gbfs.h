@@ -1,6 +1,7 @@
 #ifndef MULTI_FOCUS_GBFS_H_
 #define MULTI_FOCUS_GBFS_H_
 
+#include <atomic>
 #include <memory>
 #include <mutex>
 #include <random>
@@ -15,7 +16,7 @@
 #include <boost/property_tree/ptree.hpp>
 
 #include "hash/zobrist_hash.h"
-#include "multithread_search/closed_list.h"
+#include "multithread_search/lock_free_closed_list.h"
 #include "multithread_search/heuristic.h"
 #include "multithread_search/search_node.h"
 #include "open_list.h"
@@ -33,10 +34,9 @@ class Focus {
   Focus() : best_h_(-1), open_list_(nullptr) {}
 
   Focus(const boost::property_tree::ptree &pt, const std::vector<int> &values,
-        std::shared_ptr<SearchNodeWithHash> node, bool is_pref,
-        int plateau_threshold)
+        SearchNodeWithNext *node, bool is_pref, int plateau_threshold)
     : best_h_(values[0]),
-      open_list_(OpenListFactory<std::shared_ptr<SearchNodeWithHash> >(pt)) {
+      open_list_(OpenListFactory<SearchNodeWithNext*>(pt)) {
     open_list_->Push(values, node, is_pref);
   }
 
@@ -46,12 +46,12 @@ class Focus {
 
   bool IsEmpty() const { return open_list_->IsEmpty(); }
 
-  void Push(const std::vector<int> &values,
-            std::shared_ptr<SearchNodeWithHash> node, bool is_pref) {
+  void Push(const std::vector<int> &values, SearchNodeWithNext *node,
+            bool is_pref) {
     open_list_->Push(values, node, is_pref);
   }
 
-  std::shared_ptr<SearchNodeWithHash> Pop() { return open_list_->Pop(); }
+  SearchNodeWithNext* Pop() { return open_list_->Pop(); }
 
   const std::vector<int> MinimumValues() const {
     return open_list_->MinimumValues();
@@ -61,7 +61,7 @@ class Focus {
 
  private:
   int best_h_;
-  std::unique_ptr<OpenList<std::shared_ptr<SearchNodeWithHash> > > open_list_;
+  std::unique_ptr<OpenList<SearchNodeWithNext*> > open_list_;
 };
 
 class MultiFocusGBFS : public Search {
@@ -76,14 +76,15 @@ class MultiFocusGBFS : public Search {
       evaluated_(0),
       generated_(0),
       dead_ends_(0),
-      goal_(nullptr),
+      best_h_(-1),
       problem_(problem),
       generator_(std::make_unique<SuccessorGenerator>(problem)),
       packer_(std::make_unique<StatePacker>(problem)),
-      hash1_(std::make_unique<ZobristHash>(problem, 4166245435)),
-      hash2_(std::make_unique<ZobristHash>(problem, 2886379259)) { Init(pt); }
+      hash_(std::make_unique<ZobristHash>(problem, 4166245435)) {
+    Init(pt);
+  }
 
-  ~MultiFocusGBFS() {}
+  ~MultiFocusGBFS();
 
   std::vector<int> Plan() override {
     auto goal = Search();
@@ -93,14 +94,13 @@ class MultiFocusGBFS : public Search {
 
   void DumpStatistics() const override;
 
-  std::shared_ptr<SearchNodeWithHash> Search();
+  SearchNodeWithNext* Search();
 
   void InitialEvaluate();
 
   void Expand(int i);
 
-  int Evaluate(int i, const std::vector<int> &state,
-               std::shared_ptr<SearchNodeWithHash> node,
+  int Evaluate(int i, const std::vector<int> &state, SearchNodeWithNext *node,
                std::vector<int> &values);
 
   std::shared_ptr<Focus> LockedPopFocus() {
@@ -117,36 +117,16 @@ class MultiFocusGBFS : public Search {
     foci_->Push(focus->MinimumValues(), focus, false);
   }
 
-  void CreateNewFocus(std::vector<int> &values,
-                      std::shared_ptr<SearchNodeWithHash> node, bool is_pref) {
+  void CreateNewFocus(std::vector<int> &values, SearchNodeWithNext *node,
+                      bool is_pref) {
     auto focus = std::make_shared<Focus>(open_list_option_, values, node,
                                          is_pref, plateau_threshold_);
     LockedPushFocus(focus);
   }
 
-  void LockedClose(int i, std::shared_ptr<SearchNodeWithHash> node) {
-    std::lock_guard<std::shared_timed_mutex> lock(*closed_mtx_[i]);
-
-    closed_[i]->Close(node);
-  }
-
-  bool LockedIsClosed(int i, uint32_t hash,
-                      const std::vector<uint32_t> packed) {
-    std::shared_lock<std::shared_timed_mutex> lock(*closed_mtx_[i]);
-
-    return closed_[i]->IsClosed(hash, packed);
-  }
-
-  bool LockedReadGoal() {
-    std::shared_lock<std::shared_timed_mutex> lock(goal_mtx_);
-
-    return goal_ != nullptr;
-  }
-
-  void LockedWriteGoal(std::shared_ptr<SearchNodeWithHash> goal) {
-    std::lock_guard<std::shared_timed_mutex> lock(goal_mtx_);
-
-    goal_ = goal;
+  void WriteGoal(SearchNodeWithNext* goal) {
+    SearchNodeWithNext *expected = nullptr;
+    goal_.compare_exchange_strong(expected, goal);
   }
 
   void WriteStat(int expanded, int evaluated, int generated, int dead_ends) {
@@ -163,6 +143,10 @@ class MultiFocusGBFS : public Search {
 
   void Init(const boost::property_tree::ptree &pt);
 
+  void DeleteAllNodes();
+
+  bool UpdateBestH(int h);
+
   bool use_preferred_;
   int n_threads_;
   int min_expansion_per_focus_;
@@ -171,21 +155,20 @@ class MultiFocusGBFS : public Search {
   int evaluated_;
   int generated_;
   int dead_ends_;
-  std::shared_ptr<SearchNodeWithHash> goal_;
+  std::atomic<int> best_h_;
+  std::atomic<SearchNodeWithNext*> goal_;
   std::shared_ptr<const SASPlus> problem_;
   std::unique_ptr<SuccessorGenerator> generator_;
   std::unique_ptr<StatePacker> packer_;
-  std::unique_ptr<ZobristHash> hash1_;
-  std::unique_ptr<ZobristHash> hash2_;
-  std::vector<std::shared_ptr<ClosedList> > closed_;
-  std::vector<std::shared_ptr<Heuristic> > preferring_;
-  std::vector<std::vector<std::shared_ptr<Heuristic> > > evaluators_;
+  std::unique_ptr<ZobristHash> hash_;
+  std::unique_ptr<LockFreeClosedList> closed_;
+  std::vector<std::shared_ptr<Heuristic<SearchNode*> > > preferring_;
+  std::vector<std::vector<std::shared_ptr<
+    Heuristic<SearchNode*> > > > evaluators_;
   boost::property_tree::ptree open_list_option_;
   std::unique_ptr<OpenList<std::shared_ptr<Focus> > > foci_;
   std::mutex open_mtx_;
   std::mutex stat_mtx_;
-  std::vector<std::unique_ptr<std::shared_timed_mutex> > closed_mtx_;
-  std::shared_timed_mutex goal_mtx_;
 };
 
 } // namespace pplanner

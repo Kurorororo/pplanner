@@ -19,7 +19,7 @@ void MultiFocusGBFS::InitHeuristics(int i,
   BOOST_FOREACH (const boost::property_tree::ptree::value_type& child,
                  pt.get_child("evaluators")) {
     auto e = child.second;
-    auto evaluator = HeuristicFactory(problem_, e);
+    auto evaluator = HeuristicFactory<SearchNode*>(problem_, e);
     evaluators_[i].push_back(evaluator);
   }
 
@@ -30,27 +30,24 @@ void MultiFocusGBFS::InitHeuristics(int i,
       if (name.get() == "same")
         preferring_[i] = evaluators_[i][0];
       else
-        preferring_[i] = HeuristicFactory(problem_, preferring.get());
+        preferring_[i] = HeuristicFactory<SearchNode*>(
+            problem_, preferring.get());
     }
   }
 }
 
 void MultiFocusGBFS::Init(const boost::property_tree::ptree &pt) {
-  int closed_exponent = 22;
+  goal_.store(nullptr);
+  int closed_exponent = 26;
 
   if (auto closed_exponent_opt = pt.get_optional<int>("closed_exponent"))
     closed_exponent = closed_exponent_opt.get();
 
   open_list_option_ = pt.get_child("open_list");
   foci_ = OpenListFactory<std::shared_ptr<Focus> >(open_list_option_);
+  closed_ = std::make_unique<LockFreeClosedList>(closed_exponent);
 
   if (auto opt = pt.get_optional<int>("n_threads")) n_threads_ = opt.get();
-
-  for (int i = 0; i < n_threads_ * 2; ++i)
-    closed_.emplace_back(std::make_shared<ClosedList>(closed_exponent));
-
-  for (int i = 0; i < n_threads_ * 2; ++i)
-    closed_mtx_.emplace_back(std::make_unique<std::shared_timed_mutex>());
 
   preferring_.resize(n_threads_);
   evaluators_.resize(n_threads_);
@@ -66,24 +63,45 @@ void MultiFocusGBFS::Init(const boost::property_tree::ptree &pt) {
 
 void MultiFocusGBFS::InitialEvaluate() {
   auto state = problem_->initial();
-  auto node = std::make_shared<SearchNodeWithHash>();
+  auto node = new SearchNodeWithNext();
   node->cost = 0;
   node->action = -1;
   node->parent = nullptr;
   node->packed_state.resize(packer_->block_size());
   packer_->Pack(state, node->packed_state.data());
-  node->hash = hash1_->operator()(state);
-  node->hash2 = hash2_->operator()(state);
+  node->hash = hash_->operator()(state);
+  node->next.store(nullptr);
 
   std::vector<int> values;
   node->h = Evaluate(0, state, node, values);
+  best_h_.store(node->h);
   CreateNewFocus(values, node, true);
   std::cout << "Initial heuristic value: " << node->h << std::endl;
 }
 
+void MultiFocusGBFS::DeleteAllNodes() {
+  std::unordered_set<SearchNodeWithNext*> deleted;
+
+  while (auto focus = LockedPopFocus()) {
+    while (!focus->IsEmpty()) {
+      auto node = focus->Pop();
+
+      if (deleted.find(node) == deleted.end()) {
+        deleted.insert(node);
+        delete node;
+      }
+    }
+  }
+
+  closed_->DeleteAllNodes(deleted);
+}
+
+MultiFocusGBFS::~MultiFocusGBFS() {
+  DeleteAllNodes();
+}
+
 int MultiFocusGBFS::Evaluate(int i, const vector<int> &state,
-                             std::shared_ptr<SearchNodeWithHash> node,
-                             vector<int> &values) {
+                             SearchNodeWithNext *node, vector<int> &values) {
   values.clear();
 
   for (auto e : evaluators_[i]) {
@@ -96,22 +114,34 @@ int MultiFocusGBFS::Evaluate(int i, const vector<int> &state,
   return values[0];
 }
 
+bool MultiFocusGBFS::UpdateBestH(int h) {
+  int expected = best_h_.load();
+
+  do {
+    expected = best_h_.load();
+
+    if (h >= expected) return false;
+
+  } while (!best_h_.compare_exchange_weak(expected, h));
+
+  return true;
+}
+
 void MultiFocusGBFS::Expand(int i) {
   vector<int> state(problem_->n_variables());
   vector<int> child(problem_->n_variables());
   vector<int> applicable;
   unordered_set<int> preferred;
+  vector<int> values;
+  vector<int> best_values;
   vector<uint32_t> packed(packer_->block_size(), 0);
-  vector<vector<int> > values;
-  vector<std::shared_ptr<SearchNodeWithHash> > nodes;
-  vector<bool> is_pref_vec;
 
   int expanded = 0;
   int evaluated = 0;
   int generated = 0;
   int dead_ends = 0;
 
-  while (!LockedReadGoal()) {
+  while (goal_ == nullptr) {
     auto focus = LockedPopFocus();
 
     if (focus == nullptr) continue;
@@ -120,18 +150,15 @@ void MultiFocusGBFS::Expand(int i) {
 
     while (counter > 0 && !focus->IsEmpty()) {
       auto node = focus->Pop();
+
+      if (closed_->IsClosed(node->hash, node->packed_state)) break;
+
       packer_->Unpack(node->packed_state.data(), state);
-      int idx = node->hash2 % (n_threads_ * 2);
-
-      if (LockedIsClosed(idx, node->hash, node->packed_state))
-        break;
-
-      LockedClose(idx, node);
-
+      closed_->Close(node);
       ++expanded;
 
       if (problem_->IsGoal(state)) {
-        LockedWriteGoal(node);
+        WriteGoal(node);
         break;
       }
 
@@ -145,32 +172,26 @@ void MultiFocusGBFS::Expand(int i) {
       if (use_preferred_)
         preferring_[i]->Evaluate(state, applicable, preferred, node);
 
-      values.resize(applicable.size());
-      nodes.resize(applicable.size());
-      is_pref_vec.resize(applicable.size());
-      int arg_best = -1;
-      int c = 0;
+      SearchNodeWithNext *best_node = nullptr;
 
       for (auto o : applicable) {
         problem_->ApplyEffect(o, state, child);
 
-        uint32_t hash1 = hash1_->HashByDifference(o, node->hash, state, child);
+        uint32_t hash = hash_->HashByDifference(o, node->hash, state, child);
         packer_->Pack(child, packed.data());
-        uint32_t hash2 = hash2_->HashByDifference(o, node->hash2, state, child);
-        int idx = hash2 % (n_threads_ * 2);
 
-        if (LockedIsClosed(idx, hash1, packed)) continue;
+        if (closed_->IsClosed(hash, packed)) continue;
 
-        auto child_node = std::make_shared<SearchNodeWithHash>();
+        auto child_node = new SearchNodeWithNext();
         child_node->cost = node->cost + problem_->ActionCost(o);
         child_node->action = o;
         child_node->parent = node;
         child_node->packed_state = packed;
-        child_node->hash = hash1;
-        child_node->hash2 = hash2;
+        child_node->hash = hash;
+        child_node->next.store(nullptr);
         ++generated;
 
-        int h = Evaluate(i, child, child_node, values[c]);
+        int h = Evaluate(i, child, child_node, values);
         child_node->h = h;
         ++evaluated;
 
@@ -180,30 +201,29 @@ void MultiFocusGBFS::Expand(int i) {
         }
 
         bool is_pref = use_preferred_ && preferred.find(o) != preferred.end();
-        nodes[c] = child_node;
-        is_pref_vec[c] = is_pref;
+        focus->Push(values, child_node, is_pref);
 
         if (h < focus->best_h()) {
           focus->set_best_h(h);
-          arg_best = c;
           focus->Boost();
-        }
 
-        ++c;
+          if (UpdateBestH(h)) {
+            best_node = child_node;
+            best_values = values;
+          }
+        }
       }
 
-      for (int k = 0; k < c; ++k) {
-        if (k == arg_best) {
-          CreateNewFocus(values[k], nodes[k], true);
+      if (best_node != nullptr) {
+        CreateNewFocus(best_values, best_node, true);
+        ++counter;
 
-          if (i == 0) {
-            std::cout << "New best heuristic value: " << nodes[k]->h
-                      << std::endl;
-            std::cout << "[" << generated << " generated, " << expanded
-                      << " expanded]"  << std::endl;
-          }
-        } else {
-          focus->Push(values[k], nodes[k], is_pref_vec[k]);
+        if (i == 0) {
+          std::cout << "New focus h=" << best_node->h << std::endl;
+          std::cout << "New best heuristic value: " << best_node->h
+                    << std::endl;
+          std::cout << "[" << generated << " generated, " << expanded
+                    << " expanded]"  << std::endl;
         }
       }
 
@@ -216,7 +236,7 @@ void MultiFocusGBFS::Expand(int i) {
   WriteStat(expanded, evaluated, generated, dead_ends);
 }
 
-std::shared_ptr<SearchNodeWithHash> MultiFocusGBFS::Search() {
+SearchNodeWithNext* MultiFocusGBFS::Search() {
   InitialEvaluate();
   vector<std::thread> ts;
 

@@ -6,31 +6,27 @@ namespace pplanner {
 
 bool ClosedList::IsClosed(uint32_t hash,
                           const std::vector<uint32_t> &packed_state) const {
-  return closed_[Find(hash, packed_state)] != nullptr;
+  std::size_t i = hash & closed_mask_;
+
+  while (closed_[i] != nullptr) {
+    if (packed_state == closed_[i]->packed_state) return true;
+
+    i = (i == closed_.size() - 1) ? 0 : i + 1;
+  }
+
+  return false;
 }
 
 void ClosedList::Close(std::shared_ptr<SearchNode> node) {
-  std::size_t i = Find(node->hash, node->packed_state);
+  std::size_t i = node->hash & closed_mask_;
 
-  if (closed_[i] != nullptr) return;
+  while (closed_[i] != nullptr)
+    i = (i == closed_.size() - 1) ? 0 : i + 1;
 
   ++n_closed_;
   closed_[i] = node;
 
   if (2 * n_closed_ > closed_.size()) Resize();
-}
-
-std::size_t ClosedList::Find(uint32_t hash,
-                             const std::vector<uint32_t> &packed_state) const {
-  std::size_t i = hash & closed_mask_;
-
-  while (closed_[i] != nullptr) {
-    if (packed_state == closed_[i]->packed_state) break;
-
-    i = (i == closed_.size() - 1) ? 0 : i + 1;
-  }
-
-  return i;
 }
 
 void ClosedList::Clear() {

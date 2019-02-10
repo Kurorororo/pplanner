@@ -2,7 +2,7 @@
 
 namespace pplanner {
 
-std::vector<int> ExtractPath(std::shared_ptr<const SearchNode> node) {
+std::vector<int> ExtractPath(const SearchNode *node) {
   if (node == nullptr) return std::vector<int>{-1};
 
   std::vector<int> result;

@@ -1,7 +1,6 @@
 #ifndef M_FF_H_
 #define M_FF_H_
 
-#include <memory>
 #include <unordered_set>
 #include <vector>
 
@@ -13,7 +12,8 @@
 
 namespace pplanner {
 
-class MFF : public Heuristic {
+template<typename T>
+class MFF : public Heuristic<T> {
  public:
   MFF() : unit_cost_(false), problem_(nullptr),
          r_problem_(nullptr), rpg_(nullptr) {}
@@ -27,8 +27,7 @@ class MFF : public Heuristic {
 
   ~MFF() {}
 
-  int Evaluate(const std::vector<int> &state,
-               std::shared_ptr<SearchNode> node) override {
+  int Evaluate(const std::vector<int> &state, T node) override {
     StateToFactVector(*problem_, state, facts_);
 
     return rpg_->PlanCost(facts_, unit_cost_);
@@ -36,8 +35,7 @@ class MFF : public Heuristic {
 
   int Evaluate(const std::vector<int> &state,
                const std::vector<int> &applicable,
-               std::unordered_set<int> &preferred,
-               std::shared_ptr<SearchNode> node) override {
+               std::unordered_set<int> &preferred, T node) override {
     StateToFactVector(*problem_, state, facts_);
 
     return rpg_->PlanCost(facts_, preferred, unit_cost_);

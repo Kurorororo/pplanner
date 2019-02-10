@@ -12,7 +12,8 @@
 
 namespace pplanner {
 
-class MFFAdd : public Heuristic {
+template<typename T>
+class MFFAdd : public Heuristic<T> {
  public:
   MFFAdd() : unit_cost_(false), problem_(nullptr),
              r_problem_(nullptr), rpg_(nullptr) {}
@@ -26,8 +27,7 @@ class MFFAdd : public Heuristic {
 
   ~MFFAdd() {}
 
-  int Evaluate(const std::vector<int> &state, std::shared_ptr<SearchNode>)
-    override {
+  int Evaluate(const std::vector<int> &state, T node) override {
     StateToFactVector(*problem_, state, facts_);
 
     return rpg_->PlanCost(facts_, unit_cost_);
@@ -35,8 +35,7 @@ class MFFAdd : public Heuristic {
 
   int Evaluate(const std::vector<int> &state,
                const std::vector<int> &applicable,
-               std::unordered_set<int> &preferred,
-               std::shared_ptr<SearchNode> node) override {
+               std::unordered_set<int> &preferred, T node) override {
     StateToFactVector(*problem_, state, facts_);
 
     return rpg_->PlanCost(facts_, preferred, unit_cost_);

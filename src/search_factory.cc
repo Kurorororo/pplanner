@@ -51,11 +51,11 @@ std::unique_ptr<Search> SearchFactory(std::shared_ptr<const SASPlus> problem,
   if (search.get() == "simhdgbfs1")
     return std::make_unique<SIMHDGBFS1>(problem, option.get());
 
-  if (search.get() == "multi_focus_gbfs")
-    return std::make_unique<MultiFocusGBFS>(problem, option.get());
-
   if (search.get() == "multi_gbfs")
     return std::make_unique<MultiGBFS>(problem, option.get());
+
+  if (search.get() == "multi_focus_gbfs")
+    return std::make_unique<MultiFocusGBFS>(problem, option.get());
 
   throw std::runtime_error("No such search algorithm.");
 }
