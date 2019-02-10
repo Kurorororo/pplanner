@@ -42,7 +42,7 @@ void MultiFocusGBFS::Init(const boost::property_tree::ptree &pt) {
     closed_exponent = closed_exponent_opt.get();
 
   open_list_option_ = pt.get_child("open_list");
-  foci_ = OpenListFactory<Focus>(open_list_option_);
+  foci_ = OpenListFactory<std::shared_ptr<Focus> >(open_list_option_);
 
   if (auto opt = pt.get_optional<int>("n_threads")) n_threads_ = opt.get();
 
@@ -103,8 +103,8 @@ void MultiFocusGBFS::Expand(int i) {
   unordered_set<int> preferred;
   vector<int> values;
   vector<uint32_t> packed(packer_->block_size(), 0);
+  vector<int> best_values;
 
-  int best_h = -1;
   int expanded = 0;
   int evaluated = 0;
   int generated = 0;
@@ -115,79 +115,89 @@ void MultiFocusGBFS::Expand(int i) {
 
     if (focus == nullptr) continue;
 
-    auto node = focus->Pop();
-    packer_->Unpack(node->packed_state.data(), state);
-    int idx = node->hash2 % (n_threads_ * 2);
+    int counter = min_expansion_per_focus_;
 
-    if (LockedIsClosed(idx, node->hash, node->packed_state)) {
-      if (!focus->IsEmpty()) LockedPushFocus(focus);
-      continue;
-    }
+    while (counter > 0 && !focus->IsEmpty()) {
+      auto node = focus->Pop();
+      packer_->Unpack(node->packed_state.data(), state);
+      int idx = node->hash2 % (n_threads_ * 2);
 
-    LockedClose(idx, node);
+      if (LockedIsClosed(idx, node->hash, node->packed_state))
+        break;
 
-    ++expanded;
+      LockedClose(idx, node);
 
-    if (problem_->IsGoal(state)) {
-      LockedWriteGoal(node);
-      break;
-    }
+      ++expanded;
 
-    generator_->Generate(state, applicable);
-
-    if (applicable.empty()) {
-      ++dead_ends;
-      if (!focus->IsEmpty()) LockedPushFocus(focus);
-      continue;
-    }
-
-    if (use_preferred_)
-      preferring_[i]->Evaluate(state, applicable, preferred, node);
-
-    for (auto o : applicable) {
-      problem_->ApplyEffect(o, state, child);
-
-      uint32_t hash1 = hash1_->HashByDifference(o, node->hash, state, child);
-      packer_->Pack(child, packed.data());
-      uint32_t hash2 = hash2_->HashByDifference(o, node->hash2, state, child);
-      int idx = hash2 % (n_threads_ * 2);
-
-      if (LockedIsClosed(idx, hash1, packed)) continue;
-
-      auto child_node = std::make_shared<SearchNodeWithHash>();
-      child_node->cost = node->cost + problem_->ActionCost(o);
-      child_node->action = o;
-      child_node->parent = node;
-      child_node->packed_state = packed;
-      child_node->hash = hash1;
-      child_node->hash2 = hash2;
-      ++generated;
-
-      int h = Evaluate(i, child, child_node, values);
-      child_node->h = h;
-      ++evaluated;
-
-      if (h == -1) {
-        ++dead_ends;
-        continue;
+      if (problem_->IsGoal(state)) {
+        LockedWriteGoal(node);
+        break;
       }
 
-      bool is_pref = use_preferred_ && preferred.find(o) != preferred.end();
-      focus->Push(values, child_node, is_pref);
+      generator_->Generate(state, applicable);
 
-      if (best_h == -1 || h < best_h) {
-        best_h = h;
-        CreateNewFocus(values, child_node, is_pref);
+      if (applicable.empty()) {
+        ++dead_ends;
+        break;
+      }
 
-        if (i == 0) {
-          std::cout << "CreateNewFocus" << std::endl;
-          std::cout << "New best heuristic value: " << best_h << std::endl;
-          std::cout << "[" << generated << " generated, "
-                    << expanded << " expanded]"  << std::endl;
+      if (use_preferred_)
+        preferring_[i]->Evaluate(state, applicable, preferred, node);
+
+      std::shared_ptr<SearchNodeWithHash> best_node = nullptr;
+
+      for (auto o : applicable) {
+        problem_->ApplyEffect(o, state, child);
+
+        uint32_t hash1 = hash1_->HashByDifference(o, node->hash, state, child);
+        packer_->Pack(child, packed.data());
+        uint32_t hash2 = hash2_->HashByDifference(o, node->hash2, state, child);
+        int idx = hash2 % (n_threads_ * 2);
+
+        if (LockedIsClosed(idx, hash1, packed)) continue;
+
+        auto child_node = std::make_shared<SearchNodeWithHash>();
+        child_node->cost = node->cost + problem_->ActionCost(o);
+        child_node->action = o;
+        child_node->parent = node;
+        child_node->packed_state = packed;
+        child_node->hash = hash1;
+        child_node->hash2 = hash2;
+        ++generated;
+
+        int h = Evaluate(i, child, child_node, values);
+        child_node->h = h;
+        ++evaluated;
+
+        if (h == -1) {
+          ++dead_ends;
+          continue;
         }
 
-        focus->Boost();
+        bool is_pref = use_preferred_ && preferred.find(o) != preferred.end();
+        focus->Push(values, child_node, is_pref);
+
+        if (h < focus->best_h()) {
+          focus->set_best_h(h);
+          best_node = child_node;
+          best_values = values;
+          focus->Boost();
+        }
       }
+
+      if (best_node != nullptr) {
+        CreateNewFocus(best_values, best_node, true);
+        ++counter;
+
+        if (i == 0) {
+          std::cout << "New best heuristic value: " << best_node->h
+                    << std::endl;
+          std::cout << "[" << generated << " generated, " << expanded
+                    << " expanded]"  << std::endl;
+        }
+      }
+
+      --counter;
     }
 
     if (!focus->IsEmpty()) LockedPushFocus(focus);
