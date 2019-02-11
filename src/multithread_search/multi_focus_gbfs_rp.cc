@@ -77,8 +77,7 @@ void MultiFocusGBFS::InitialEvaluate() {
 
   std::vector<int> values;
   node->h = Evaluate(0, state, node, values);
-  auto focus = CreateNewFocus(values, node, true);
-  LockedPushFocus(focus);
+  CreateNewFocus(values, node, true);
   std::cout << "Initial heuristic value: " << node->h << std::endl;
 }
 
@@ -129,10 +128,9 @@ void MultiFocusGBFS::Expand(int i) {
   vector<int> child(problem_->n_variables());
   vector<int> applicable;
   unordered_set<int> preferred;
+  vector<int> values;
+  vector<int> best_values;
   vector<uint32_t> packed(packer_->block_size(), 0);
-  vector<vector<int> > values;
-  vector<SearchNodeWithNext*> nodes;
-  vector<bool> is_pref;
 
   int expanded = 0;
   int evaluated = 0;
@@ -140,7 +138,7 @@ void MultiFocusGBFS::Expand(int i) {
   int dead_ends = 0;
   std::shared_ptr<Focus> focus = nullptr;
 
-  while (goal_.load() == nullptr) {
+  while (goal_ == nullptr) {
     if (focus == nullptr || focus->IsEmpty())
       focus = LockedPopFocus();
     else
@@ -150,7 +148,7 @@ void MultiFocusGBFS::Expand(int i) {
 
     int counter = min_expansion_per_focus_;
 
-    while (goal_.load() == nullptr && counter > 0 && !focus->IsEmpty()) {
+    while (counter > 0 && !focus->IsEmpty()) {
       auto node = focus->Pop();
 
       if (closed_->IsClosed(node->hash, node->packed_state)) break;
@@ -174,12 +172,7 @@ void MultiFocusGBFS::Expand(int i) {
       if (use_preferred_)
         preferring_[i]->Evaluate(state, applicable, preferred, node);
 
-      int arg_best = -1;
-      int c = 0;
-      values.resize(applicable.size());
-      nodes.resize(applicable.size());
-      std::fill(nodes.begin(), nodes.end(), nullptr);
-      is_pref.resize(applicable.size());
+      SearchNodeWithNext *best_node = nullptr;
 
       for (auto o : applicable) {
         problem_->ApplyEffect(o, state, child);
@@ -198,7 +191,7 @@ void MultiFocusGBFS::Expand(int i) {
         child_node->next.store(nullptr);
         ++generated;
 
-        int h = Evaluate(i, child, child_node, values[c]);
+        int h = Evaluate(i, child, child_node, values);
         child_node->h = h;
         ++evaluated;
 
@@ -210,34 +203,39 @@ void MultiFocusGBFS::Expand(int i) {
 
         node_pool_[i].push_back(child_node);
 
-        nodes[c] = child_node;
-        is_pref[c] = use_preferred_ && preferred.find(o) != preferred.end();
+        bool is_pref = use_preferred_ && preferred.find(o) != preferred.end();
 
         if (h < focus->best_h()) {
-          arg_best = c;
           focus->set_best_h(h);
           focus->Boost();
 
-          if (i == 0) {
-            std::cout << "New best heuristic value: " << h << std::endl;
-            std::cout << "[" << generated << " generated, " << expanded
-                      << " expanded]"  << std::endl;
-          }
-        }
+          if (best_node != nullptr)
+            focus->Push(best_values, best_node, is_pref);
 
-        ++c;
+          best_node = child_node;
+          best_values = values;
+        } else {
+          focus->Push(values, child_node, is_pref);
+        }
       }
 
-      for (int j = 0; j < c; ++j)
-        if (j != arg_best) focus->Push(values[j], nodes[j], is_pref[j]);
+      if (best_node != nullptr) {
+        if (!focus->IsEmpty()) {
+          values = focus->MinimumValues();
+          CreateNewFocus(values, focus->Pop(), true);
 
-      if (arg_best != -1) {
-        if (i == 0)
-          std::cout << "New focus h=" << nodes[arg_best]->h << std::endl;
+          if (i == 0)
+            std::cout << "New focus h=" << values[0] << std::endl;
+        }
 
-        if (!focus->IsEmpty()) LockedPushFocus(focus);
-        focus = CreateNewFocus(values[arg_best], nodes[arg_best], true);
-        ++counter;
+        focus->Push(best_values, best_node, true);
+
+        if (i == 0) {
+          std::cout << "New best heuristic value: " << best_node->h
+                    << std::endl;
+          std::cout << "[" << generated << " generated, " << expanded
+                    << " expanded]"  << std::endl;
+        }
       }
 
       --counter;
@@ -257,7 +255,7 @@ SearchNodeWithNext* MultiFocusGBFS::Search() {
   for (int i = 0; i < n_threads_; ++i)
     ts[i].join();
 
-  return goal_.load();
+  return goal_;
 }
 
 void MultiFocusGBFS::DumpStatistics() const {
