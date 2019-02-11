@@ -23,9 +23,9 @@ void ArgSort(const std::vector<T> &v, std::vector<int> &indices,
 }
 
 template<typename T>
-std::vector<int> ArgSort(const std::vector<T> &v) {
+std::vector<int> ArgSort(const std::vector<T> &v, bool greater=false) {
   std::vector<int> indices;
-  ArgSort<T>(v, indices);
+  ArgSort<T>(v, indices, greater);
 
   return indices;
 }

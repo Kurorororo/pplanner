@@ -8,12 +8,14 @@ namespace pplanner {
 std::shared_ptr<DistributionHash> DistributionHashFactory(
     std::shared_ptr<const SASPlus> problem,
     uint32_t seed,
-    const std::string &abstraction) {
+    const std::string &abstraction,
+    double threshold) {
+
   if (abstraction == "gra")
-    return std::make_shared<GRAZobristHash>(problem, seed, false);
+    return std::make_shared<GRAZobristHash>(problem, seed, false, threshold);
 
   if (abstraction == "ga")
-    return std::make_shared<GRAZobristHash>(problem, seed, true);
+    return std::make_shared<GRAZobristHash>(problem, seed, true, threshold);
 
   return std::make_shared<ZobristHash>(problem, seed);
 }

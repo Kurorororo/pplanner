@@ -13,7 +13,7 @@ namespace pplanner {
 class GRAZobristHash : public DistributionHash {
  public:
   GRAZobristHash(std::shared_ptr<const SASPlus> problem, uint32_t seed,
-                 bool greedy=true);
+                 bool greedy=true, double threashold=0.0);
 
   ~GRAZobristHash() {}
 
@@ -25,6 +25,7 @@ class GRAZobristHash : public DistributionHash {
  private:
   std::shared_ptr<const SASPlus> problem_;
   std::vector<std::vector<int> > cuts_;
+  std::vector<bool> ignore_;
   std::vector<std::array<uint32_t, 2> > array_;
 };
 

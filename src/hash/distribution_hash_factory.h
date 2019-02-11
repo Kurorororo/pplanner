@@ -14,7 +14,8 @@ namespace pplanner {
 std::shared_ptr<DistributionHash> DistributionHashFactory(
     std::shared_ptr<const SASPlus> problem,
     uint32_t seed,
-    const std::string &abstraction);
+    const std::string &abstraction,
+    double threshold=0.0);
 
 } // namespace pplanner
 
