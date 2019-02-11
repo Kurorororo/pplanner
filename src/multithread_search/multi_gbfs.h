@@ -95,7 +95,7 @@ class MultiGBFS : public Search {
 
   void Init(const boost::property_tree::ptree &pt);
 
-  void DeleteAllNodes();
+  void DeleteAllNodes(int i);
 
   bool use_preferred_;
   int n_threads_;
@@ -108,6 +108,7 @@ class MultiGBFS : public Search {
   std::unique_ptr<SuccessorGenerator> generator_;
   std::unique_ptr<StatePacker> packer_;
   std::unique_ptr<ZobristHash> hash_;
+  std::vector<std::vector<SearchNode*> > node_pool_;
   std::unique_ptr<LockFreeClosedList> closed_;
   std::vector<std::shared_ptr<Heuristic<SearchNode*> > > preferring_;
   std::vector<std::vector<

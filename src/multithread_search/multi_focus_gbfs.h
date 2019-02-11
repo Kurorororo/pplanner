@@ -143,7 +143,7 @@ class MultiFocusGBFS : public Search {
 
   void Init(const boost::property_tree::ptree &pt);
 
-  void DeleteAllNodes();
+  void DeleteAllNodes(int i);
 
   bool UpdateBestH(int h);
 
@@ -162,6 +162,7 @@ class MultiFocusGBFS : public Search {
   std::unique_ptr<StatePacker> packer_;
   std::unique_ptr<ZobristHash> hash_;
   std::unique_ptr<LockFreeClosedList> closed_;
+  std::vector<std::vector<SearchNode*> > node_pool_;
   std::vector<std::shared_ptr<Heuristic<SearchNode*> > > preferring_;
   std::vector<std::vector<std::shared_ptr<
     Heuristic<SearchNode*> > > > evaluators_;

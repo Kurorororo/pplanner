@@ -24,10 +24,6 @@ class LockFreeClosedList {
 
   void Close(SearchNodeWithNext* node);
 
-  void DeleteAllNodes();
-
-  void DeleteAllNodes(std::unordered_set<SearchNodeWithNext*> &deleted);
-
  private:
   void Init();
 

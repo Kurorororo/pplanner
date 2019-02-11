@@ -7,27 +7,6 @@ void LockFreeClosedList::Init() {
     closed_[i].store(nullptr);
 }
 
-void LockFreeClosedList::DeleteAllNodes() {
-  for (auto &v : closed_) {
-    auto ptr = v.load();
-
-    if (ptr != nullptr)
-      delete ptr;
-  }
-}
-
-void LockFreeClosedList::DeleteAllNodes(
-    std::unordered_set<SearchNodeWithNext*> &deleted) {
-  for (auto &v : closed_) {
-    auto ptr = v.load();
-
-    if (ptr != nullptr && deleted.find(ptr) == deleted.end()) {
-      deleted.insert(ptr);
-      delete ptr;
-    }
-  }
-}
-
 bool LockFreeClosedList::IsClosed(
     uint32_t hash,
     const std::vector<uint32_t> &packed_state) const {

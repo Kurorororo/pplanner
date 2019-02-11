@@ -16,6 +16,8 @@ using std::vector;
 
 void MultiFocusGBFS::InitHeuristics(int i,
                                     const boost::property_tree::ptree pt) {
+  node_pool_[i].reserve(1 << 22);
+
   BOOST_FOREACH (const boost::property_tree::ptree::value_type& child,
                  pt.get_child("evaluators")) {
     auto e = child.second;
@@ -51,6 +53,7 @@ void MultiFocusGBFS::Init(const boost::property_tree::ptree &pt) {
 
   preferring_.resize(n_threads_);
   evaluators_.resize(n_threads_);
+  node_pool_.resize(n_threads_);
 
   vector<std::thread> ts;
 
@@ -79,25 +82,19 @@ void MultiFocusGBFS::InitialEvaluate() {
   std::cout << "Initial heuristic value: " << node->h << std::endl;
 }
 
-void MultiFocusGBFS::DeleteAllNodes() {
-  std::unordered_set<SearchNodeWithNext*> deleted;
-
-  while (auto focus = LockedPopFocus()) {
-    while (!focus->IsEmpty()) {
-      auto node = focus->Pop();
-
-      if (deleted.find(node) == deleted.end()) {
-        deleted.insert(node);
-        delete node;
-      }
-    }
-  }
-
-  closed_->DeleteAllNodes(deleted);
+void MultiFocusGBFS::DeleteAllNodes(int i) {
+  for (int j = 0, n = node_pool_[i].size(); j < n; ++j)
+    delete node_pool_[i][j];
 }
 
 MultiFocusGBFS::~MultiFocusGBFS() {
-  DeleteAllNodes();
+  vector<std::thread> ts;
+
+  for (int i = 0; i < n_threads_; ++i)
+    ts.push_back(std::thread([this, i] { this->DeleteAllNodes(i); }));
+
+  for (int i = 0; i < n_threads_; ++i)
+    ts[i].join();
 }
 
 int MultiFocusGBFS::Evaluate(int i, const vector<int> &state,
@@ -197,8 +194,11 @@ void MultiFocusGBFS::Expand(int i) {
 
         if (h == -1) {
           ++dead_ends;
+          delete child_node;
           continue;
         }
+
+        node_pool_[i].push_back(child_node);
 
         bool is_pref = use_preferred_ && preferred.find(o) != preferred.end();
         focus->Push(values, child_node, is_pref);

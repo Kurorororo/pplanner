@@ -16,6 +16,8 @@ using std::unordered_set;
 using std::vector;
 
 void MultiGBFS::InitHeuristics(int i, const boost::property_tree::ptree pt) {
+  node_pool_[i].reserve(1 << 22);
+
   BOOST_FOREACH (const boost::property_tree::ptree::value_type& child,
                  pt.get_child("evaluators")) {
     auto e = child.second;
@@ -51,6 +53,7 @@ void MultiGBFS::Init(const boost::property_tree::ptree &pt) {
 
   preferring_.resize(n_threads_);
   evaluators_.resize(n_threads_);
+  node_pool_.resize(n_threads_);
 
   vector<std::thread> ts;
 
@@ -78,21 +81,19 @@ void MultiGBFS::InitialEvaluate() {
   std::cout << "Initial heuristic value: " << node->h << std::endl;
 }
 
-void MultiGBFS::DeleteAllNodes() {
-  while (auto node = LockedPop())
-    delete node;
+void MultiGBFS::DeleteAllNodes(int i) {
+  for (int j = 0, n = node_pool_[i].size(); j < n; ++j)
+    delete node_pool_[i][j];
 }
 
 MultiGBFS::~MultiGBFS() {
   vector<std::thread> ts;
 
   for (int i = 0; i < n_threads_; ++i)
-    ts.push_back(std::thread([this] { this->DeleteAllNodes(); }));
+    ts.push_back(std::thread([this, i] { this->DeleteAllNodes(i); }));
 
   for (int i = 0; i < n_threads_; ++i)
     ts[i].join();
-
-  closed_->DeleteAllNodes();
 }
 
 int MultiGBFS::Evaluate(int i, const vector<int> &state,
@@ -172,8 +173,11 @@ void MultiGBFS::Expand(int i) {
 
       if (h == -1) {
         ++dead_ends;
+        delete child_node;
         continue;
       }
+
+      node_pool_[i].push_back(child_node);
 
       if ((best_h == -1 || h < best_h) && i == 0) {
         best_h = h;
