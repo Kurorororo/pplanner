@@ -77,7 +77,6 @@ void MultiFocusGBFS::InitialEvaluate() {
 
   std::vector<int> values;
   node->h = Evaluate(0, state, node, values);
-  best_h_.store(node->h);
   CreateNewFocus(values, node, true);
   std::cout << "Initial heuristic value: " << node->h << std::endl;
 }
@@ -137,9 +136,13 @@ void MultiFocusGBFS::Expand(int i) {
   int evaluated = 0;
   int generated = 0;
   int dead_ends = 0;
+  std::shared_ptr<Focus> focus = nullptr;
 
   while (goal_ == nullptr) {
-    auto focus = LockedPopFocus();
+    if (focus == nullptr || focus->IsEmpty())
+      focus = LockedPopFocus();
+    else
+      focus = TryPopFocus(focus);
 
     if (focus == nullptr) continue;
 
@@ -201,22 +204,23 @@ void MultiFocusGBFS::Expand(int i) {
         node_pool_[i].push_back(child_node);
 
         bool is_pref = use_preferred_ && preferred.find(o) != preferred.end();
-        focus->Push(values, child_node, is_pref);
 
         if (h < focus->best_h()) {
           focus->set_best_h(h);
           focus->Boost();
 
-          if (UpdateBestH(h)) {
-            best_node = child_node;
-            best_values = values;
-          }
+          if (best_node != nullptr)
+            focus->Push(best_values, best_node, is_pref);
+
+          best_node = child_node;
+          best_values = values;
+        } else {
+          focus->Push(values, child_node, is_pref);
         }
       }
 
       if (best_node != nullptr) {
         CreateNewFocus(best_values, best_node, true);
-        ++counter;
 
         if (i == 0) {
           std::cout << "New focus h=" << best_node->h << std::endl;
@@ -225,12 +229,11 @@ void MultiFocusGBFS::Expand(int i) {
           std::cout << "[" << generated << " generated, " << expanded
                     << " expanded]"  << std::endl;
         }
+
       }
 
       --counter;
     }
-
-    if (!focus->IsEmpty()) LockedPushFocus(focus);
   }
 
   WriteStat(expanded, evaluated, generated, dead_ends);

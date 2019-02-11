@@ -103,6 +103,21 @@ class MultiFocusGBFS : public Search {
   int Evaluate(int i, const std::vector<int> &state, SearchNodeWithNext *node,
                std::vector<int> &values);
 
+  std::shared_ptr<Focus> TryPopFocus(std::shared_ptr<Focus> focus) {
+    if (open_mtx_.try_lock()) {
+      if (!foci_->IsEmpty()
+          && foci_->MinimumValues() < focus->MinimumValues()) {
+        auto tmp_focus = foci_->Pop();
+        foci_->Push(focus->MinimumValues(), focus, false);
+        focus = tmp_focus;
+      }
+
+      open_mtx_.unlock();
+    }
+
+    return focus;
+  }
+
   std::shared_ptr<Focus> LockedPopFocus() {
     std::lock_guard<std::mutex> lock(open_mtx_);
 
