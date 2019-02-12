@@ -23,6 +23,8 @@ class AbstractGraph {
     return inference_scope_[i];
   }
 
+  int StateToNode(const std::vector<int> &state) const;
+
   int n_nodes() const { return n_nodes_; }
 
   int max_out_degree() const { return max_out_degree_; }

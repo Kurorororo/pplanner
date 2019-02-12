@@ -46,6 +46,14 @@ void AbstractGraph::BuildInferenceScope() {
   }
 }
 
+int AbstractGraph::StateToNode(const std::vector<int> &state,
+                               std::vector<int> &values) const {
+  for (int i = 0, n = vars.size(); i < n; ++i)
+    values[i] = state[vars_[i]];
+
+  return LexicalOrder(values, ranges_);
+}
+
 void AbstractGraph::Dump() const {
   std::cout << "children" << std::endl;
 
