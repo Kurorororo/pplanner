@@ -70,7 +70,7 @@ class MultiFocusGBFS : public Search {
                  const boost::property_tree::ptree &pt)
     : use_preferred_(false),
       n_threads_(1),
-      min_expansion_per_focus_(1),
+      min_expansion_per_focus_(1000),
       plateau_threshold_(10000),
       expanded_(0),
       evaluated_(0),
@@ -132,11 +132,11 @@ class MultiFocusGBFS : public Search {
     foci_->Push(focus->MinimumValues(), focus, false);
   }
 
-  void CreateNewFocus(std::vector<int> &values, SearchNodeWithNext *node,
-                      bool is_pref) {
-    auto focus = std::make_shared<Focus>(open_list_option_, values, node,
-                                         is_pref, plateau_threshold_);
-    LockedPushFocus(focus);
+  std::shared_ptr<Focus> CreateNewFocus(const std::vector<int> &values,
+                                        SearchNodeWithNext *node,
+                                        bool is_pref) {
+    return std::make_shared<Focus>(open_list_option_, values, node, is_pref,
+                                   plateau_threshold_);
   }
 
   void WriteGoal(SearchNodeWithNext* goal) {
