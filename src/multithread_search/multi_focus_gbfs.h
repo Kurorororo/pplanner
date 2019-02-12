@@ -76,7 +76,6 @@ class MultiFocusGBFS : public Search {
       evaluated_(0),
       generated_(0),
       dead_ends_(0),
-      best_h_(-1),
       problem_(problem),
       generator_(std::make_unique<SuccessorGenerator>(problem)),
       packer_(std::make_unique<StatePacker>(problem)),
@@ -94,6 +93,7 @@ class MultiFocusGBFS : public Search {
 
   void DumpStatistics() const override;
 
+ private:
   SearchNodeWithNext* Search();
 
   void InitialEvaluate();
@@ -102,6 +102,10 @@ class MultiFocusGBFS : public Search {
 
   int Evaluate(int i, const std::vector<int> &state, SearchNodeWithNext *node,
                std::vector<int> &values);
+
+  int IncrementNFoci();
+
+  int DecrementNFoci();
 
   std::shared_ptr<Focus> TryPopFocus(std::shared_ptr<Focus> focus) {
     if (open_mtx_.try_lock()) {
@@ -153,7 +157,6 @@ class MultiFocusGBFS : public Search {
     dead_ends_ += dead_ends;
   }
 
- private:
   void InitHeuristics(int i, const boost::property_tree::ptree pt);
 
   void Init(const boost::property_tree::ptree &pt);
@@ -165,12 +168,13 @@ class MultiFocusGBFS : public Search {
   bool use_preferred_;
   int n_threads_;
   int min_expansion_per_focus_;
+  int n_foci_max_;
   int plateau_threshold_;
   int expanded_;
   int evaluated_;
   int generated_;
   int dead_ends_;
-  std::atomic<int> best_h_;
+  std::atomic<int> n_foci_;
   std::atomic<SearchNodeWithNext*> goal_;
   std::shared_ptr<const SASPlus> problem_;
   std::unique_ptr<SuccessorGenerator> generator_;

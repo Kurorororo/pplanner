@@ -21,7 +21,7 @@ class ClosedList {
 
   bool IsClosed(uint32_t hash, const std::vector<uint32_t> &packed_state) const;
 
-  void Close(SearchNode *node);
+  bool Close(SearchNode *node);
 
   void Clear();
 

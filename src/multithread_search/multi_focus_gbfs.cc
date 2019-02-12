@@ -51,6 +51,7 @@ void MultiFocusGBFS::Init(const boost::property_tree::ptree &pt) {
 
   if (auto opt = pt.get_optional<int>("n_threads")) n_threads_ = opt.get();
 
+  n_foci_max_ = n_threads_ * 2;
   preferring_.resize(n_threads_);
   evaluators_.resize(n_threads_);
   node_pool_.resize(n_threads_);
@@ -78,6 +79,7 @@ void MultiFocusGBFS::InitialEvaluate() {
   std::vector<int> values;
   node->h = Evaluate(0, state, node, values);
   auto focus = CreateNewFocus(values, node, true);
+  n_foci_.store(1);
   LockedPushFocus(focus);
   std::cout << "Initial heuristic value: " << node->h << std::endl;
 }
@@ -111,17 +113,20 @@ int MultiFocusGBFS::Evaluate(int i, const vector<int> &state,
   return values[0];
 }
 
-bool MultiFocusGBFS::UpdateBestH(int h) {
-  int expected = best_h_.load();
+int MultiFocusGBFS::IncrementNFoci() {
+  int expected = n_foci_.load();
 
-  do {
-    expected = best_h_.load();
+  while (!n_foci_.compare_exchange_weak(expected, expected + 1));
 
-    if (h >= expected) return false;
+  return expected + 1;
+}
 
-  } while (!best_h_.compare_exchange_weak(expected, h));
+int MultiFocusGBFS::DecrementNFoci() {
+  int expected = n_foci_.load();
 
-  return true;
+  while (!n_foci_.compare_exchange_weak(expected, expected - 1));
+
+  return expected - 1;
 }
 
 void MultiFocusGBFS::Expand(int i) {
@@ -141,10 +146,14 @@ void MultiFocusGBFS::Expand(int i) {
   std::shared_ptr<Focus> focus = nullptr;
 
   while (goal_.load() == nullptr) {
-    if (focus == nullptr || focus->IsEmpty())
+    if (focus == nullptr) {
       focus = LockedPopFocus();
-    else
+    } else if (focus->IsEmpty()) {
+      DecrementNFoci();
+      focus = LockedPopFocus();
+    } else {
       focus = TryPopFocus(focus);
+    }
 
     if (focus == nullptr) continue;
 
@@ -228,15 +237,24 @@ void MultiFocusGBFS::Expand(int i) {
         ++c;
       }
 
-      for (int j = 0; j < c; ++j)
-        if (j != arg_best) focus->Push(values[j], nodes[j], is_pref[j]);
+      bool cond = arg_best != -1 && n_foci_.load() < n_foci_max_;
 
-      if (arg_best != -1) {
+      for (int j = 0; j < c; ++j)
+        if (j != arg_best || !cond)
+          focus->Push(values[j], nodes[j], is_pref[j]);
+
+      if (cond) {
         if (i == 0)
           std::cout << "New focus h=" << nodes[arg_best]->h << std::endl;
 
-        if (!focus->IsEmpty()) LockedPushFocus(focus);
+        if (focus->IsEmpty())
+          DecrementNFoci();
+        else
+          LockedPushFocus(focus);
+
         focus = CreateNewFocus(values[arg_best], nodes[arg_best], true);
+        int c = IncrementNFoci();
+        std::cout << "#foci=" << c << std::endl;
         ++counter;
       }
 
