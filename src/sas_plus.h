@@ -143,6 +143,18 @@ class SASPlus {
     return effects_->Condition(i, j, state);
   }
 
+  int NEffectCondition(int i, int j) const {
+    return effects_->NCondition(i, j);
+  }
+
+  int EffectConditionVar(int i, int j, int k) const {
+    return effects_->ConditionVar(i, j, k);
+  }
+
+  int EffectConditionValue(int i, int j, int k) const {
+    return effects_->ConditionValue(i, j, k);
+  }
+
   int ConditionalEffectVar(int i, int j) const {
     return effects_->ConditionalEffectVar(i, j);
   }

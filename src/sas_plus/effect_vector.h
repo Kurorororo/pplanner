@@ -30,6 +30,25 @@ class EffectVector : public PartialStateVector {
 
   bool Condition(int i, int j, const std::vector<int> &state) const;
 
+  bool NCondition(int i, int j) const {
+    int b = effect_condition_offsets_2_[effect_condition_offsets_1_[i] + j];
+    int e = effect_condition_offsets_2_[effect_condition_offsets_1_[i] + j + 1];
+
+    return e - b;
+  }
+
+  bool ConditionVar(int i, int j, int k) const {
+    int b = effect_condition_offsets_2_[effect_condition_offsets_1_[i] + j];
+
+    return effect_condition_vars_[b + k];
+  }
+
+  bool ConditionValue(int i, int j, int k) const {
+    int b = effect_condition_offsets_2_[effect_condition_offsets_1_[i] + j];
+
+    return effect_condition_values_[b + k];
+  }
+
   int ConditionalEffectVar(int i, int j) const {
     return conditional_effect_vars_[effect_condition_offsets_1_[i] + j];
   }

@@ -52,6 +52,8 @@ class DTG {
 
   int Degree(int i) const { return InDegree(i) + OutDegree(i); }
 
+  int OutDegreeMax() const;
+
   double GreedyCut(std::vector<int> &cut) const;
 
   double SparsestCut(std::vector<int> &cut, int max_expansion=100000) const;

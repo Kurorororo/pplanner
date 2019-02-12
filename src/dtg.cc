@@ -71,6 +71,15 @@ bool DTG::IsConnected(int start, int goal, int ignore) {
   return RecursiveIsConnected(start, goal);
 }
 
+int DTG::OutDegreeMax() const {
+  int degree = 0;
+
+  for (auto d : out_degrees_)
+    if (d > degree) degree = d;
+
+  return degree;
+}
+
 double DTG::GreedyCut(vector<int> &cut) const {
   int n_nodes = adjacent_lists_.size();
 

@@ -195,6 +195,15 @@ target_link_libraries(sas_lds dominance sas_plus)
 add_executable(sas_qdf ./tests/sas_qdf.cc ./src/utils/file_utils.cc)
 target_link_libraries(sas_qdf dominance sas_plus)
 
+# dump Abstract Graph  from SAS+
+add_executable(sas_abstract_graph
+               ./tests/sas_abstract_graph.cc
+               ./src/dtg.cc
+               ./src/utils/file_utils.cc
+               ./src/utils/lexical_order.cc
+               ./src/multithread_search/abstract_graph.cc)
+target_link_libraries(sas_abstract_graph sas_plus)
+
 # test codes
 add_executable(test_partial_state
   ./tests/sas_plus/test_partial_state.cc ./src/sas_plus/partial_state.cc)

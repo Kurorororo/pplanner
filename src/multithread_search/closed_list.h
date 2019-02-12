@@ -21,7 +21,7 @@ class ClosedList {
 
   bool IsClosed(uint32_t hash, const std::vector<uint32_t> &packed_state) const;
 
-  void Close(std::shared_ptr<SearchNode> node);
+  void Close(SearchNode *node);
 
   void Clear();
 
@@ -30,7 +30,7 @@ class ClosedList {
 
   uint32_t closed_mask_;
   std::size_t n_closed_;
-  std::vector<std::shared_ptr<SearchNode> > closed_;
+  std::vector<SearchNode*> closed_;
 };
 
 } // namespace pplanner

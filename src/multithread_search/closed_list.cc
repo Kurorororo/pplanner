@@ -17,16 +17,21 @@ bool ClosedList::IsClosed(uint32_t hash,
   return false;
 }
 
-void ClosedList::Close(std::shared_ptr<SearchNode> node) {
+bool ClosedList::Close(SearchNode* node) {
   std::size_t i = node->hash & closed_mask_;
 
-  while (closed_[i] != nullptr)
-    i = (i == closed_.size() - 1) ? 0 : i + 1;
+  while (closed_[i] != nullptr) {
+    if (node->packed_state == closed_[i]->packed_state) return false;
 
-  ++n_closed_;
+    i = (i == closed_.size() - 1) ? 0 : i + 1;
+  }
+
   closed_[i] = node;
+  ++n_closed_;
 
   if (2 * n_closed_ > closed_.size()) Resize();
+
+  return true;
 }
 
 void ClosedList::Clear() {
@@ -41,8 +46,7 @@ void ClosedList::Resize() {
     ++closed_exponent;
 
   uint32_t closed_mask = (1u << closed_exponent) - 1;
-  std::vector<std::shared_ptr<SearchNode> > new_closed(
-      1 << closed_exponent, nullptr);
+  std::vector<SearchNode*> new_closed(1 << closed_exponent, nullptr);
 
   for (int k = 0, m = closed_.size(); k < m; ++k) {
     auto node = closed_[k];
