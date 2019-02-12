@@ -51,7 +51,7 @@ void MultiFocusGBFS::Init(const boost::property_tree::ptree &pt) {
 
   if (auto opt = pt.get_optional<int>("n_threads")) n_threads_ = opt.get();
 
-  n_foci_max_ = n_threads_ * 2;
+  n_foci_max_ = n_threads_ * 8;
   preferring_.resize(n_threads_);
   evaluators_.resize(n_threads_);
   node_pool_.resize(n_threads_);
@@ -253,8 +253,8 @@ void MultiFocusGBFS::Expand(int i) {
           LockedPushFocus(focus);
 
         focus = CreateNewFocus(values[arg_best], nodes[arg_best], true);
-        int c = IncrementNFoci();
-        std::cout << "#foci=" << c << std::endl;
+        IncrementNFoci();
+        //std::cout << "#foci=" << c << std::endl;
         ++counter;
       }
 
