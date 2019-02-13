@@ -3,17 +3,14 @@
 
 #include <memory>
 #include <mutex>
-#include <random>
-#include <shared_mutex>
-#include <string>
-#include <thread>
 #include <unordered_set>
-#include <utility>
 #include <vector>
+#include <iostream>
 
 #include <boost/property_tree/ptree.hpp>
 
 #include "hash/zobrist_hash.h"
+#include "multithread_search/abstract_graph.h"
 #include "multithread_search/heuristic.h"
 #include "multithread_search/nblock.h"
 #include "multithread_search/search_node.h"
@@ -29,8 +26,9 @@ class GreedyPBNF : public Search {
   GreedyPBNF(std::shared_ptr<const SASPlus> problem,
             const boost::property_tree::ptree &pt)
     : use_preferred_(false),
+      done_(false),
       n_threads_(1),
-      max_abstract_nodes_(50000),
+      min_expansions_(1),
       expanded_(0),
       evaluated_(0),
       generated_(0),
@@ -51,9 +49,10 @@ class GreedyPBNF : public Search {
 
   void DumpStatistics() const override;
 
-  void WriteGoal(SearchNodeWithNext* goal) {
-    SearchNodeWithNext *expected = nullptr;
+  void WriteGoal(SearchNode *goal) {
+    SearchNode *expected = nullptr;
     goal_.compare_exchange_strong(expected, goal);
+    done_ = true;
   }
 
   void WriteStat(int expanded, int evaluated, int generated, int dead_ends) {
@@ -70,64 +69,77 @@ class GreedyPBNF : public Search {
 
   void Init(const boost::property_tree::ptree &pt);
 
-  int Evaluate(int i, const std::vector<int> &state, SearchNodeWithNext* node,
+  int Evaluate(int i, const std::vector<int> &state, SearchNode *node,
                std::vector<int> &values);
 
   void InitialEvaluate();
 
   void DeleteAllNodes(int i);
 
-  const std::vector<int>& InferenceScope(std::shared_ptr<NBlock> b) const {
+  const std::vector<int>& InterferenceScope(std::shared_ptr<NBlock> b) const {
     return abstract_graph_->InterferenceScope(b->abstract_node_id());
   }
 
-  void Sleep() {
-    std::unique_lock<std::mutex> lock(sleep_mtx_);
-
-    cond_.wait(lock, [this] { return !freelist_.empty() || done_; } );
-  }
-
-  void WakeAllSleepingThreads() { cond_.notify_all(); }
-
   std::shared_ptr<NBlock> BestScope(std::shared_ptr<NBlock> b) const;
 
-  std::shared_ptr<NBlock> BestFree();
+  std::shared_ptr<const NBlock> BestFree() const {
+    if (freelist_.empty()) return nullptr;
 
-  SearchNodeWithNext* Search();
+    return *freelist_.cbegin();
+  }
+
+  std::shared_ptr<NBlock> PopBestFree() {
+    auto top = freelist_.begin();
+    auto b = *top;
+    freelist_.erase(top);
+
+    return b;
+  }
+
+  SearchNode* Search();
 
   void ThreadSearch(int i);
 
-  bool ShouldSwitch(std::shared_ptr<NBlock> b, int &exp);
+  bool ShouldSwitch(std::shared_ptr<NBlock> b, int *exp);
 
   void SetHot(std::shared_ptr<NBlock> b);
 
-  void SetCold(std::shared_ptr<NBlock> b);
+  bool SetCold(std::shared_ptr<NBlock> b);
 
   void Release(std::shared_ptr<NBlock> b);
 
   std::shared_ptr<NBlock> NextNBlock(std::shared_ptr<NBlock> b);
 
+  struct NBlockLess {
+    bool operator()(const std::shared_ptr<const NBlock> &a,
+                    const std::shared_ptr<const NBlock> &b) const {
+      if (a->IsEmpty()) return false;
+
+      return b->IsEmpty() || a->MinimumValues() < b->MinimumValues();
+    }
+  };
+
   bool use_preferred_;
+  bool done_;
   int n_threads_;
-  int n_abstract_nodes_;
+  int min_expansions_;
   int expanded_;
   int evaluated_;
   int generated_;
   int dead_ends_;
-  std::atomic<SearchNodeWithNext*> goal_;
+  std::atomic<SearchNode*> goal_;
   std::shared_ptr<const SASPlus> problem_;
+  std::unique_ptr<SuccessorGenerator> generator_;
   std::unique_ptr<StatePacker> packer_;
   std::unique_ptr<ZobristHash> hash_;
-  std::unique_ptr<SuccessorGenerator> generator_;
   std::vector<std::shared_ptr<Heuristic<SearchNode*> > > preferring_;
   std::vector<std::vector<
     std::shared_ptr<Heuristic<SearchNode*> > > > evaluators_;
   std::shared_ptr<AbstractGraph> abstract_graph_;
-  std::priority_queue<std::shared_ptr<NBlock> > freelist_;
+  std::set<std::shared_ptr<NBlock>, NBlockLess> freelist_;
   std::vector<std::shared_ptr<NBlock> > nblocks_;
   std::vector<std::vector<SearchNode*> > node_pool_;
   std::mutex mtx_;
-  std::mutex sleep_mtx_;
   std::mutex stat_mtx_;
   std::condition_variable cond_;
 };

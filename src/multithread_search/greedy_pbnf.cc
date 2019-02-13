@@ -1,7 +1,8 @@
-#include "multithread_search/greedy_pbnfs.h"
+#include "multithread_search/greedy_pbnf.h"
 
 #include <algorithm>
 #include <iostream>
+#include <thread>
 
 #include <boost/foreach.hpp>
 
@@ -41,8 +42,10 @@ void GreedyPBNF::InitHeuristics(int i, const boost::property_tree::ptree pt) {
 void GreedyPBNF::Init(const boost::property_tree::ptree &pt) {
   goal_.store(nullptr);
 
+  int max_abstract_nodes = 50000;
+
   if (auto opt = pt.get_optional<int>("max_abstract_nodes"))
-    n_abstract_nodes_ = opt.get();
+    max_abstract_nodes = opt.get();
 
   auto open_list_option = pt.get_child("open_list");
 
@@ -51,7 +54,7 @@ void GreedyPBNF::Init(const boost::property_tree::ptree &pt) {
   if (auto opt = pt.get_optional<int>("closd_exponent"))
     closd_exponent = opt.get();
 
-  abstract_graph_ = ConstructByDTG(problem, max_abstract_nodes_);
+  abstract_graph_ = ConstructByDTG(problem_, max_abstract_nodes);
   nblocks_.reserve(abstract_graph_->n_nodes());
 
   for (int i = 0; i< abstract_graph_->n_nodes(); ++i)
@@ -75,21 +78,22 @@ void GreedyPBNF::Init(const boost::property_tree::ptree &pt) {
 
 void GreedyPBNF::InitialEvaluate() {
   auto state = problem_->initial();
-  auto node = new SearchNodeWithNext();
+  auto node = new SearchNode();
   node->cost = 0;
   node->action = -1;
   node->parent = nullptr;
   node->packed_state.resize(packer_->block_size());
   packer_->Pack(state, node->packed_state.data());
   node->hash = hash_->operator()(state);
-  node->next.store(nullptr);
 
   std::vector<int> values;
-  node->h = Evaluate(0, state, node, abstract_state);
+  node->h = Evaluate(0, state, node, values);
   std::vector<int> abstract_state(abstract_graph_->vars().size());
   int idx = abstract_graph_->StateToNode(state, abstract_state);
-  nblocks_[i]->Push(values, node, true);
+  nblocks_[idx]->Push(values, node, true);
+  freelist_.insert(nblocks_[idx]);
   std::cout << "Initial heuristic value: " << node->h << std::endl;
+  std::cout << "Initial block: " << idx << std::endl;
 }
 
 void GreedyPBNF::DeleteAllNodes(int i) {
@@ -108,7 +112,7 @@ GreedyPBNF::~GreedyPBNF() {
 }
 
 int GreedyPBNF::Evaluate(int i, const vector<int> &state,
-                        SearchNodeWithNext* node, vector<int> &values) {
+                        SearchNode* node, vector<int> &values) {
   values.clear();
 
   for (auto e : evaluators_[i]) {
@@ -121,30 +125,21 @@ int GreedyPBNF::Evaluate(int i, const vector<int> &state,
   return values[0];
 }
 
-std::shared_ptr<NBlock> GreedyPBNF::BestScope(std::shared_ptr<NBlock> b) {
+std::shared_ptr<NBlock> GreedyPBNF::BestScope(std::shared_ptr<NBlock> b) const {
   std::shared_ptr<NBlock> best = nullptr;
 
-  for (auto bp : InterferenceScope(b)) {
+  for (auto idx : InterferenceScope(b)) {
+    auto bp = nblocks_[idx];
+
     if (!bp->IsEmpty()
-        && (best == nullptr || bp->MinimumVaues() < best->MinimumVaues()))
+        && (best == nullptr || bp->MinimumValues() < best->MinimumValues()))
       best = bp;
   }
 
   return best;
 }
 
-std::shared_ptr<NBlock> GreedyPBNF::BestFree() {
-  while (!freelist_.empty()) {
-    if (freelist_.top()->sigma() == 0 && freelist_.top()->hot() == 0)
-      freelist_.pop();
-    else
-      return freelist_.top();
-  }
-
-  return nullptr;
-}
-
-SearchNodeWithNext* GreedyPBNF::Search() {
+SearchNode* GreedyPBNF::Search() {
   InitialEvaluate();
   vector<std::thread> ts;
 
@@ -171,15 +166,22 @@ void GreedyPBNF::ThreadSearch(int i) {
   int evaluated = 0;
   int generated = 0;
   int dead_ends = 0;
+  int plus = 1;
+  int minus = 0;
 
   std::shared_ptr<NBlock> b = nullptr;
 
   while (!done_) {
-    b = NextNBlock();
+    b = NextNBlock(b);
     int exp = 0;
 
-    while (!ShouldSwitch(b, exp)) {
+    while (!ShouldSwitch(b, &exp)) {
       auto node = b->Pop();
+      stat_mtx_.lock();
+      std::cout << "i=" << i << " expand block: " << b->abstract_node_id() << std::endl;
+      std::cout << "h=" << node->h << std::endl;
+      stat_mtx_.unlock();
+      ++minus;
       packer_->Unpack(node->packed_state.data(), state);
 
       if (problem_->IsGoal(state)) {
@@ -187,11 +189,9 @@ void GreedyPBNF::ThreadSearch(int i) {
         break;
       }
 
-      if (b->IsClosed(node->hash, node->packed_state)) continue;
+      if (!b->Close(node)) continue;
 
-      b->Close(node);
       ++expanded;
-
       generator_->Generate(state, applicable);
 
       if (applicable.empty()) {
@@ -210,13 +210,12 @@ void GreedyPBNF::ThreadSearch(int i) {
 
         if (nblocks_[idx]->IsClosed(hash, packed)) continue;
 
-        auto child_node = new SearchNodeWithNext();
+        auto child_node = new SearchNode();
         child_node->cost = node->cost + problem_->ActionCost(o);
         child_node->action = o;
         child_node->parent = node;
         child_node->packed_state = packed;
         child_node->hash = hash;
-        child_node->next.store(nullptr);
         ++generated;
 
         int h = Evaluate(i, child, child_node, values);
@@ -239,7 +238,11 @@ void GreedyPBNF::ThreadSearch(int i) {
         }
 
         bool is_pref = use_preferred_ && preferred.find(o) != preferred.end();
-        nblocks_[idx]->Push(valeus, node, is_pref);
+        nblocks_[idx]->Push(values, child_node, is_pref);
+        ++plus;
+        //stat_mtx_.lock();
+        //std::cout << "i=" << i << " generate block: " << idx << std::endl;
+        //stat_mtx_.unlock();
       }
     }
   }
@@ -247,22 +250,22 @@ void GreedyPBNF::ThreadSearch(int i) {
   WriteStat(expanded, evaluated, generated, dead_ends);
 }
 
-bool GreedyPBNF::ShouldSwitch(std::shared_ptr<NBlock> b, int &exp) {
+bool GreedyPBNF::ShouldSwitch(std::shared_ptr<NBlock> b, int *exp) {
   if (b->IsEmpty()) return true;
 
-  if (exp < min_expansions_) return false;
+  if (*exp < min_expansions_) return false;
 
-  exp = 0;
+  *exp = 0;
   auto best_free = BestFree();
   auto best_scope = BestScope(b);
 
   if (best_free == nullptr
       || best_scope == nullptr
-      || b->MinimumVaues() < best_free->MinimumVaues()
-      || b->MinimumVaues() < best_scope->MinimumVaues()) {
+      || best_free->MinimumValues() < b->MinimumValues()
+      || best_scope->MinimumValues() < b->MinimumValues()) {
     if (best_scope != nullptr
         && (best_free == nullptr
-            || best_scope->MinimumVaues() < best_free->MinimumVaues()))
+            || best_scope->MinimumValues() < best_free->MinimumValues()))
       SetHot(best_scope);
 
     return true;
@@ -271,7 +274,7 @@ bool GreedyPBNF::ShouldSwitch(std::shared_ptr<NBlock> b, int &exp) {
   mtx_.lock();
 
   for (auto bp : InterferenceScope(b))
-    if (bp->hot()) SetCold(bp);
+    if (nblocks_[bp]->hot()) SetCold(nblocks_[bp]);
 
   mtx_.unlock();
 
@@ -284,22 +287,29 @@ void GreedyPBNF::SetHot(std::shared_ptr<NBlock> b) {
   if (!b->hot() && b->sigma() > 0) {
     bool any = false;
 
-    for (auto i : InterferenceScope(b)) {
+    for (auto idx : InterferenceScope(b)) {
+      auto i = nblocks_[idx];
+
       if (!i->IsEmpty()
-          && (b->IsEmpty() || i->MinimumVaues() < b->MinimumVaues())
+          && (b->IsEmpty() || i->MinimumValues() < b->MinimumValues())
           && i->hot()) {
+        any = true;
+        break;
       }
     }
 
     if (!any) {
       b->set_hot();
 
-      for (auto mp : InferenceScope(b)) {
+      for (auto idx : InterferenceScope(b)) {
+        auto mp = nblocks_[idx];
+
         if (mp->hot()) mp->set_cold();
 
-        if (mp->sigma() == 0 && mp->sigma_h() == 0 && !mp->IsEmpty());
+        if (mp->sigma() == 0 && mp->sigma_h() == 0 && !mp->IsEmpty())
+          freelist_.erase(mp);
 
-        mp->decrement_sigma_h();
+        mp->increment_sigma_h();
       }
     }
   }
@@ -307,84 +317,103 @@ void GreedyPBNF::SetHot(std::shared_ptr<NBlock> b) {
   mtx_.unlock();
 }
 
-void GreedyPBNF::SetCold(std::shared_ptr<NBlock> b) {
+bool GreedyPBNF::SetCold(std::shared_ptr<NBlock> b) {
+  bool broadcast = false;
   b->set_cold();
 
-  for (auto mp : InterferenceScope(b)) {
+  for (auto idx : InterferenceScope(b)) {
+    auto mp = nblocks_[idx];
     mp->decrement_sigma_h();
 
     if (mp->sigma() == 0 && mp->sigma_h() == 0 && !mp->IsEmpty()) {
       if (mp->hot()) {
         SetCold(mp);
-        freelist_.push(mp);
+        freelist_.insert(mp);
+        broadcast = true;
       }
-
-      WakeAllSleepingThreads();
     }
   }
+
+  return broadcast;
 }
 
 void GreedyPBNF::Release(std::shared_ptr<NBlock> b) {
-  for (auto bp : InterferenceScope(b)) {
+  bool broadcast = false;
+
+  if (!b->IsEmpty()) {
+    freelist_.insert(b);
+    cond_.notify_all();
+  }
+
+  for (auto idx : InterferenceScope(b)) {
+    auto bp = nblocks_[idx];
     bp->decrement_sigma();
 
     if (bp->sigma() == 0 && bp->sigma_h() == 0 && !bp->IsEmpty()) {
-      if (bp->hot()) {
-        SetCold(bp);
-        freelist_.push(bp);
-      }
+      if (bp->hot()) SetCold(bp);
 
-      WakeAllSleepingThreads();
+      freelist_.insert(bp);
+      broadcast = true;
     }
   }
+
+  cond_.notify_all();
 }
 
 std::shared_ptr<NBlock> GreedyPBNF::NextNBlock(std::shared_ptr<NBlock> b) {
-  if (b == nullptr || b->IsEmpty() || b->IsHot())
-    mtx_.lock();
+  std::unique_lock<std::mutex> lk(mtx_, std::defer_lock);
+
+  if (b == nullptr || b->IsEmpty() || b->hot())
+    lk.lock();
   else
-    if (!mtx_.try_lock()) return b;
+    if (!lk.try_lock()) return b;
 
   if (b != nullptr) {
     auto best_scope = BestScope(b);
     auto best_free = BestFree();
 
-    if ((best_scope == nullptr
-         || b->MinimumVaues() < best_scope->MinimumVaues())
+    if (!b->IsEmpty()
+        && (best_scope == nullptr
+         || b->MinimumValues() < best_scope->MinimumValues())
         && (best_free == nullptr
-         || b->MinimumVaues() < best_free->MinimumVaues())) {
+         || b->MinimumValues() < best_free->MinimumValues())) {
       mtx_.unlock();
 
       return b;
     }
 
-    if (freelist_.empty()) {
-      bool all = true;
+    Release(b);
+  }
 
-      for (auto l : nblocks_) {
-        if (l->sigma() != 0) {
-          all = false;
-          break;
-        }
+  if (freelist_.empty()) {
+    bool all = true;
+
+    for (auto l : nblocks_) {
+      if (l->sigma() != 0) {
+        all = false;
+        break;
       }
+    }
 
+    if (all) {
       done_ = true;
-      WakeAllSleepingThreads();
+      cond_.notify_all();
     }
   }
 
-  Sleep();
+  if (freelist_.empty() && !done_)
+    cond_.wait(lk, [this]() -> bool {
+        return !this->freelist_.empty() || this->done_;
+    } );
 
   std::shared_ptr<NBlock> m = nullptr;
 
   if (!done_) {
-    m = BestFree();
+    m = PopBestFree();
 
-    for (auto bp : InterferenceScope(m))
-      bp->increment_sigma();
+    for (auto idx : InterferenceScope(m))
+      nblocks_[idx]->increment_sigma();
   }
-
-  mtx_.unlock();
 
   return m;
 }

@@ -22,7 +22,7 @@ int main(int argc, char *argv[]) {
   sas->InitFromLines(lines);
 
   auto graph_by_dtg = ConstructByDTG(sas, 50000);
-  graph_by_dtg->BuildInferenceScope();
+  graph_by_dtg->BuildInterferenceScope();
   std::cout << "graph constructed by dtg" << std::endl;
   graph_by_dtg->Dump();
 
@@ -55,7 +55,7 @@ int main(int argc, char *argv[]) {
   if (best_graph == nullptr) {
     std::cout << "cannot find abstract graph" << std::endl;
   } else {
-    best_graph->BuildInferenceScope();
+    best_graph->BuildInterferenceScope();
     best_graph->Dump();
   }
 }

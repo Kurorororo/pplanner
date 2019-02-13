@@ -25,22 +25,22 @@ AbstractGraph::AbstractGraph(std::shared_ptr<const SASPlus> problem,
   matrix_.resize(n_nodes, std::vector<bool>(n_nodes, false));
   to_parents_.resize(n_nodes);
   to_children_.resize(n_nodes);
-  inference_scope_.resize(n_nodes);
+  interference_scope_.resize(n_nodes);
   ConstructGraph(problem);
 }
 
-void AbstractGraph::BuildInferenceScope() {
+void AbstractGraph::BuildInterferenceScope() {
   for (int i = 0, n = to_children_.size(); i < n; ++i) {
-    inference_scope_[i] = to_children_[i];
+    interference_scope_[i] = to_children_[i];
 
     for (int j : to_children_[i]) {
       for (auto k : to_parents_[j]) {
         if (i == k) continue;
-        auto result = std::find(inference_scope_[i].begin(),
-                                inference_scope_[i].end(), k);
+        auto result = std::find(interference_scope_[i].begin(),
+                                interference_scope_[i].end(), k);
 
-        if (result == inference_scope_[i].end())
-          inference_scope_[i].push_back(k);
+        if (result == interference_scope_[i].end())
+          interference_scope_[i].push_back(k);
       }
     }
   }
@@ -73,7 +73,7 @@ void AbstractGraph::Dump() const {
     std::cout << std::endl;
   }
 
-  std::cout << "inferece scope" << std::endl;
+  std::cout << "interferece scope" << std::endl;
 
   for (int i = 0; i < n_nodes_; ++i) {
     auto state = OrderToValues(i, ranges_);
@@ -85,7 +85,7 @@ void AbstractGraph::Dump() const {
 
     std::cout << ") -> ";
 
-    for (auto c : inference_scope_[i])
+    for (auto c : interference_scope_[i])
       std::cout << c << " ";
 
     std::cout << std::endl;
@@ -337,7 +337,10 @@ std::shared_ptr<AbstractGraph> ConstructByDTG(
     n_nodes *= problem->VarRange(arg_min);
   }
 
-  return std::make_shared<AbstractGraph>(problem, vars);
+  auto graph = std::make_shared<AbstractGraph>(problem, vars);
+  graph->BuildInterferenceScope();
+
+  return graph;
 }
 
 } // namespace pplanner

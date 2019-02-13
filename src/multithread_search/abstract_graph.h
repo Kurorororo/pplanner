@@ -17,10 +17,10 @@ class AbstractGraph {
     return static_cast<double>(max_out_degree_) / static_cast<double>(n_nodes_);
   }
 
-  void BuildInferenceScope();
+  void BuildInterferenceScope();
 
-  const std::vector<int>& InferenceScope(int i) const {
-    return inference_scope_[i];
+  const std::vector<int>& InterferenceScope(int i) const {
+    return interference_scope_[i];
   }
 
   int StateToNode(const std::vector<int> &state, std::vector<int> &values)
@@ -55,7 +55,7 @@ class AbstractGraph {
   std::vector<std::vector<bool> > matrix_;
   std::vector<std::vector<int> > to_parents_;
   std::vector<std::vector<int> > to_children_;
-  std::vector<std::vector<int> > inference_scope_;
+  std::vector<std::vector<int> > interference_scope_;
 };
 
 std::shared_ptr<AbstractGraph> GreedySelect(

@@ -1,16 +1,26 @@
 #ifndef NBLOCK_H_
 #define NBLOCK_H_
 
+#include <memory>
+
+#include "multithread_search/closed_list.h"
+#include "multithread_search/search_node.h"
+#include "open_list.h"
+#include "open_list_factory.h"
+
+#include <boost/property_tree/ptree.hpp>
+
 namespace pplanner {
 
 class NBlock {
+ public:
   NBlock(const boost::property_tree::ptree &open_list_option,
          int abstract_node_id, int closd_exponent=16)
     : abstract_node_id_(abstract_node_id),
       sigma_(0),
       sigma_h_(0),
       hot_(false),
-      open_list_(OpenListFactory(open_list_option)),
+      open_list_(OpenListFactory<SearchNode*>(open_list_option)),
       closed_list_(std::make_unique<ClosedList>(closd_exponent)) {}
 
   int abstract_node_id() const { return abstract_node_id_; }
@@ -29,9 +39,9 @@ class NBlock {
 
   bool hot() const { return hot_; }
 
-  bool set_hot() { hot_ = true; }
+  void set_hot() { hot_ = true; }
 
-  bool set_cold() { hot_ = false; }
+  void set_cold() { hot_ = false; }
 
   bool IsEmpty() const { return open_list_->IsEmpty(); }
 
@@ -41,11 +51,12 @@ class NBlock {
 
   SearchNode* Pop() { return open_list_->Pop(); }
 
-  const std::vector<int>& MinimumVaues() const {
-    return open_list_->MinimumVaues();
+  const std::vector<int>& MinimumValues() const {
+    return open_list_->MinimumValues();
   }
 
-  bool IsClosed(uint32_t hash, const std::vector<int> &packed_state) const {
+  bool IsClosed(uint32_t hash, const std::vector<uint32_t> &packed_state)
+    const {
     return closed_list_->IsClosed(hash, packed_state);
   }
 
