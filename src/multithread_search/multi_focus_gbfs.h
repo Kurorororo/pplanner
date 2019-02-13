@@ -16,6 +16,7 @@
 #include <boost/property_tree/ptree.hpp>
 
 #include "hash/zobrist_hash.h"
+#include "multithread_search/focus.h"
 #include "multithread_search/lock_free_closed_list.h"
 #include "multithread_search/heuristic.h"
 #include "multithread_search/search_node.h"
@@ -28,41 +29,6 @@
 #include "successor_generator.h"
 
 namespace pplanner {
-
-class Focus {
- public:
-  Focus() : best_h_(-1), open_list_(nullptr) {}
-
-  Focus(const boost::property_tree::ptree &pt, const std::vector<int> &values,
-        SearchNodeWithNext *node, bool is_pref, int plateau_threshold)
-    : best_h_(values[0]),
-      open_list_(OpenListFactory<SearchNodeWithNext*>(pt)) {
-    open_list_->Push(values, node, is_pref);
-  }
-
-  int best_h() const { return best_h_; }
-
-  void set_best_h(int h) { best_h_ = h; }
-
-  bool IsEmpty() const { return open_list_->IsEmpty(); }
-
-  void Push(const std::vector<int> &values, SearchNodeWithNext *node,
-            bool is_pref) {
-    open_list_->Push(values, node, is_pref);
-  }
-
-  SearchNodeWithNext* Pop() { return open_list_->Pop(); }
-
-  const std::vector<int> MinimumValues() const {
-    return open_list_->MinimumValues();
-  }
-
-  void Boost() { open_list_->Boost(); }
-
- private:
-  int best_h_;
-  std::unique_ptr<OpenList<SearchNodeWithNext*> > open_list_;
-};
 
 class MultiFocusGBFS : public Search {
  public:
@@ -107,7 +73,8 @@ class MultiFocusGBFS : public Search {
 
   int DecrementNFoci();
 
-  std::shared_ptr<Focus> TryPopFocus(std::shared_ptr<Focus> focus) {
+  std::shared_ptr<Focus<SearchNodeWithNext*> > TryPopFocus(
+      std::shared_ptr<Focus<SearchNodeWithNext*> > focus) {
     if (open_mtx_.try_lock()) {
       if (!foci_->IsEmpty()
           && foci_->MinimumValues() < focus->MinimumValues()) {
@@ -122,7 +89,7 @@ class MultiFocusGBFS : public Search {
     return focus;
   }
 
-  std::shared_ptr<Focus> LockedPopFocus() {
+  std::shared_ptr<Focus<SearchNodeWithNext*> > LockedPopFocus() {
     std::lock_guard<std::mutex> lock(open_mtx_);
 
     if (foci_->IsEmpty()) return nullptr;
@@ -130,17 +97,26 @@ class MultiFocusGBFS : public Search {
     return foci_->Pop();
   }
 
-  void LockedPushFocus(std::shared_ptr<Focus> focus) {
+  std::shared_ptr<Focus<SearchNodeWithNext*> > LockedPopWorstFocus() {
+    std::lock_guard<std::mutex> lock(open_mtx_);
+
+    if (foci_->IsEmpty()) return nullptr;
+
+    return foci_->PopWorst();
+  }
+
+  void LockedPushFocus(std::shared_ptr<Focus<SearchNodeWithNext*> > focus) {
     std::lock_guard<std::mutex> lock(open_mtx_);
 
     foci_->Push(focus->MinimumValues(), focus, false);
   }
 
-  std::shared_ptr<Focus> CreateNewFocus(const std::vector<int> &values,
-                                        SearchNodeWithNext *node,
-                                        bool is_pref) {
-    return std::make_shared<Focus>(open_list_option_, values, node, is_pref,
-                                   plateau_threshold_);
+  std::shared_ptr<Focus<SearchNodeWithNext*> > CreateNewFocus(
+      const std::vector<int> &values,
+      SearchNodeWithNext *node,
+      bool is_pref) {
+    return std::make_shared<Focus<SearchNodeWithNext*> >(
+        open_list_option_, values, node, is_pref, plateau_threshold_);
   }
 
   void WriteGoal(SearchNodeWithNext* goal) {
@@ -186,7 +162,8 @@ class MultiFocusGBFS : public Search {
   std::vector<std::vector<std::shared_ptr<
     Heuristic<SearchNode*> > > > evaluators_;
   boost::property_tree::ptree open_list_option_;
-  std::unique_ptr<OpenList<std::shared_ptr<Focus> > > foci_;
+  std::unique_ptr<OpenList<
+    std::shared_ptr<Focus<SearchNodeWithNext*> > > > foci_;
   std::mutex open_mtx_;
   std::mutex stat_mtx_;
 };

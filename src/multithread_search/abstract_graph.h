@@ -23,7 +23,8 @@ class AbstractGraph {
     return inference_scope_[i];
   }
 
-  int StateToNode(const std::vector<int> &state) const;
+  int StateToNode(const std::vector<int> &state, std::vector<int> &values)
+    const;
 
   int n_nodes() const { return n_nodes_; }
 

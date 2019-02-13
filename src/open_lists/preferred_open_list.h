@@ -48,6 +48,8 @@ class PreferredOpenList : public OpenList<T> {
 
   void Boost() override { priorities_[1] += boost_; }
 
+  T PopWorst() override;
+
  private:
   void Init(const std::string &tie_breaking) {
     lists_[0] = OpenListImplFactory<T>(tie_breaking);
@@ -81,6 +83,19 @@ T PreferredOpenList<T>::Pop() {
   --priorities_[arg_max];
 
   return lists_[arg_max]->Pop();
+}
+
+template<typename T>
+T PreferredOpenList<T>::PopWorst() {
+  if (lists_[0]->IsEmpty())
+    return lists_[1]->PopWorst();
+
+  if (lists_[1]->IsEmpty())
+    return lists_[0]->PopWorst();
+
+  int arg_max = priorities_[0] > priorities_[1] ? 0 : 1;
+
+  return lists_[1 - arg_max]->Pop();
 }
 
 } // namespace pplanner

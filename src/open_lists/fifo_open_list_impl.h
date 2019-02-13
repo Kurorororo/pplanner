@@ -43,6 +43,17 @@ class FIFOOpenListImpl : public OpenListImpl<T> {
 
   void Clear() override { buckets_.clear(); }
 
+  T PopWorst() override {
+    auto it = buckets_.rbegin();
+    auto &bucket = it->second;
+    auto result = bucket.back();
+    bucket.pop_back();
+    if (bucket.empty()) buckets_.erase(it->first);
+    --size_;
+
+    return result;
+  }
+
  private:
   std::size_t size_;
   std::map<std::vector<int>, std::deque<T> > buckets_;

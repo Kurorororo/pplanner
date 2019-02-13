@@ -23,6 +23,8 @@ class OpenListImpl {
   virtual const std::vector<int>& MinimumValues() const = 0;
 
   virtual void Clear() = 0;
+
+  virtual T PopWorst() = 0;
 };
 
 template<typename T>

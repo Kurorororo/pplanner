@@ -46,6 +46,20 @@ class ROOpenListImpl : public OpenListImpl<T> {
 
   void Clear() override { buckets_.clear(); }
 
+  T PopWorst() override {
+    auto it = buckets_.rbegin();
+    auto &bucket = it->second;
+    std::uint32_t r = engine_();
+    std::uint32_t index = r % bucket.size();
+    auto result = bucket[index];
+    bucket[index] = bucket.back();
+    bucket.pop_back();
+    if (bucket.empty()) buckets_.erase(it->first);
+    --size_;
+
+    return result;
+  }
+
  private:
   std::size_t size_;
   std::map<std::vector<int>, std::vector<T> > buckets_;

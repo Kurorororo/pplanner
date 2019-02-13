@@ -39,6 +39,8 @@ class AlternatingOpenList : public OpenList<T> {
 
   void Boost() override {}
 
+  T PopWorst() override;
+
  private:
   int idx_;
   std::vector<std::shared_ptr<OpenListImpl<T> > > lists_;
@@ -101,6 +103,11 @@ template<typename T>
 void AlternatingOpenList<T>::Clear() {
   for (int i = 0, n = lists_.size(); i < n; ++i)
     lists_[idx_]->Clear();
+}
+
+template<typename T>
+T AlternatingOpenList<T>::PopWorst() {
+  return lists_[idx_]->PopWorst();
 }
 
 } // namespace pplanner

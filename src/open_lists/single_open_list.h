@@ -53,6 +53,8 @@ class SingleOpenList : public OpenList<T> {
 
   void Boost() override {}
 
+  T PopWorst() override { return list_->PopWorst(); }
+
  private:
   std::vector<int> values_;
   std::shared_ptr<OpenListImpl<T> > list_;

@@ -46,12 +46,13 @@ void MultiFocusGBFS::Init(const boost::property_tree::ptree &pt) {
     closed_exponent = closed_exponent_opt.get();
 
   open_list_option_ = pt.get_child("open_list");
-  foci_ = OpenListFactory<std::shared_ptr<Focus> >(open_list_option_);
+  foci_ = OpenListFactory<std::shared_ptr<Focus<SearchNodeWithNext*> > >(
+      open_list_option_);
   closed_ = std::make_unique<LockFreeClosedList>(closed_exponent);
 
   if (auto opt = pt.get_optional<int>("n_threads")) n_threads_ = opt.get();
 
-  n_foci_max_ = n_threads_ * 8;
+  n_foci_max_ = n_threads_ * 1;
   preferring_.resize(n_threads_);
   evaluators_.resize(n_threads_);
   node_pool_.resize(n_threads_);
@@ -143,7 +144,7 @@ void MultiFocusGBFS::Expand(int i) {
   int evaluated = 0;
   int generated = 0;
   int dead_ends = 0;
-  std::shared_ptr<Focus> focus = nullptr;
+  std::shared_ptr<Focus<SearchNodeWithNext*> > focus = nullptr;
 
   while (goal_.load() == nullptr) {
     if (focus == nullptr) {
@@ -160,7 +161,7 @@ void MultiFocusGBFS::Expand(int i) {
     int counter = min_expansion_per_focus_;
 
     while (goal_.load() == nullptr && counter > 0 && !focus->IsEmpty()) {
-      auto node = focus->Pop();
+      SearchNodeWithNext *node = focus->Pop();
 
       if (closed_->IsClosed(node->hash, node->packed_state)) break;
 
@@ -237,13 +238,11 @@ void MultiFocusGBFS::Expand(int i) {
         ++c;
       }
 
-      bool cond = arg_best != -1 && n_foci_.load() < n_foci_max_;
-
       for (int j = 0; j < c; ++j)
-        if (j != arg_best || !cond)
+        if (j != arg_best)
           focus->Push(values[j], nodes[j], is_pref[j]);
 
-      if (cond) {
+      if (arg_best != -1) {
         if (i == 0)
           std::cout << "New focus h=" << nodes[arg_best]->h << std::endl;
 
@@ -252,9 +251,24 @@ void MultiFocusGBFS::Expand(int i) {
         else
           LockedPushFocus(focus);
 
+        if (n_foci_.load() >= n_foci_max_) {
+          auto worst = LockedPopWorstFocus();
+          auto second = LockedPopWorstFocus();
+
+          if (worst != nullptr && second != nullptr) {
+            std::cout << "merge" << std::endl;
+            second->Merge(worst);
+            LockedPushFocus(second);
+            DecrementNFoci();
+          } else if (worst != nullptr) {
+            LockedPushFocus(worst);
+          } else {
+            LockedPushFocus(second);
+          }
+        }
+
         focus = CreateNewFocus(values[arg_best], nodes[arg_best], true);
         IncrementNFoci();
-        //std::cout << "#foci=" << c << std::endl;
         ++counter;
       }
 

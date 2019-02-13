@@ -2,7 +2,7 @@
 #define LIFO_OPEN_LIST_IMPL_H_
 
 #include <map>
-#include <stack>
+#include <deque>
 
 #include "open_lists/open_list_impl.h"
 
@@ -18,15 +18,15 @@ class LIFOOpenListImpl : public OpenListImpl<T> {
   std::size_t size() const override { return size_; }
 
   void Push(const std::vector<int> &values, T node) override {
-    buckets_[values].push(node);
+    buckets_[values].push_back(node);
     ++size_;
   }
 
   T Pop() override {
     auto it = buckets_.begin();
     auto &bucket = it->second;
-    auto result = bucket.top();
-    bucket.pop();
+    auto result = bucket.back();
+    bucket.pop_back();
     if (bucket.empty()) buckets_.erase(it);
     --size_;
 
@@ -43,9 +43,20 @@ class LIFOOpenListImpl : public OpenListImpl<T> {
 
   void Clear() override { buckets_.clear(); }
 
+  T PopWorst() override {
+    auto it = buckets_.rbegin();
+    auto &bucket = it->second;
+    auto result = bucket.front();
+    bucket.pop_front();
+    if (bucket.empty()) buckets_.erase(it->first);
+    --size_;
+
+    return result;
+  }
+
  private:
   std::size_t size_;
-  std::map<std::vector<int>, std::stack<T> > buckets_;
+  std::map<std::vector<int>, std::deque<T> > buckets_;
 };
 
 } // namespace pplanner
