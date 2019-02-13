@@ -52,7 +52,17 @@ void MultiFocusGBFS::Init(const boost::property_tree::ptree &pt) {
 
   if (auto opt = pt.get_optional<int>("n_threads")) n_threads_ = opt.get();
 
-  n_foci_max_ = n_threads_ * 1;
+  int foci_ratio = 8;
+
+  if (auto opt = pt.get_optional<int>("foci_ratio")) foci_ratio = opt.get();
+
+  if (auto opt = pt.get_optional<int>("min_expansion_per_focus"))
+    min_expansion_per_focus_ = opt.get();
+
+  if (auto opt = pt.get_optional<int>("plateau_threshold"))
+    plateau_threshold_ = opt.get();
+
+  n_foci_max_ = n_threads_ * foci_ratio;
   preferring_.resize(n_threads_);
   evaluators_.resize(n_threads_);
   node_pool_.resize(n_threads_);
@@ -153,6 +163,7 @@ void MultiFocusGBFS::Expand(int i) {
       DecrementNFoci();
       focus = LockedPopFocus();
     } else {
+      focus->UpdatePriority(plateau_threshold_);
       focus = TryPopFocus(focus);
     }
 
@@ -238,33 +249,26 @@ void MultiFocusGBFS::Expand(int i) {
         ++c;
       }
 
+      focus->IncrementNPlateau();
+
+      if (arg_best != -1)
+        focus->ClearNPlateau();
+
+      bool cond = arg_best != -1 && n_foci_.load() < n_foci_max_;
+
       for (int j = 0; j < c; ++j)
-        if (j != arg_best)
+        if (j != arg_best || !cond)
           focus->Push(values[j], nodes[j], is_pref[j]);
 
-      if (arg_best != -1) {
+      if (cond) {
         if (i == 0)
           std::cout << "New focus h=" << nodes[arg_best]->h << std::endl;
 
-        if (focus->IsEmpty())
+        if (focus->IsEmpty()) {
           DecrementNFoci();
-        else
+        } else {
+          focus->UpdatePriority(plateau_threshold_);
           LockedPushFocus(focus);
-
-        if (n_foci_.load() >= n_foci_max_) {
-          auto worst = LockedPopWorstFocus();
-          auto second = LockedPopWorstFocus();
-
-          if (worst != nullptr && second != nullptr) {
-            std::cout << "merge" << std::endl;
-            second->Merge(worst);
-            LockedPushFocus(second);
-            DecrementNFoci();
-          } else if (worst != nullptr) {
-            LockedPushFocus(worst);
-          } else {
-            LockedPushFocus(second);
-          }
         }
 
         focus = CreateNewFocus(values[arg_best], nodes[arg_best], true);

@@ -77,9 +77,9 @@ class MultiFocusGBFS : public Search {
       std::shared_ptr<Focus<SearchNodeWithNext*> > focus) {
     if (open_mtx_.try_lock()) {
       if (!foci_->IsEmpty()
-          && foci_->MinimumValues() < focus->MinimumValues()) {
+          && foci_->MinimumValues() < focus->Priority()) {
         auto tmp_focus = foci_->Pop();
-        foci_->Push(focus->MinimumValues(), focus, false);
+        foci_->Push(focus->Priority(), focus, false);
         focus = tmp_focus;
       }
 
@@ -108,7 +108,7 @@ class MultiFocusGBFS : public Search {
   void LockedPushFocus(std::shared_ptr<Focus<SearchNodeWithNext*> > focus) {
     std::lock_guard<std::mutex> lock(open_mtx_);
 
-    foci_->Push(focus->MinimumValues(), focus, false);
+    foci_->Push(focus->Priority(), focus, false);
   }
 
   std::shared_ptr<Focus<SearchNodeWithNext*> > CreateNewFocus(
@@ -116,7 +116,7 @@ class MultiFocusGBFS : public Search {
       SearchNodeWithNext *node,
       bool is_pref) {
     return std::make_shared<Focus<SearchNodeWithNext*> >(
-        open_list_option_, values, node, is_pref, plateau_threshold_);
+        open_list_option_, values, node, is_pref);
   }
 
   void WriteGoal(SearchNodeWithNext* goal) {
