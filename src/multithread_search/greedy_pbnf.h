@@ -11,6 +11,7 @@
 
 #include "hash/zobrist_hash.h"
 #include "multithread_search/abstract_graph.h"
+#include "multithread_search/binary_heap.h"
 #include "multithread_search/heuristic.h"
 #include "multithread_search/nblock.h"
 #include "multithread_search/search_node.h"
@@ -83,17 +84,9 @@ class GreedyPBNF : public Search {
   std::shared_ptr<NBlock> BestScope(std::shared_ptr<NBlock> b) const;
 
   std::shared_ptr<const NBlock> BestFree() const {
-    if (freelist_.empty()) return nullptr;
+    if (freelist_.IsEmpty()) return nullptr;
 
-    return *freelist_.cbegin();
-  }
-
-  std::shared_ptr<NBlock> PopBestFree() {
-    auto top = freelist_.begin();
-    auto b = *top;
-    freelist_.erase(top);
-
-    return b;
+    return freelist_.Top();
   }
 
   SearchNode* Search();
@@ -136,7 +129,7 @@ class GreedyPBNF : public Search {
   std::vector<std::vector<
     std::shared_ptr<Heuristic<SearchNode*> > > > evaluators_;
   std::shared_ptr<AbstractGraph> abstract_graph_;
-  std::set<std::shared_ptr<NBlock>, NBlockLess> freelist_;
+  BinaryHeap<std::shared_ptr<NBlock> > freelist_;
   std::vector<std::shared_ptr<NBlock> > nblocks_;
   std::vector<std::vector<SearchNode*> > node_pool_;
   std::mutex mtx_;

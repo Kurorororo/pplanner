@@ -21,6 +21,13 @@ class ClosedList {
 
   bool IsClosed(uint32_t hash, const std::vector<uint32_t> &packed_state) const;
 
+  std::size_t GetIndex(uint32_t hash,
+                       const std::vector<uint32_t> &packed_state) const;
+
+  SearchNode* GetItem(std::size_t i) const { return closed_[i]; }
+
+  void Close(std::size_t i, SearchNode *node);
+
   bool Close(SearchNode *node);
 
   void Clear();

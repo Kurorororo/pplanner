@@ -1,6 +1,7 @@
 #ifndef NBLOCK_H_
 #define NBLOCK_H_
 
+#include <iostream>
 #include <memory>
 
 #include "multithread_search/closed_list.h"
@@ -19,7 +20,9 @@ class NBlock {
     : abstract_node_id_(abstract_node_id),
       sigma_(0),
       sigma_h_(0),
+      heap_idx_(-1),
       hot_(false),
+      inuse_(false),
       open_list_(OpenListFactory<SearchNode*>(open_list_option)),
       closed_list_(std::make_unique<ClosedList>(closd_exponent)) {}
 
@@ -43,6 +46,20 @@ class NBlock {
 
   void set_cold() { hot_ = false; }
 
+  bool inuse() const { return inuse_; }
+
+  void use() { inuse_ = true; }
+
+  void unuse() { inuse_ = false; }
+
+  bool is_free() const {
+    return sigma_ == 0 && sigma_h_ == 0 && !open_list_->IsEmpty();
+  };
+
+  int heap_idx() const { return heap_idx_; }
+
+  void set_heap_idx(int i) { heap_idx_ = i; }
+
   bool IsEmpty() const { return open_list_->IsEmpty(); }
 
   void Push(const std::vector<int> &values, SearchNode* node, bool is_pref) {
@@ -50,6 +67,8 @@ class NBlock {
   }
 
   SearchNode* Pop() { return open_list_->Pop(); }
+
+  const std::vector<int>& priority() const { return MinimumValues(); }
 
   const std::vector<int>& MinimumValues() const {
     return open_list_->MinimumValues();
@@ -60,13 +79,38 @@ class NBlock {
     return closed_list_->IsClosed(hash, packed_state);
   }
 
+  std::size_t GetIndex(uint32_t hash,
+                       const std::vector<uint32_t> &packed_state) const {
+    return closed_list_->GetIndex(hash, packed_state);
+  }
+
+  SearchNode* GetItem(std::size_t i) const { return closed_list_->GetItem(i); }
+
+  void Close(std::size_t i, SearchNode *node) { closed_list_->Close(i, node); }
+
   bool Close(SearchNode* node) { return closed_list_->Close(node); }
+
+  void Dump() const {
+    std::cout << "id: " << abstract_node_id_
+              << " sigma=" << sigma_
+              << " sigma_h=" << sigma_h_
+              << " hot=" << hot_
+              << " inuse=" << inuse_
+              << " heap index=" << heap_idx_;
+
+    if (open_list_->IsEmpty())
+      std::cout << " empty" << std::endl;
+    else
+      std::cout << " h=" << MinimumValues()[0] << std::endl;
+  }
 
  private:
   int abstract_node_id_;
   int sigma_;
   int sigma_h_;
+  int heap_idx_;
   bool hot_;
+  bool inuse_;
   std::unique_ptr<OpenList<SearchNode*> > open_list_;
   std::unique_ptr<ClosedList> closed_list_;
 };

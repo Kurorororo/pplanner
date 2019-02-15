@@ -17,6 +17,27 @@ bool ClosedList::IsClosed(uint32_t hash,
   return false;
 }
 
+std::size_t ClosedList::GetIndex(uint32_t hash,
+                                 const std::vector<uint32_t> &packed_state)
+  const {
+  std::size_t i = hash & closed_mask_;
+
+  while (closed_[i] != nullptr) {
+    if (packed_state == closed_[i]->packed_state) break;
+
+    i = (i == closed_.size() - 1) ? 0 : i + 1;
+  }
+
+  return i;
+}
+
+void ClosedList::Close(std::size_t i, SearchNode *node) {
+  closed_[i] = node;
+  ++n_closed_;
+
+  if (2 * n_closed_ > closed_.size()) Resize();
+}
+
 bool ClosedList::Close(SearchNode* node) {
   std::size_t i = node->hash & closed_mask_;
 
