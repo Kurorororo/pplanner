@@ -15,6 +15,8 @@ class EffectVector : public PartialStateVector {
 
   void Dump(int i) const override;
 
+  void DumpConditions() const;
+
   void Apply(int i, const std::vector<int> &state, std::vector<int> &child)
     const;
 

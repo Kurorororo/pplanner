@@ -47,7 +47,7 @@ void EffectVector::AddConditionalEffect(
 
   if (conditions.empty()) {
     has_conditional_.push_back(false);
-    effect_condition_offsets_1_.push_back(0);
+    effect_condition_offsets_1_.push_back(effect_condition_offsets_1_.back());
 
     return;
   }
@@ -132,6 +132,13 @@ void EffectVector::Dump(int i) const {
       std::cout << conditional_effect_vars_[j] << "=";
       std::cout << conditional_effect_values_[j] << std::endl;;
     }
+  }
+}
+
+void EffectVector::DumpConditions() const {
+  std::cout << "full dump" << std::endl;
+  for (int j = 0; j < effect_condition_vars_.size(); ++j) {
+    std::cout << "eff var" << effect_condition_vars_[j] << "=" << effect_condition_values_[j] << std::endl;
   }
 }
 
