@@ -41,7 +41,7 @@ class BinaryHeap {
 
     if (i < 0) return;
 
-    if (i == heap_.size() - 1) {
+    if (i == static_cast<int>(heap_.size() - 1)) {
       element->set_heap_idx(-1);
       heap_.pop_back();
 

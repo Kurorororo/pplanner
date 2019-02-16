@@ -291,18 +291,6 @@ void GreedyPBNF::SetHot(std::shared_ptr<NBlock> b) {
     }
 
     if (!any) {
-      //std::cout << "set hot" << std::endl;
-      //stat_mtx_.lock();
-      //std::cout << "set hot before" << std::endl;
-      //freelist_.Dump();
-      //b->Dump();
-
-      //for (auto idx : InterferenceScope(b)) {
-      //  nblocks_[idx]->Dump();
-      //}
-
-      //stat_mtx_.unlock();
-
       b->set_hot();
 
       for (auto idx : InterferenceScope(b)) {
@@ -315,17 +303,6 @@ void GreedyPBNF::SetHot(std::shared_ptr<NBlock> b) {
 
         mp->increment_sigma_h();
       }
-
-      //stat_mtx_.lock();
-      //std::cout << "set hot after" << std::endl;
-      //freelist_.Dump();
-      //b->Dump();
-
-      //for (auto idx : InterferenceScope(b)) {
-      //  nblocks_[idx]->Dump();
-      //}
-
-      //stat_mtx_.unlock();
     }
   }
 }
@@ -334,37 +311,16 @@ bool GreedyPBNF::SetCold(std::shared_ptr<NBlock> b) {
   bool broadcast = false;
   b->set_cold();
 
-  //stat_mtx_.lock();
-  //std::cout << "set cold before" << std::endl;
-  //freelist_.Dump();
-  //stat_mtx_.unlock();
-
   for (auto idx : InterferenceScope(b)) {
     auto mp = nblocks_[idx];
     mp->decrement_sigma_h();
 
     if (mp->is_free()) {
       if (mp->hot()) SetCold(mp);
-
-      //if (mp->abstract_node_id() == 1632) {
-      //  std::cout << "now insert 1632" << std::endl;
-      //  mp->Dump();
-      //}
-
-      //if (freelist_.IsIn(mp)) {
-      //  std::cout << "set cold insert isin:" << std::endl;
-      //  mp->Dump();
-      //}
-
       freelist_.Push(mp);
       broadcast = true;
     }
   }
-
-  //stat_mtx_.lock();
-  //std::cout << "set cold after" << std::endl;
-  //freelist_.Dump();
-  //stat_mtx_.unlock();
 
   return broadcast;
 }
@@ -372,17 +328,7 @@ bool GreedyPBNF::SetCold(std::shared_ptr<NBlock> b) {
 void GreedyPBNF::Release(int i, std::shared_ptr<NBlock> b) {
   b->unuse();
 
-  //stat_mtx_.lock();
-  //std::cout << "release before" << std::endl;
-  //freelist_.Dump();
-  //stat_mtx_.unlock();
-
   if (!b->IsEmpty() && b->is_free()) {
-    //if (freelist_.IsIn(b)) {
-    //  std::cout << "release insert isin:" << std::endl;
-    //  b->Dump();
-    //}
-
     freelist_.Push(b);
     cond_.notify_all();
   }
@@ -395,24 +341,10 @@ void GreedyPBNF::Release(int i, std::shared_ptr<NBlock> b) {
 
     if (bp->is_free()) {
       if (bp->hot()) SetCold(bp);
-
-      //if (freelist_.IsIn(bp)) {
-      //  std::cout << "release insert isin:" << std::endl;
-      //  bp->Dump();
-      //}
-
       freelist_.Push(bp);
       broadcast = true;
     }
   }
-
-  //stat_mtx_.lock();
-  //std::cout << "release after" << std::endl;
-  //freelist_.Dump();
-  //stat_mtx_.unlock();
-
-  //std::cout << i << " release" << std::endl;
-  //b->Dump();
 
   if (broadcast) cond_.notify_all();
 }
@@ -449,11 +381,6 @@ std::shared_ptr<NBlock> GreedyPBNF::NextNBlock(int i, std::shared_ptr<NBlock> b)
     }
 
     if (all) {
-      std::cout << "done" << std::endl;
-
-      for (auto b : nblocks_)
-        b->Dump();
-
       done_ = true;
       cond_.notify_all();
     }
@@ -466,38 +393,18 @@ std::shared_ptr<NBlock> GreedyPBNF::NextNBlock(int i, std::shared_ptr<NBlock> b)
 
   std::shared_ptr<NBlock> m = nullptr;
 
-  //stat_mtx_.lock();
-  //std::cout << "next block before" << std::endl;
-  //freelist_.Dump();
-  //stat_mtx_.unlock();
-
   if (!done_) {
     m = freelist_.Pop();
     m->use();
 
-    //std::cout << "next block" << std::endl;
-
     for (auto idx : InterferenceScope(m)) {
-      if (nblocks_[idx]->is_free() && nblocks_[idx]->heap_idx() >= 0) {
-        //std::cout << "remove" << std::endl;
-        //nblocks_[idx]->Dump();
+      if (nblocks_[idx]->is_free() && nblocks_[idx]->heap_idx() >= 0)
         freelist_.Remove(nblocks_[idx]);
-      }
 
       nblocks_[idx]->increment_sigma();
     }
 
-    //std::cout << i << " get " << std::endl;
-    //m->Dump();
-    //std::cout << "dump freelist" << std::endl;
-    //freelist_.Dump();
   }
-
-  //stat_mtx_.lock();
-  //std::cout << "next block after" << std::endl;
-  //freelist_.Dump();
-  //stat_mtx_.unlock();
-  //
 
   return m;
 }
