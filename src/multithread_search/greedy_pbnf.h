@@ -1,6 +1,8 @@
 #ifndef GREEDY_PBNF_H_
 #define GREEDY_PBNF_H_
 
+#include <atomic>
+#include <condition_variable>
 #include <memory>
 #include <mutex>
 #include <unordered_set>
@@ -83,25 +85,19 @@ class GreedyPBNF : public Search {
 
   std::shared_ptr<NBlock> BestScope(std::shared_ptr<NBlock> b) const;
 
-  std::shared_ptr<const NBlock> BestFree() const {
-    if (freelist_.IsEmpty()) return nullptr;
-
-    return freelist_.Top();
-  }
-
   SearchNode* Search();
 
   void ThreadSearch(int i);
 
-  bool ShouldSwitch(std::shared_ptr<NBlock> b, int *exp);
+  bool ShouldSwitch(int i, std::shared_ptr<NBlock> b, int *exp);
 
   void SetHot(std::shared_ptr<NBlock> b);
 
   bool SetCold(std::shared_ptr<NBlock> b);
 
-  void Release(std::shared_ptr<NBlock> b);
+  void Release(int i, std::shared_ptr<NBlock> b);
 
-  std::shared_ptr<NBlock> NextNBlock(std::shared_ptr<NBlock> b);
+  std::shared_ptr<NBlock> NextNBlock(int i, std::shared_ptr<NBlock> b);
 
   struct NBlockLess {
     bool operator()(const std::shared_ptr<const NBlock> &a,

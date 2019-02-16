@@ -1,6 +1,7 @@
 #ifndef NBLOCK_H_
 #define NBLOCK_H_
 
+#include <atomic>
 #include <iostream>
 #include <memory>
 
@@ -21,6 +22,7 @@ class NBlock {
       sigma_(0),
       sigma_h_(0),
       heap_idx_(-1),
+      minimum_(-1),
       hot_(false),
       inuse_(false),
       open_list_(OpenListFactory<SearchNode*>(open_list_option)),
@@ -53,7 +55,7 @@ class NBlock {
   void unuse() { inuse_ = false; }
 
   bool is_free() const {
-    return sigma_ == 0 && sigma_h_ == 0 && !open_list_->IsEmpty();
+    return sigma_ == 0 && sigma_h_ == 0 && !inuse_ && !open_list_->IsEmpty();
   };
 
   int heap_idx() const { return heap_idx_; }
@@ -63,12 +65,20 @@ class NBlock {
   bool IsEmpty() const { return open_list_->IsEmpty(); }
 
   void Push(const std::vector<int> &values, SearchNode* node, bool is_pref) {
+    if (minimum_ == -1 || values[0] < minimum_)
+      minimum_ = values[0];
+
     open_list_->Push(values, node, is_pref);
   }
 
-  SearchNode* Pop() { return open_list_->Pop(); }
+  SearchNode* Pop() {
+    auto top = open_list_->Pop();
+    minimum_ = open_list_->IsEmpty() ? -1 : open_list_->MinimumValues()[0];
 
-  const std::vector<int>& priority() const { return MinimumValues(); }
+    return top;
+  }
+
+  int priority() const { return minimum_; }
 
   const std::vector<int>& MinimumValues() const {
     return open_list_->MinimumValues();
@@ -109,6 +119,7 @@ class NBlock {
   int sigma_;
   int sigma_h_;
   int heap_idx_;
+  int minimum_;
   bool hot_;
   bool inuse_;
   std::unique_ptr<OpenList<SearchNode*> > open_list_;

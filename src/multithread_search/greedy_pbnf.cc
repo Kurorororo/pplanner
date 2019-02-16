@@ -132,8 +132,8 @@ std::shared_ptr<NBlock> GreedyPBNF::BestScope(std::shared_ptr<NBlock> b) const {
   for (auto idx : InterferenceScope(b)) {
     auto bp = nblocks_[idx];
 
-    if (!bp->IsEmpty()
-        && (best == nullptr || bp->MinimumValues() < best->MinimumValues()))
+    if (bp->priority() != -1
+        && (best == nullptr || bp->priority() < best->priority()))
       best = bp;
   }
 
@@ -171,10 +171,10 @@ void GreedyPBNF::ThreadSearch(int i) {
   std::shared_ptr<NBlock> b = nullptr;
 
   while (!done_) {
-    b = NextNBlock(b);
+    b = NextNBlock(i, b);
     int exp = 0;
 
-    while (!ShouldSwitch(b, &exp)) {
+    while (!ShouldSwitch(i, b, &exp)) {
       auto node = b->Pop();
 
       ++exp;
@@ -243,38 +243,38 @@ void GreedyPBNF::ThreadSearch(int i) {
   WriteStat(expanded, evaluated, generated, dead_ends);
 }
 
-bool GreedyPBNF::ShouldSwitch(std::shared_ptr<NBlock> b, int *exp) {
-  if (b->IsEmpty()) return true;
+bool GreedyPBNF::ShouldSwitch(int i, std::shared_ptr<NBlock> b, int *exp) {
+  std::unique_lock<std::mutex> lk(mtx_, std::defer_lock);
+
+  if (b == nullptr || b->IsEmpty()) return true;
 
   if (*exp < min_expansions_) return false;
 
   *exp = 0;
-  auto best_free = BestFree();
+  auto best_free = freelist_.Minimum();
   auto best_scope = BestScope(b);
 
-  if ((best_free != nullptr && best_free->MinimumValues() < b->MinimumValues())
-      || (best_scope != nullptr
-          && best_scope->MinimumValues() < b->MinimumValues())) {
-    if (best_scope != nullptr
-        && (best_free == nullptr
-            || best_scope->MinimumValues() < best_free->MinimumValues()))
+  if ((best_free != -1 && best_free < b->priority())
+      || (best_scope != nullptr && best_scope->priority() != -1
+          && best_scope->priority() < b->priority())) {
+    if (best_scope != nullptr && best_scope->priority() != -1
+        && (best_free == -1 || best_scope->priority() < best_free)) {
       SetHot(best_scope);
+    }
 
     return true;
   }
 
-  mtx_.lock();
+  lk.lock();
 
   for (auto bp : InterferenceScope(b))
     if (nblocks_[bp]->hot()) SetCold(nblocks_[bp]);
-
-  mtx_.unlock();
 
   return false;
 }
 
 void GreedyPBNF::SetHot(std::shared_ptr<NBlock> b) {
-  mtx_.lock();
+  std::unique_lock<std::mutex> lk(mtx_);
 
   if (!b->hot() && b->sigma() > 0) {
     bool any = false;
@@ -282,8 +282,8 @@ void GreedyPBNF::SetHot(std::shared_ptr<NBlock> b) {
     for (auto idx : InterferenceScope(b)) {
       auto i = nblocks_[idx];
 
-      if (!i->IsEmpty()
-          && (b->IsEmpty() || i->MinimumValues() < b->MinimumValues())
+      if (i->priority() != -1
+          && (b->priority() == -1 || i->priority() < b->priority())
           && i->hot()) {
         any = true;
         break;
@@ -291,48 +291,98 @@ void GreedyPBNF::SetHot(std::shared_ptr<NBlock> b) {
     }
 
     if (!any) {
+      //std::cout << "set hot" << std::endl;
+      //stat_mtx_.lock();
+      //std::cout << "set hot before" << std::endl;
+      //freelist_.Dump();
+      //b->Dump();
+
+      //for (auto idx : InterferenceScope(b)) {
+      //  nblocks_[idx]->Dump();
+      //}
+
+      //stat_mtx_.unlock();
+
       b->set_hot();
 
       for (auto idx : InterferenceScope(b)) {
         auto mp = nblocks_[idx];
 
-        if (mp->hot()) mp->set_cold();
+        if (mp->hot()) SetCold(mp);
 
         if (mp->is_free() && mp->heap_idx() >= 0)
           freelist_.Remove(mp);
 
         mp->increment_sigma_h();
       }
+
+      //stat_mtx_.lock();
+      //std::cout << "set hot after" << std::endl;
+      //freelist_.Dump();
+      //b->Dump();
+
+      //for (auto idx : InterferenceScope(b)) {
+      //  nblocks_[idx]->Dump();
+      //}
+
+      //stat_mtx_.unlock();
     }
   }
-
-  mtx_.unlock();
 }
 
 bool GreedyPBNF::SetCold(std::shared_ptr<NBlock> b) {
   bool broadcast = false;
   b->set_cold();
 
+  //stat_mtx_.lock();
+  //std::cout << "set cold before" << std::endl;
+  //freelist_.Dump();
+  //stat_mtx_.unlock();
+
   for (auto idx : InterferenceScope(b)) {
     auto mp = nblocks_[idx];
     mp->decrement_sigma_h();
 
     if (mp->is_free()) {
-      if (mp->hot()) {
-        SetCold(mp);
-        freelist_.Push(mp);
-        broadcast = true;
-      }
+      if (mp->hot()) SetCold(mp);
+
+      //if (mp->abstract_node_id() == 1632) {
+      //  std::cout << "now insert 1632" << std::endl;
+      //  mp->Dump();
+      //}
+
+      //if (freelist_.IsIn(mp)) {
+      //  std::cout << "set cold insert isin:" << std::endl;
+      //  mp->Dump();
+      //}
+
+      freelist_.Push(mp);
+      broadcast = true;
     }
   }
+
+  //stat_mtx_.lock();
+  //std::cout << "set cold after" << std::endl;
+  //freelist_.Dump();
+  //stat_mtx_.unlock();
 
   return broadcast;
 }
 
-void GreedyPBNF::Release(std::shared_ptr<NBlock> b) {
+void GreedyPBNF::Release(int i, std::shared_ptr<NBlock> b) {
   b->unuse();
 
-  if (!b->IsEmpty()) {
+  //stat_mtx_.lock();
+  //std::cout << "release before" << std::endl;
+  //freelist_.Dump();
+  //stat_mtx_.unlock();
+
+  if (!b->IsEmpty() && b->is_free()) {
+    //if (freelist_.IsIn(b)) {
+    //  std::cout << "release insert isin:" << std::endl;
+    //  b->Dump();
+    //}
+
     freelist_.Push(b);
     cond_.notify_all();
   }
@@ -346,15 +396,28 @@ void GreedyPBNF::Release(std::shared_ptr<NBlock> b) {
     if (bp->is_free()) {
       if (bp->hot()) SetCold(bp);
 
+      //if (freelist_.IsIn(bp)) {
+      //  std::cout << "release insert isin:" << std::endl;
+      //  bp->Dump();
+      //}
+
       freelist_.Push(bp);
       broadcast = true;
     }
   }
 
+  //stat_mtx_.lock();
+  //std::cout << "release after" << std::endl;
+  //freelist_.Dump();
+  //stat_mtx_.unlock();
+
+  //std::cout << i << " release" << std::endl;
+  //b->Dump();
+
   if (broadcast) cond_.notify_all();
 }
 
-std::shared_ptr<NBlock> GreedyPBNF::NextNBlock(std::shared_ptr<NBlock> b) {
+std::shared_ptr<NBlock> GreedyPBNF::NextNBlock(int i, std::shared_ptr<NBlock> b) {
   std::unique_lock<std::mutex> lk(mtx_, std::defer_lock);
 
   if (b == nullptr || b->IsEmpty() || b->hot())
@@ -364,19 +427,15 @@ std::shared_ptr<NBlock> GreedyPBNF::NextNBlock(std::shared_ptr<NBlock> b) {
 
   if (b != nullptr) {
     auto best_scope = BestScope(b);
-    auto best_free = BestFree();
+    auto best_free = freelist_.Minimum();
 
-    if (!b->IsEmpty()
-        && (best_scope == nullptr
-         || b->MinimumValues() < best_scope->MinimumValues())
-        && (best_free == nullptr
-         || b->MinimumValues() < best_free->MinimumValues())) {
-      mtx_.unlock();
-
+    if (b->priority() != -1
+        && (best_scope == nullptr || best_scope->priority() == -1
+            || b->priority() < best_scope->priority())
+        && (best_free == -1 || b->priority() < best_free))
       return b;
-    }
 
-    Release(b);
+    Release(i, b);
   }
 
   if (freelist_.IsEmpty()) {
@@ -390,6 +449,11 @@ std::shared_ptr<NBlock> GreedyPBNF::NextNBlock(std::shared_ptr<NBlock> b) {
     }
 
     if (all) {
+      std::cout << "done" << std::endl;
+
+      for (auto b : nblocks_)
+        b->Dump();
+
       done_ = true;
       cond_.notify_all();
     }
@@ -402,17 +466,38 @@ std::shared_ptr<NBlock> GreedyPBNF::NextNBlock(std::shared_ptr<NBlock> b) {
 
   std::shared_ptr<NBlock> m = nullptr;
 
+  //stat_mtx_.lock();
+  //std::cout << "next block before" << std::endl;
+  //freelist_.Dump();
+  //stat_mtx_.unlock();
+
   if (!done_) {
     m = freelist_.Pop();
     m->use();
 
+    //std::cout << "next block" << std::endl;
+
     for (auto idx : InterferenceScope(m)) {
-      if (nblocks_[idx]->is_free() && nblocks_[idx]->heap_idx() >= 0)
+      if (nblocks_[idx]->is_free() && nblocks_[idx]->heap_idx() >= 0) {
+        //std::cout << "remove" << std::endl;
+        //nblocks_[idx]->Dump();
         freelist_.Remove(nblocks_[idx]);
+      }
 
       nblocks_[idx]->increment_sigma();
     }
+
+    //std::cout << i << " get " << std::endl;
+    //m->Dump();
+    //std::cout << "dump freelist" << std::endl;
+    //freelist_.Dump();
   }
+
+  //stat_mtx_.lock();
+  //std::cout << "next block after" << std::endl;
+  //freelist_.Dump();
+  //stat_mtx_.unlock();
+  //
 
   return m;
 }

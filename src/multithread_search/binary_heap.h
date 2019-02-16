@@ -9,14 +9,19 @@ namespace pplanner {
 template<class T>
 class BinaryHeap {
  public:
+  BinaryHeap() : minimum_(-1) {}
+
   bool IsEmpty() const { return heap_.empty(); }
 
   T Top() const { return heap_[0]; }
+
+  int Minimum() const { return minimum_; }
 
   void Push(T element) {
     element->set_heap_idx(heap_.size());
     heap_.push_back(element);
     BubbleUp(element->heap_idx());
+    minimum_ = heap_[0]->priority();
   }
 
   T Pop() {
@@ -26,6 +31,7 @@ class BinaryHeap {
     heap_.pop_back();
     TrickleDown(0);
     x->set_heap_idx(-1);
+    minimum_ = heap_.empty() ? -1 : heap_[0]->priority();
 
     return x;
   }
@@ -39,6 +45,8 @@ class BinaryHeap {
       element->set_heap_idx(-1);
       heap_.pop_back();
 
+      if (heap_.empty()) minimum_ = -1;
+
       return;
     }
 
@@ -47,16 +55,34 @@ class BinaryHeap {
     element->set_heap_idx(-1);
 
     if (!TrickleDown(i)) BubbleUp(i);
+
+    minimum_ = heap_.empty() ? -1 : heap_[0]->priority();
+  }
+
+  bool IsIn(T element) {
+    for (auto ptr : heap_)
+      if (ptr == element) return true;
+
+    return false;
   }
 
   void Dump() const {
     std::cout << "begin dump" << std::endl;
     std::cout << "size=" << heap_.size() << std::endl;
 
-    for (auto t : heap_)
-      t->Dump();
+    for (int i = 0, n = heap_.size(); i < n; ++i) {
+      std::cout << i << " ";
+      heap_[i]->Dump();
+    }
 
     std::cout << "end dump" << std::endl;
+  }
+
+  bool CheckError() const {
+    for (int i = 0; i < heap_.size(); ++i)
+      if (heap_[i]->heap_idx() != i) return false;
+
+    return true;
   }
 
  private:
@@ -113,6 +139,7 @@ class BinaryHeap {
     return changed;
   }
 
+  int minimum_;
   std::vector<T> heap_;
 };
 
