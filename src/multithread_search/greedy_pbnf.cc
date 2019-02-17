@@ -227,6 +227,14 @@ void GreedyPBNF::ThreadSearch(int i) {
           continue;
         }
 
+        if (idx != b->abstract_node_id() && nblocks_[idx]->inuse()) {
+          stat_mtx_.lock();
+          std::cout << idx
+                    << " is now inuse, so something is wrong" << std::endl;
+          nblocks_[idx]->Dump();
+          stat_mtx_.unlock();
+        }
+
         nblocks_[idx]->Close(closd_idx, child_node);
         node_pool_[i].push_back(child_node);
         bool is_pref = use_preferred_ && preferred.find(o) != preferred.end();
@@ -388,6 +396,12 @@ std::shared_ptr<NBlock> GreedyPBNF::NextNBlock(int i, std::shared_ptr<NBlock> b)
 
     if (all) {
       done_ = true;
+      std::cout << "done" << std::endl;
+
+      for (auto l : nblocks_) {
+        l->Dump();
+      }
+
       cond_.notify_all();
     }
   }
@@ -409,7 +423,6 @@ std::shared_ptr<NBlock> GreedyPBNF::NextNBlock(int i, std::shared_ptr<NBlock> b)
 
       nblocks_[idx]->increment_sigma();
     }
-
   }
 
   return m;

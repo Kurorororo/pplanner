@@ -33,6 +33,14 @@ void AbstractGraph::BuildInterferenceScope() {
   for (int i = 0, n = to_children_.size(); i < n; ++i) {
     interference_scope_[i] = to_children_[i];
 
+    for (auto p : to_parents_[i]) {
+      auto result = std::find(interference_scope_[i].begin(),
+                              interference_scope_[i].end(), p);
+
+      if (result == interference_scope_[i].end())
+        interference_scope_[i].push_back(p);
+    }
+
     for (int j : to_children_[i]) {
       for (auto k : to_parents_[j]) {
         if (i == k) continue;

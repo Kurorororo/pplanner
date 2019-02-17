@@ -1,7 +1,6 @@
 #ifndef NBLOCK_H_
 #define NBLOCK_H_
 
-#include <atomic>
 #include <iostream>
 #include <memory>
 
