@@ -56,6 +56,7 @@ class GreedyPBNF : public Search {
     SearchNode *expected = nullptr;
     goal_.compare_exchange_strong(expected, goal);
     done_ = true;
+    cond_.notify_all();
   }
 
   void WriteStat(int expanded, int evaluated, int generated, int dead_ends) {

@@ -406,10 +406,11 @@ std::shared_ptr<NBlock> GreedyPBNF::NextNBlock(int i, std::shared_ptr<NBlock> b)
     }
   }
 
-  if (freelist_.IsEmpty() && !done_)
+  if (freelist_.IsEmpty() && !done_) {
     cond_.wait(lk, [this]() -> bool {
         return !this->freelist_.IsEmpty() || this->done_;
     });
+  }
 
   std::shared_ptr<NBlock> m = nullptr;
 
