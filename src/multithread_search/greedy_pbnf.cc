@@ -61,6 +61,9 @@ void GreedyPBNF::Init(const boost::property_tree::ptree &pt) {
     nblocks_.emplace_back(std::make_shared<NBlock>(open_list_option, i,
                                                    closd_exponent));
 
+  if (auto opt = pt.get_optional<int>("min_expansions"))
+    min_expansions_ = opt.get();
+
   if (auto opt = pt.get_optional<int>("n_threads")) n_threads_ = opt.get();
 
   preferring_.resize(n_threads_);
@@ -316,7 +319,7 @@ bool GreedyPBNF::SetCold(std::shared_ptr<NBlock> b) {
     mp->decrement_sigma_h();
 
     if (mp->is_free()) {
-      if (mp->hot()) SetCold(mp);
+      //if (mp->hot()) SetCold(mp);
       freelist_.Push(mp);
       broadcast = true;
     }
@@ -339,10 +342,13 @@ void GreedyPBNF::Release(int i, std::shared_ptr<NBlock> b) {
     auto bp = nblocks_[idx];
     bp->decrement_sigma();
 
-    if (bp->is_free()) {
-      if (bp->hot()) SetCold(bp);
-      freelist_.Push(bp);
-      broadcast = true;
+    if (bp->sigma() == 0) {
+      if (bp->hot()) broadcast |= SetCold(bp);
+
+      if (bp->is_free()) {
+        freelist_.Push(bp);
+        broadcast = true;
+      }
     }
   }
 
