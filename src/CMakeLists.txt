@@ -47,6 +47,7 @@ add_library(search STATIC
   ./multithread_search/search_node.cc
   ./multithread_search/closed_list.cc
   ./multithread_search/lock_free_closed_list.cc
+  ./multithread_search/gbfs_portfolio.cc
   ./multithread_search/multi_gbfs.cc
   ./multithread_search/multi_focus_gbfs.cc
   ./multithread_search/greedy_pbnf.cc)

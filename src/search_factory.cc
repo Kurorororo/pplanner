@@ -10,6 +10,7 @@
 #include "search/simhdgbfs.h"
 #include "search/simhdgbfs1.h"
 #include "search/multi_focus_gbfs.h"
+#include "multithread_search/gbfs_portfolio.h"
 #include "multithread_search/greedy_pbnf.h"
 #include "multithread_search/multi_gbfs.h"
 #include "multithread_search/multi_focus_gbfs.h"
@@ -51,6 +52,9 @@ std::unique_ptr<Search> SearchFactory(std::shared_ptr<const SASPlus> problem,
 
   if (search.get() == "simhdgbfs1")
     return std::make_unique<SIMHDGBFS1>(problem, option.get());
+
+  if (search.get() == "gbfs_portfolio")
+    return std::make_unique<GBFSPortfolio>(problem, option.get());
 
   if (search.get() == "multi_gbfs")
     return std::make_unique<MultiGBFS>(problem, option.get());
