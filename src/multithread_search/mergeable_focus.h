@@ -1,5 +1,5 @@
-#ifndef FOCUS_H_
-#define FOCUS_H_
+#ifndef MERGEABLE_FOCUS_H_
+#define MERGEABLE_FOCUS_H_
 
 #include <memory>
 #include <vector>
@@ -10,12 +10,13 @@
 namespace pplanner {
 
 template<typename T>
-class Focus {
+class MergeableFocus {
  public:
-  Focus() : best_h_(-1), idx_(0) {}
+  MergeableFocus() : best_h_(-1), idx_(0) {}
 
-  Focus(const boost::property_tree::ptree &pt, const std::vector<int> &values,
-        T node, bool is_pref, int plateau_threshold)
+  MergeableFocus(const boost::property_tree::ptree &pt,
+                const std::vector<int> &values, T node, bool is_pref,
+                int plateau_threshold, std::shared_ptr<MergeableFocus> parent)
     : best_h_(values[0]),
       plateau_threshold_(plateau_threshold),
       n_plateau_(0),
@@ -23,7 +24,8 @@ class Focus {
       size_(0),
       minimum_values_(values),
       priority_(values.size() + 1),
-      open_lists_(1, SharedOpenListFactory<T>(pt)) {
+      open_lists_(1, SharedOpenListFactory<T>(pt)),
+      parent_(parent) {
     Push(values, node, is_pref);
     UpdatePriority();
   }
@@ -43,7 +45,7 @@ class Focus {
 
   const std::vector<int>& Priority() const { return priority_; }
 
-  void Merge(std::shared_ptr<Focus<T> > focus);
+  void Merge(std::shared_ptr<MergeableFocus<T> > focus);
 
   void Boost() { open_lists_[0]->Boost(); }
 
@@ -61,11 +63,12 @@ class Focus {
   int size_;
   std::vector<int> minimum_values_;
   std::vector<int> priority_;
+  std::shared_ptr<MergeableFocus> parent_;
   std::vector<std::shared_ptr<OpenList<T> > > open_lists_;
 };
 
 template<typename T>
-void Focus<T>::UpdatePriority() {
+void MergeableFocus<T>::UpdatePriority() {
   priority_[0] = n_plateau_ / plateau_threshold_;
 
   int arg_min = -1;
@@ -85,7 +88,7 @@ void Focus<T>::UpdatePriority() {
 }
 
 template<typename T>
-T Focus<T>::Pop() {
+T MergeableFocus<T>::Pop() {
   --size_;
   idx_ = (idx_ + 1) % open_lists_.size();
 
@@ -102,7 +105,7 @@ T Focus<T>::Pop() {
 }
 
 template<typename T>
-void Focus<T>::Merge(std::shared_ptr<Focus<T> > focus) {
+void MergeableFocus<T>::Merge(std::shared_ptr<MergeableFocus<T> > focus) {
   best_h_ = best_h_ < focus->best_h_ ? best_h_ : focus->best_h_;
   size_ += focus->size_;
 
@@ -114,4 +117,4 @@ void Focus<T>::Merge(std::shared_ptr<Focus<T> > focus) {
 
 } // namespace pplanner
 
-#endif // FOCUS_H_
+#endif // MERGEABLE_FOCUS_H_

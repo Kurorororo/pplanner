@@ -1,8 +1,8 @@
-#include "focus.h"
+#include "mergeable_focus.h"
 
 namespace pplanner {
 
-SearchNode* Focus::Pop() {
+SearchNode* MergeableFocus::Pop() {
   if (arg_min_ == -1) return nullptr;
 
   auto node = open_lists_[arg_min_]->Pop();
@@ -27,7 +27,7 @@ SearchNode* Focus::Pop() {
   return node;
 }
 
-void Focus::Merge(std::shared_ptr<Focus> focus) {
+void MergeableFocus::Merge(std::shared_ptr<MergeableFocus> focus) {
   best_h_ = best_h_ < focus->best_h_ : best_h_ : focus->best_h_;
 
   if (focus->IsEmpty()) return;

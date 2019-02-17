@@ -38,7 +38,7 @@ void GBFSPortfolio::InitHeuristics(int i,
     }
   }
 
-  if (i == 0) {
+  if (all_fifo_ || i == 0) {
     open_lists_[i] = std::make_shared<SingleOpenList<SearchNodeWithNext*> >(
         "fifo");
   } else if (i == 1) {
@@ -76,6 +76,9 @@ void GBFSPortfolio::Init(const boost::property_tree::ptree &pt) {
   }
 
   open_lists_.resize(n_threads_, nullptr);
+
+  if (auto opt = pt.get_optional<int>("all_fifo"))
+    all_fifo_ = true;
 
   vector<std::thread> ts;
 
@@ -189,7 +192,7 @@ void GBFSPortfolio::Distribute() {
 
   if (open_lists_[0]->IsEmpty()) return;
 
-  for (int i = 0; i < n_threads_; ++i) {
+  for (int i = 1; i < n_threads_; ++i) {
     auto values = open_lists_[0]->MinimumValues();
     auto node = open_lists_[0]->Pop();
     open_lists_[i]->Push(values, node, true);

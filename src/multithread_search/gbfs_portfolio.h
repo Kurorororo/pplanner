@@ -32,6 +32,7 @@ class GBFSPortfolio : public Search {
             const boost::property_tree::ptree &pt)
     : use_preferred_(false),
       share_closed_(false),
+      all_fifo_(false),
       n_threads_(1),
       expanded_(0),
       evaluated_(0),
@@ -86,6 +87,7 @@ class GBFSPortfolio : public Search {
 
   bool use_preferred_;
   bool share_closed_;
+  bool all_fifo_;
   int n_threads_;
   int expanded_;
   int evaluated_;
