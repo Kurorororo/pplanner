@@ -76,10 +76,9 @@ class MultiFocusGBFS : public Search {
   std::shared_ptr<Focus<SearchNodeWithNext*> > TryPopFocus(
       std::shared_ptr<Focus<SearchNodeWithNext*> > focus) {
     if (open_mtx_.try_lock()) {
-      if (!foci_->IsEmpty()
-          && foci_->MinimumValues() < focus->Priority()) {
+      if (!foci_->IsEmpty() && foci_->MinimumValues() < focus->Priority()) {
         auto tmp_focus = foci_->Pop();
-        foci_->Push(focus->Priority(), focus, false);
+        foci_->Push(focus->Priority(), focus);
         focus = tmp_focus;
       }
 
@@ -108,7 +107,7 @@ class MultiFocusGBFS : public Search {
   void LockedPushFocus(std::shared_ptr<Focus<SearchNodeWithNext*> > focus) {
     std::lock_guard<std::mutex> lock(open_mtx_);
 
-    foci_->Push(focus->Priority(), focus, false);
+    foci_->Push(focus->Priority(), focus);
   }
 
   std::shared_ptr<Focus<SearchNodeWithNext*> > CreateNewFocus(
@@ -162,7 +161,7 @@ class MultiFocusGBFS : public Search {
   std::vector<std::vector<std::shared_ptr<
     Heuristic<SearchNode*> > > > evaluators_;
   boost::property_tree::ptree open_list_option_;
-  std::unique_ptr<OpenList<
+  std::unique_ptr<FIFOOpenListImpl<
     std::shared_ptr<Focus<SearchNodeWithNext*> > > > foci_;
   std::mutex open_mtx_;
   std::mutex stat_mtx_;
