@@ -18,7 +18,7 @@ class Focus {
         T node, bool is_pref)
     : best_h_(values[0]),
       n_plateau_(0),
-      priority_(values.size() + 2),
+      priority_(values.size() + 1),
       open_list_(OpenListFactory<T>(pt)) {
     Push(values, node, is_pref);
   }
@@ -58,8 +58,6 @@ void Focus<T>::UpdatePriority(int plateau_threshold) {
 
   for (int i = 0, n = open_list_->MinimumValues().size(); i < n; ++i)
     priority_[i + 1] = open_list_->MinimumValue(i);
-
-  priority_[open_list_->MinimumValues().size() + 1] = n_plateau_;
 }
 
 } // namespace pplanner
