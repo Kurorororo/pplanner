@@ -50,6 +50,7 @@ add_library(search STATIC
   ./multithread_search/gbfs_portfolio.cc
   ./multithread_search/multi_gbfs.cc
   ./multithread_search/multi_focus_gbfs.cc
+  ./multithread_search/mcs_independent.cc
   ./multithread_search/greedy_pbnf.cc)
 
 add_library(ff STATIC
