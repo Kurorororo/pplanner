@@ -1,6 +1,7 @@
-#include "multithread_search/multi_focus_gbfs.h"
+#include "multithread_search/mcs_dump.h"
 
 #include <algorithm>
+#include <fstream>
 #include <iostream>
 
 #include <boost/foreach.hpp>
@@ -14,7 +15,7 @@ using std::size_t;
 using std::unordered_set;
 using std::vector;
 
-void MultiFocusGBFS::InitHeuristics(int i,
+void MCSDump::InitHeuristics(int i,
                                     const boost::property_tree::ptree pt) {
   node_pool_[i].reserve(1 << 22);
 
@@ -38,7 +39,7 @@ void MultiFocusGBFS::InitHeuristics(int i,
   }
 }
 
-void MultiFocusGBFS::Init(const boost::property_tree::ptree &pt) {
+void MCSDump::Init(const boost::property_tree::ptree &pt) {
   goal_.store(nullptr);
   int closed_exponent = 26;
 
@@ -47,7 +48,7 @@ void MultiFocusGBFS::Init(const boost::property_tree::ptree &pt) {
 
   open_list_option_ = pt.get_child("open_list");
   foci_ = std::make_unique<FIFOOpenListImpl<
-    std::shared_ptr<Focus<SearchNodeWithNext*> > > >();
+    std::shared_ptr<Focus<SearchNodeWithTimeStamp*> > > >();
   closed_ = std::make_unique<LockFreeClosedList>(closed_exponent);
 
   if (auto opt = pt.get_optional<int>("n_threads")) n_threads_ = opt.get();
@@ -76,9 +77,9 @@ void MultiFocusGBFS::Init(const boost::property_tree::ptree &pt) {
     ts[i].join();
 }
 
-void MultiFocusGBFS::InitialEvaluate() {
+void MCSDump::InitialEvaluate() {
   auto state = problem_->initial();
-  auto node = new SearchNodeWithNext();
+  auto node = new SearchNodeWithTimeStamp();
   node->cost = 0;
   node->action = -1;
   node->parent = nullptr;
@@ -89,19 +90,19 @@ void MultiFocusGBFS::InitialEvaluate() {
 
   std::vector<int> values;
   node->h = Evaluate(0, state, node, values);
-  auto focus = CreateNewFocus(values, node, true);
   node_pool_[0].push_back(node);
+  auto focus = CreateNewFocus(values, node, true);
   n_foci_.store(1);
   LockedPushFocus(focus);
   std::cout << "Initial heuristic value: " << node->h << std::endl;
 }
 
-void MultiFocusGBFS::DeleteAllNodes(int i) {
+void MCSDump::DeleteAllNodes(int i) {
   for (int j = 0, n = node_pool_[i].size(); j < n; ++j)
     delete node_pool_[i][j];
 }
 
-MultiFocusGBFS::~MultiFocusGBFS() {
+MCSDump::~MCSDump() {
   vector<std::thread> ts;
 
   for (int i = 0; i < n_threads_; ++i)
@@ -111,8 +112,8 @@ MultiFocusGBFS::~MultiFocusGBFS() {
     ts[i].join();
 }
 
-int MultiFocusGBFS::Evaluate(int i, const vector<int> &state,
-                             SearchNodeWithNext *node, vector<int> &values) {
+int MCSDump::Evaluate(int i, const vector<int> &state,
+                             SearchNodeWithTimeStamp *node, vector<int> &values) {
   values.clear();
 
   for (auto e : evaluators_[i]) {
@@ -125,7 +126,15 @@ int MultiFocusGBFS::Evaluate(int i, const vector<int> &state,
   return values[0];
 }
 
-int MultiFocusGBFS::IncrementNFoci() {
+int MCSDump::IncrementID() {
+  int expected = id_.load();
+
+  while (!id_.compare_exchange_weak(expected, expected + 1));
+
+  return expected;
+}
+
+int MCSDump::IncrementNFoci() {
   int expected = n_foci_.load();
 
   while (!n_foci_.compare_exchange_weak(expected, expected + 1));
@@ -133,7 +142,7 @@ int MultiFocusGBFS::IncrementNFoci() {
   return expected + 1;
 }
 
-int MultiFocusGBFS::DecrementNFoci() {
+int MCSDump::DecrementNFoci() {
   int expected = n_foci_.load();
 
   while (!n_foci_.compare_exchange_weak(expected, expected - 1));
@@ -141,21 +150,21 @@ int MultiFocusGBFS::DecrementNFoci() {
   return expected - 1;
 }
 
-void MultiFocusGBFS::Expand(int i) {
+void MCSDump::Expand(int i) {
   vector<int> state(problem_->n_variables());
   vector<int> child(problem_->n_variables());
   vector<int> applicable;
   unordered_set<int> preferred;
   vector<uint32_t> packed(packer_->block_size(), 0);
   vector<vector<int> > values;
-  vector<SearchNodeWithNext*> nodes;
+  vector<SearchNodeWithTimeStamp*> nodes;
   vector<bool> is_pref;
 
   int expanded = 0;
   int evaluated = 0;
   int generated = 0;
   int dead_ends = 0;
-  std::shared_ptr<Focus<SearchNodeWithNext*> > focus = nullptr;
+  std::shared_ptr<Focus<SearchNodeWithTimeStamp*> > focus = nullptr;
 
   while (goal_.load() == nullptr) {
     if (focus == nullptr) {
@@ -173,13 +182,19 @@ void MultiFocusGBFS::Expand(int i) {
     int counter = min_expansion_per_focus_;
 
     while (goal_.load() == nullptr && counter > 0 && !focus->IsEmpty()) {
-      SearchNodeWithNext *node = focus->Pop();
+      SearchNodeWithTimeStamp *node = focus->Pop();
 
       if (closed_->IsClosed(node->hash, node->packed_state)) break;
 
       packer_->Unpack(node->packed_state.data(), state);
       closed_->Close(node);
       ++expanded;
+
+      node->id = IncrementID();
+      auto now = std::chrono::system_clock::now();
+      auto ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
+          now - start_).count();
+      node->timestamp = static_cast<long long int>(ns);
 
       if (problem_->IsGoal(state)) {
         WriteGoal(node);
@@ -211,13 +226,14 @@ void MultiFocusGBFS::Expand(int i) {
 
         if (closed_->IsClosed(hash, packed)) continue;
 
-        auto child_node = new SearchNodeWithNext();
+        auto child_node = new SearchNodeWithTimeStamp();
         child_node->cost = node->cost + problem_->ActionCost(o);
         child_node->action = o;
         child_node->parent = node;
         child_node->packed_state = packed;
         child_node->hash = hash;
         child_node->next.store(nullptr);
+        child_node->id = -1;
         ++generated;
 
         int h = Evaluate(i, child, child_node, values[c]);
@@ -284,7 +300,7 @@ void MultiFocusGBFS::Expand(int i) {
   WriteStat(expanded, evaluated, generated, dead_ends);
 }
 
-SearchNodeWithNext* MultiFocusGBFS::Search() {
+SearchNodeWithTimeStamp* MCSDump::Search() {
   InitialEvaluate();
   vector<std::thread> ts;
 
@@ -297,7 +313,43 @@ SearchNodeWithNext* MultiFocusGBFS::Search() {
   return goal_.load();
 }
 
-void MultiFocusGBFS::DumpStatistics() const {
+void MCSDump::DumpStatistics() const {
+  std::ofstream expanded_nodes;
+  expanded_nodes.open("expanded_nodes.csv", std::ios::out);
+
+  expanded_nodes << "node_id,parent_node_id,h,timestamp";
+
+  for (int i=0; i<problem_->n_variables(); ++i)
+    expanded_nodes << ",v" << i;
+
+  expanded_nodes << std::endl;
+
+  std::vector<int> state(problem_->n_variables());
+
+  for (auto &pool : node_pool_) {
+    for (auto node : pool) {
+      if (node->id  == -1) continue;
+      expanded_nodes << node->id << ",";
+
+      SearchNodeWithTimeStamp *parent = reinterpret_cast<
+        SearchNodeWithTimeStamp*>(node->parent);
+
+      if (parent == nullptr)
+        expanded_nodes << -1 << ",";
+      else
+        expanded_nodes << parent->id << ",";
+
+      expanded_nodes << node->h << "," << node->timestamp;
+
+      packer_->Unpack(node->packed_state.data(), state);
+
+      for (int j=0; j<problem_->n_variables(); ++j)
+        expanded_nodes << "," << state[j];
+
+      expanded_nodes << std::endl;
+    }
+  }
+
   std::cout << "Expanded " << expanded_ << " state(s)" << std::endl;
   std::cout << "Evaluated " << evaluated_ << " state(s)" << std::endl;
   std::cout << "Generated " << generated_ << " state(s)" << std::endl;

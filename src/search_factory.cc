@@ -14,6 +14,7 @@
 #include "multithread_search/greedy_pbnf.h"
 #include "multithread_search/multi_gbfs.h"
 #include "multithread_search/multi_focus_gbfs.h"
+#include "multithread_search/mcs_dump.h"
 #include "multithread_search/mcs_independent.h"
 
 namespace pplanner {
@@ -68,6 +69,9 @@ std::unique_ptr<Search> SearchFactory(std::shared_ptr<const SASPlus> problem,
 
   if (search.get() == "mcs_independent")
     return std::make_unique<MCSIndependent>(problem, option.get());
+
+  if (search.get() == "mcs_dump")
+    return std::make_unique<MCSDump>(problem, option.get());
 
   throw std::runtime_error("No such search algorithm.");
 }

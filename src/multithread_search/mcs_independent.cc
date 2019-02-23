@@ -85,6 +85,7 @@ void MCSIndependent::InitialEvaluate() {
   std::vector<int> values;
   node->h = Evaluate(0, state, node, values);
   auto focus = CreateNewFocus(values, node, true);
+  node_pool_[0].push_back(node);
   n_foci_.store(1);
   LockedPushFocus(focus);
   std::cout << "Initial heuristic value: " << node->h << std::endl;
