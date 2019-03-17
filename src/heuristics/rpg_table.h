@@ -1,35 +1,42 @@
 #ifndef RPG_TABLE_H_
 #define RPG_TABLE_H_
 
-#include <queue>
+#include <string>
 #include <utility>
 #include <vector>
 
 #include "heuristics/relaxed_sas_plus.h"
 #include "heuristics/rpg.h"
+#include "open_lists/single_open_list.h"
+#include "utils/priority_queue.h"
 
 namespace pplanner {
 
 class RPGTable : public RPG {
  public:
-  RPGTable() : more_helpful_(false), problem_(nullptr), r_problem_(nullptr) {}
+  RPGTable()
+      : more_helpful_(false),
+        q_(nullptr),
+        problem_(nullptr),
+        r_problem_(nullptr) {}
 
   RPGTable(std::shared_ptr<const SASPlus> problem,
            std::shared_ptr<const RelaxedSASPlus> r_problem,
-           bool more_helpful=false)
-    : more_helpful_(more_helpful),
-      goal_counter_(r_problem->n_goal_facts()),
-      op_cost_(r_problem->n_actions(), -1),
-      precondition_counter_(r_problem->n_actions(), -1),
-      prop_cost_(r_problem->n_facts(), -1),
-      best_support_(r_problem->n_facts(), -1),
-      marked_(r_problem->n_actions(), false),
-      plan_set_(problem->n_actions(), false),
-      is_applicable_(problem->n_actions(), false),
-      is_disjunctive_goal_(problem->n_facts(), false),
-      supporters_(problem->n_facts()),
-      problem_(problem),
-      r_problem_(r_problem) {}
+           std::string tie_break = "cpp", bool more_helpful = false)
+      : more_helpful_(more_helpful),
+        goal_counter_(r_problem->n_goal_facts()),
+        op_cost_(r_problem->n_actions(), -1),
+        precondition_counter_(r_problem->n_actions(), -1),
+        prop_cost_(r_problem->n_facts(), -1),
+        best_support_(r_problem->n_facts(), -1),
+        marked_(r_problem->n_actions(), false),
+        plan_set_(problem->n_actions(), false),
+        is_applicable_(problem->n_actions(), false),
+        is_disjunctive_goal_(problem->n_facts(), false),
+        supporters_(problem->n_facts()),
+        q_(PriorityQueueFactory<int, int>(tie_break)),
+        problem_(problem),
+        r_problem_(r_problem) {}
 
   ~RPGTable() {}
 
@@ -54,30 +61,20 @@ class RPGTable : public RPG {
                           std::unordered_set<int> &helpful,
                           bool unit_cost) override;
 
-  int AdditiveCost(const std::vector<int> &state, bool unit_cost=false);
+  int AdditiveCost(const std::vector<int> &state, bool unit_cost = false);
 
-  int HmaxCost(const std::vector<int> &state, bool unit_cost=false);
+  int HmaxCost(const std::vector<int> &state, bool unit_cost = false);
 
  private:
   void SetPlan(int g, std::unordered_set<int> &helpful);
 
-  void GeneralizedDijkstra(const std::vector<int> &state, bool hmax=false);
+  void GeneralizedDijkstra(const std::vector<int> &state, bool hmax = false);
 
   void SetUp(const std::vector<int> &state, bool unit_cost);
 
   void MayPush(int f, int a);
 
   int DisjunctiveGeneralizedDijkstra(const std::vector<int> &state);
-
-  struct FirstGreater {
-    bool operator()(const std::pair<int, int> &a, const std::pair<int, int> &b) {
-      return a.first > b.first;
-    }
-  };
-
-  using PQueue = std::priority_queue<std::pair<int, int>,
-                                     std::vector<std::pair<int, int> >,
-                                     FirstGreater>;
 
   bool more_helpful_;
   int goal_counter_;
@@ -91,11 +88,12 @@ class RPGTable : public RPG {
   std::vector<bool> is_disjunctive_goal_;
   std::vector<std::vector<int> > supporters_;
   std::unordered_set<int> helpful_;
-  PQueue q_;
+  std::unique_ptr<PriorityQueue<int, int> > q_;
   std::shared_ptr<const SASPlus> problem_;
   std::shared_ptr<const RelaxedSASPlus> r_problem_;
+  std::vector<int> values_;
 };
 
-} // namespace pplanner
+}  // namespace pplanner
 
-#endif // RPG_TABLE_H_
+#endif  // RPG_TABLE_H_

@@ -7,31 +7,33 @@
 #include <unordered_set>
 #include <vector>
 
-#include "sas_plus.h"
+#include "heuristics/rpg.h"
+#include "heuristics/rpg_factory.h"
 #include "landmark/generating_orderings.h"
 #include "landmark/landmark_detection.h"
 #include "landmark/landmark_graph.h"
-#include "heuristics/rpg.h"
-#include "heuristics/rpg_factory.h"
+#include "sas_plus.h"
 
 namespace pplanner {
 
 class LandmarkCountBase {
  public:
-  LandmarkCountBase() : unit_cost_(true),
-                        problem_(nullptr),
-                        r_problem_(nullptr),
-                        rpg_(nullptr),
-                        graph_(nullptr) {}
+  LandmarkCountBase()
+      : unit_cost_(true),
+        problem_(nullptr),
+        r_problem_(nullptr),
+        rpg_(nullptr),
+        graph_(nullptr) {}
 
   LandmarkCountBase(std::shared_ptr<const SASPlus> problem, bool unit_cost,
                     bool simplify, bool use_rpg_table, bool more_helpful)
-    : unit_cost_(unit_cost),
-      problem_(problem),
-      r_problem_(std::make_shared<RelaxedSASPlus>(*problem, simplify)),
-      rpg_(nullptr),
-      graph_(std::make_shared<LandmarkGraph>(problem)) {
-    rpg_ = RPGFactory(problem, r_problem_, use_rpg_table, more_helpful);
+      : unit_cost_(unit_cost),
+        problem_(problem),
+        r_problem_(std::make_shared<RelaxedSASPlus>(*problem, simplify)),
+        rpg_(nullptr),
+        graph_(std::make_shared<LandmarkGraph>(problem)) {
+    auto cpp = "cpp";
+    rpg_ = RPGFactory(problem, r_problem_, use_rpg_table, cpp, more_helpful);
     IdentifyLandmarks(problem, r_problem_, graph_, use_rpg_table);
     AddOrderings(problem, r_problem_, graph_);
     HandleCycles(graph_);
@@ -43,13 +45,10 @@ class LandmarkCountBase {
 
   int Evaluate(const std::vector<int> &state,
                const std::vector<int> &applicable,
-               const uint8_t *parent_accepted,
-               uint8_t *accepted,
+               const uint8_t *parent_accepted, uint8_t *accepted,
                std::unordered_set<int> &preferred);
 
-  std::shared_ptr<LandmarkGraph> landmark_graph() const {
-    return graph_;
-  }
+  std::shared_ptr<LandmarkGraph> landmark_graph() const { return graph_; }
 
  private:
   bool IsLeaf(int lm_id, const uint8_t *accepted) const;
@@ -67,7 +66,11 @@ class LandmarkCountBase {
                          const uint8_t *accepted,
                          std::unordered_set<int> &preferred);
 
-  enum LandmarkState { REACHED, NEEDED, NOT_REACHED, };
+  enum LandmarkState {
+    REACHED,
+    NEEDED,
+    NOT_REACHED,
+  };
 
   int reached_size_;
   bool unit_cost_;
@@ -78,6 +81,6 @@ class LandmarkCountBase {
   std::shared_ptr<LandmarkGraph> graph_;
 };
 
-} // namespace pplanner
+}  // namespace pplanner
 
-#endif // LANDMARK_COUNT_BASE_H_
+#endif  // LANDMARK_COUNT_BASE_H_

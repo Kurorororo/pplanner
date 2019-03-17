@@ -7,25 +7,22 @@
 #include "heuristics/hmax.h"
 #include "heuristics/landmark_count.h"
 #include "heuristics/new_operator.h"
-#include "heuristics/width.h"
 #include "heuristics/weighted_evaluator.h"
+#include "heuristics/width.h"
 #include "heuristics/zobrist_ip_tiebreaking.h"
 #include "search_graph/search_graph_with_landmarks.h"
 
 namespace pplanner {
 
 std::shared_ptr<Evaluator> EvaluatorFactory(
-    std::shared_ptr<const SASPlus> problem,
-    std::shared_ptr<SearchGraph> graph,
+    std::shared_ptr<const SASPlus> problem, std::shared_ptr<SearchGraph> graph,
     std::shared_ptr<Evaluator> friend_evaluator,
     const boost::property_tree::ptree &pt) {
-
   auto name = pt.get_optional<std::string>("name");
 
   if (!name) throw std::runtime_error("Heuristic name is needed.");
 
-  if (name.get() == "blind")
-    return std::make_shared<Blind>(problem);
+  if (name.get() == "blind") return std::make_shared<Blind>(problem);
 
   if (name.get() == "add") {
     bool simplify = false;
@@ -71,7 +68,12 @@ std::shared_ptr<Evaluator> EvaluatorFactory(
     option = pt.get_optional<int>("option.more");
     if (option) more_helpful = option.get() == 1;
 
-    return std::make_shared<FFAdd>(problem, simplify, unit_cost, more_helpful);
+    std::string tie_break = "cpp";
+    auto t_option = pt.get_optional<std::string>("option.tie_break");
+    if (t_option) tie_break = option.get();
+
+    return std::make_shared<FFAdd>(problem, simplify, unit_cost, tie_break,
+                                   more_helpful);
   }
 
   if (name.get() == "ff") {
@@ -118,8 +120,8 @@ std::shared_ptr<Evaluator> EvaluatorFactory(
     if (auto option = pt.get_optional<int>("option.more"))
       more_helpful = option.get() == 1;
 
-    return std::make_shared<LandmarkCount>(
-        problem, graph, unit_cost, simplify, use_rpg_table, more_helpful);
+    return std::make_shared<LandmarkCount>(problem, graph, unit_cost, simplify,
+                                           use_rpg_table, more_helpful);
   }
 
   if (name.get() == "zobrist_ip_tiebreaking")
@@ -130,18 +132,16 @@ std::shared_ptr<Evaluator> EvaluatorFactory(
     if (!child) throw std::runtime_error("weighted need heuristic.");
 
     int weight = 1;
-    if (auto option = pt.get_optional<int>("weight"))
-      weight = option.get();
+    if (auto option = pt.get_optional<int>("weight")) weight = option.get();
 
-    return std::make_shared<WeightedEvaluator>(
-        weight, problem, graph, friend_evaluator, child.get());
+    return std::make_shared<WeightedEvaluator>(weight, problem, graph,
+                                               friend_evaluator, child.get());
   }
 
   if (name.get() == "weighted_cache") {
-    auto e = std::dynamic_pointer_cast<WeightedEvaluator>( friend_evaluator);
+    auto e = std::dynamic_pointer_cast<WeightedEvaluator>(friend_evaluator);
 
-    if (e == nullptr)
-      throw std::runtime_error("weighted_cache need weighted.");
+    if (e == nullptr) throw std::runtime_error("weighted_cache need weighted.");
 
     return std::make_shared<WeightedHeuristicCache>(e);
   }
@@ -149,4 +149,4 @@ std::shared_ptr<Evaluator> EvaluatorFactory(
   throw std::runtime_error("No such heuristic.");
 }
 
-} // namespace pplanner
+}  // namespace pplanner

@@ -16,7 +16,9 @@ int RPGTable::PlanCost(const vector<int> &state, unordered_set<int> &helpful,
   std::fill(marked_.begin(), marked_.end(), false);
   helpful.clear();
 
-  for (auto g : r_problem_->goal()) SetPlan(g, helpful);
+  for (auto g : r_problem_->goal()) {
+    SetPlan(g, helpful);
+  }
 
   int h = 0;
 
@@ -64,22 +66,27 @@ int RPGTable::HmaxCost(const vector<int> &state, bool unit_cost) {
 
 void RPGTable::SetPlan(int g, unordered_set<int> &helpful) {
   if (marked_[g]) return;
-
   marked_[g] = true;
+
   int unary_a = best_support_[g];
   if (unary_a == -1) return;
+  bool is_helpful = true;
+
+  for (auto p : r_problem_->Precondition(unary_a)) {
+    SetPlan(p, helpful);
+    if (best_support_[p] != -1) is_helpful = false;
+  }
+
   int a = r_problem_->ActionId(unary_a);
   plan_set_[a] = true;
 
-  if (prop_cost_[g] == r_problem_->ActionCost(unary_a)) {
+  if (is_helpful) {
     helpful.insert(a);
 
     if (more_helpful_)
       for (auto supporter : supporters_[g])
         helpful.insert(r_problem_->ActionId(supporter));
   }
-
-  for (auto p : r_problem_->Precondition(unary_a)) SetPlan(p, helpful);
 }
 
 void RPGTable::GeneralizedDijkstra(const vector<int> &state, bool hmax) {
@@ -92,15 +99,12 @@ void RPGTable::GeneralizedDijkstra(const vector<int> &state, bool hmax) {
 
   for (auto f : state) {
     prop_cost_[f] = 0;
-    q_.push(std::make_pair(0, f));
+    q_->Push(0, f);
   }
 
-  while (!q_.empty()) {
-    auto top = q_.top();
-    q_.pop();
-
-    int c = top.first;
-    int f = top.second;
+  while (!q_->IsEmpty()) {
+    int c = q_->MinimumValue();
+    int f = q_->Pop();
 
     assert(prop_cost_[f] != -1);
 
@@ -126,7 +130,7 @@ void RPGTable::SetUp(const vector<int> &state, bool unit_cost) {
   std::fill(best_support_.begin(), best_support_.end(), -1);
   std::fill(prop_cost_.begin(), prop_cost_.end(), -1);
   std::fill(is_applicable_.begin(), is_applicable_.end(), false);
-  q_ = PQueue();
+  q_->Clear();
 
   if (more_helpful_)
     for (int i = 0, n = r_problem_->n_facts(); i < n; ++i)
@@ -150,7 +154,7 @@ void RPGTable::MayPush(int f, int a) {
 
     best_support_[f] = a;
     prop_cost_[f] = op_c;
-    q_.push(std::make_pair(op_c, f));
+    q_->Push(op_c, f);
   }
 
   if (more_helpful_ && op_c == prop_cost_[f]) supporters_[f].push_back(a);
@@ -169,15 +173,12 @@ void RPGTable::ConstructRRPG(const vector<int> &state,
 
   for (auto f : state) {
     prop_cost_[f] = 0;
-    q_.push(std::make_pair(0, f));
+    q_->Push(0, f);
   }
 
-  while (!q_.empty()) {
-    auto top = q_.top();
-    q_.pop();
-
-    int c = top.first;
-    int f = top.second;
+  while (!q_->IsEmpty()) {
+    int c = q_->MinimumValue();
+    int f = q_->Pop();
 
     assert(prop_cost_[f] != -1);
 
@@ -222,15 +223,12 @@ int RPGTable::DisjunctiveGeneralizedDijkstra(const vector<int> &state) {
 
   for (auto f : state) {
     prop_cost_[f] = 0;
-    q_.push(std::make_pair(0, f));
+    q_->Push(0, f);
   }
 
-  while (!q_.empty()) {
-    auto top = q_.top();
-    q_.pop();
-
-    int c = top.first;
-    int f = top.second;
+  while (!q_->IsEmpty()) {
+    int c = q_->MinimumValue();
+    auto f = q_->Pop();
 
     assert(prop_cost_[f] != -1);
 

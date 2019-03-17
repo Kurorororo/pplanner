@@ -12,18 +12,22 @@
 
 namespace pplanner {
 
-template<typename T>
+template <typename T>
 class MFFAdd : public Heuristic<T> {
  public:
-  MFFAdd() : unit_cost_(false), problem_(nullptr),
-             r_problem_(nullptr), rpg_(nullptr) {}
+  MFFAdd()
+      : unit_cost_(false),
+        problem_(nullptr),
+        r_problem_(nullptr),
+        rpg_(nullptr) {}
 
-  MFFAdd(std::shared_ptr<const SASPlus> problem, bool simplify=true,
-         bool unit_cost=false, bool more_helpful=false)
-    : unit_cost_(unit_cost),
-      problem_(problem),
-      r_problem_(std::make_shared<RelaxedSASPlus>(*problem, simplify)),
-      rpg_(std::make_unique<RPGTable>(problem, r_problem_, more_helpful)) {}
+  MFFAdd(std::shared_ptr<const SASPlus> problem, bool simplify = true,
+         bool unit_cost = false, bool more_helpful = false)
+      : unit_cost_(unit_cost),
+        problem_(problem),
+        r_problem_(std::make_shared<RelaxedSASPlus>(*problem, simplify)),
+        rpg_(std::make_unique<RPGTable>(problem, r_problem_, "cpp",
+                                        more_helpful)) {}
 
   ~MFFAdd() {}
 
@@ -49,6 +53,6 @@ class MFFAdd : public Heuristic<T> {
   std::unique_ptr<RPGTable> rpg_;
 };
 
-} // namespace pplanner
+}  // namespace pplanner
 
-#endif // FF_ADD_H_
+#endif  // FF_ADD_H_

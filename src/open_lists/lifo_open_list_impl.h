@@ -1,14 +1,14 @@
 #ifndef LIFO_OPEN_LIST_IMPL_H_
 #define LIFO_OPEN_LIST_IMPL_H_
 
-#include <map>
 #include <deque>
+#include <map>
 
 #include "open_lists/open_list_impl.h"
 
 namespace pplanner {
 
-template<typename T>
+template <typename T>
 class LIFOOpenListImpl : public OpenListImpl<T> {
  public:
   LIFOOpenListImpl() : size_(0) {}
@@ -37,11 +37,14 @@ class LIFOOpenListImpl : public OpenListImpl<T> {
 
   int MinimumValue(int i) const override { return buckets_.begin()->first[i]; }
 
-  const std::vector<int>& MinimumValues() const override {
+  const std::vector<int> &MinimumValues() const override {
     return buckets_.begin()->first;
   }
 
-  void Clear() override { buckets_.clear(); }
+  void Clear() override {
+    size_ = 0;
+    buckets_.clear();
+  }
 
   T PopWorst() override {
     auto it = buckets_.rbegin();
@@ -59,6 +62,6 @@ class LIFOOpenListImpl : public OpenListImpl<T> {
   std::map<std::vector<int>, std::deque<T> > buckets_;
 };
 
-} // namespace pplanner
+}  // namespace pplanner
 
-#endif // LIFO_OPEN_LIST_IMPL_H_
+#endif  // LIFO_OPEN_LIST_IMPL_H_

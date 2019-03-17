@@ -13,13 +13,11 @@ namespace pplanner {
 std::shared_ptr<RandomWalkEvaluator> RandomWalkEvaluatorFactory(
     std::shared_ptr<const SASPlus> problem,
     const boost::property_tree::ptree &pt) {
-
   auto name = pt.get_optional<std::string>("name");
 
   if (!name) throw std::runtime_error("Heuristic name is needed.");
 
-  if (name.get() == "blind")
-    return std::make_shared<RWBlind>(problem);
+  if (name.get() == "blind") return std::make_shared<RWBlind>(problem);
 
   if (name.get() == "add") {
     bool simplify = false;
@@ -51,8 +49,12 @@ std::shared_ptr<RandomWalkEvaluator> RandomWalkEvaluatorFactory(
     option = pt.get_optional<int>("option.more");
     if (option) more_helpful = option.get() == 1;
 
-    return std::make_shared<RWFFAdd>(
-        problem, simplify, unit_cost, more_helpful);
+    std::string tie_break = "cpp";
+    auto t_option = pt.get_optional<std::string>("option.tie_break");
+    if (t_option) tie_break = t_option.get();
+
+    return std::make_shared<RWFFAdd>(problem, simplify, unit_cost, tie_break,
+                                     more_helpful);
   }
 
   if (name.get() == "ff") {
@@ -66,8 +68,7 @@ std::shared_ptr<RandomWalkEvaluator> RandomWalkEvaluatorFactory(
     option = pt.get_optional<int>("option.unit_cost");
     if (option && !unit_cost) unit_cost = option.get() == 1;
 
-    return std::make_shared<RWFF>(
-        problem, simplify, unit_cost);
+    return std::make_shared<RWFF>(problem, simplify, unit_cost);
   }
 
   if (name.get() == "width") {
@@ -100,11 +101,11 @@ std::shared_ptr<RandomWalkEvaluator> RandomWalkEvaluatorFactory(
     if (auto option = pt.get_optional<int>("option.more"))
       more_helpful = option.get() == 1;
 
-    return std::make_shared<RWLandmarkCount>(
-        problem, unit_cost, simplify, use_rpg_table, more_helpful);
+    return std::make_shared<RWLandmarkCount>(problem, unit_cost, simplify,
+                                             use_rpg_table, more_helpful);
   }
 
   throw std::runtime_error("No such heuristic.");
 }
 
-} // namespace pplanner
+}  // namespace pplanner

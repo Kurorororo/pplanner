@@ -64,7 +64,6 @@ void LazyGBFS::Init(const boost::property_tree::ptree &pt) {
 int LazyGBFS::Search() {
   auto state = problem_->initial();
   int node = graph_->GenerateNode(-1, -1, state);
-  ++generated_;
 
   vector<int> child(state);
   vector<int> applicable;
@@ -82,7 +81,6 @@ int LazyGBFS::Search() {
 
     if (!graph_->CloseIfNot(node)) continue;
 
-    ++expanded_;
     graph_->Expand(node, state);
 
     if (problem_->IsGoal(state)) return node;
@@ -101,6 +99,8 @@ int LazyGBFS::Search() {
       ++dead_ends_;
       continue;
     }
+
+    ++expanded_;
 
     if (h < best_h || best_h == -1) {
       best_h = h;

@@ -5,7 +5,7 @@
 
 namespace pplanner {
 
-template<typename T>
+template <typename T>
 class ROOpenListImpl : public OpenListImpl<T> {
  public:
   ROOpenListImpl() : size_(0) {
@@ -40,7 +40,7 @@ class ROOpenListImpl : public OpenListImpl<T> {
 
   int MinimumValue(int i) const override { return buckets_.begin()->first[i]; }
 
-  const std::vector<int>& MinimumValues() const override {
+  const std::vector<int> &MinimumValues() const override {
     return buckets_.begin()->first;
   }
 
@@ -66,6 +66,6 @@ class ROOpenListImpl : public OpenListImpl<T> {
   std::mt19937 engine_;
 };
 
-} // namespace pplanner
+}  // namespace pplanner
 
-#endif // RO_OPEN_LIST_IMPL_H_
+#endif  // RO_OPEN_LIST_IMPL_H_

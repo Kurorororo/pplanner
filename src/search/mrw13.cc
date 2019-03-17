@@ -19,9 +19,7 @@ void Feedback(int arg_rl, int value, int cost, vector<int> &value_rls,
   cost_rls[arg_rl] += cost;
 }
 
-int RandomRl(std::size_t size, std::mt19937 &engine) {
-  return engine() % size;
-}
+int RandomRl(std::size_t size, std::mt19937 &engine) { return engine() % size; }
 
 int ChoiceRl(double eps, const vector<int> &value_rls,
              const vector<int> &cost_rls, std::mt19937 &engine) {
@@ -31,7 +29,7 @@ int ChoiceRl(double eps, const vector<int> &value_rls,
   double q_max = 0.0;
   int arg_best = -1;
 
-  for (int i=0, n=cost_rls.size(); i<n; ++i) {
+  for (int i = 0, n = cost_rls.size(); i < n; ++i) {
     if (cost_rls[i] == 0) continue;
 
     double q = static_cast<double>(value_rls[i]);
@@ -51,7 +49,7 @@ int ChoiceRl(double eps, const vector<int> &value_rls,
 void Mrw13::Init(const boost::property_tree::ptree &pt) {
   std::random_device seed_gen;
   engine_ = std::mt19937(seed_gen());
-  //engine_ = std::mt19937(3694943095);
+  // engine_ = std::mt19937(3694943095);
 
   auto heuristic = pt.get_child_optional("heuristic");
   if (!heuristic) throw std::runtime_error("No heuristic is specified.");
@@ -67,14 +65,12 @@ void Mrw13::Init(const boost::property_tree::ptree &pt) {
   if (auto uniform = pt.get_optional<int>("uniform"))
     uniform_ = uniform.get() == 1;
 
-  if (auto fix = pt.get_optional<int>("fix"))
-    fix_ = fix.get() == 1;
+  if (auto fix = pt.get_optional<int>("fix")) fix_ = fix.get() == 1;
 
   if (auto option = pt.get_optional<int>("measure"))
     measure_ = option.get() == 1;
 
-  if (measure_)
-    is_preferred_operator_.resize(problem_->n_actions(), false);
+  if (measure_) is_preferred_operator_.resize(problem_->n_actions(), false);
 
   if (auto option = pt.get_optional<int>("action_elimination"))
     action_elimination_ = option.get() == 1;
@@ -187,10 +183,10 @@ vector<int> Mrw13::Plan() {
                              tmp_n_successors_.end());
       }
 
-      //std::cout << "New best heuristic value : " << h << std::endl;
-      //std::cout << "#walks " << walks << std::endl;
-      //std::cout << "[" << evaluated_
-      //          << " evaluated, " << expanded_ << " expanded]" << std::endl;
+      std::cout << "New best heuristic value : " << h << std::endl;
+      std::cout << "#walks " << walks << std::endl;
+      std::cout << "[" << evaluated_ << " evaluated, " << expanded_
+                << " expanded]" << std::endl;
     } else {
       Feedback(arg_rl, 0, cost, value_rls_, cost_rls_);
     }
@@ -224,7 +220,7 @@ vector<int> Mrw13::Plan() {
       std::fill(q1_.begin(), q1_.end(), 1.0);
       std::fill(qw_.begin(), qw_.end(), 1.0);
 
-      //std::cout << "restart new tg=" << tg_ << std::endl;
+      std::cout << "restart new tg=" << tg_ << std::endl;
     }
   }
 }
@@ -274,7 +270,7 @@ int Mrw13::Walk(int best_h, int length, vector<int> &state,
   auto current_preferred = preferred;
   int path_length = 0;
 
-  for (int i=0; i<length; ++i) {
+  for (int i = 0; i < length; ++i) {
     int a = MHA(current_applicable, current_preferred);
     ++expanded_;
 
@@ -380,8 +376,8 @@ int Mrw13::Walk(int best_h, double rl, vector<int> &state,
       return h;
     }
 
-    if (dist_(engine_) < rl
-        || (max_expansion_ > 0 && expanded_ >= max_expansion_)) {
+    if (dist_(engine_) < rl ||
+        (max_expansion_ > 0 && expanded_ >= max_expansion_)) {
       evaluator_->LocalRestart();
 
       return -1;
@@ -432,14 +428,14 @@ void Mrw13::DumpStatistics() const {
   std::cout << "Generated " << generated_ << " state(s)" << std::endl;
   std::cout << "Dead ends " << dead_ends_ << " state(s)" << std::endl;
   std::cout << "Preferred operators " << n_preferreds_ << std::endl;
-  double p_p_e = static_cast<double>(n_preferreds_)
-    / static_cast<double>(evaluated_);
+  double p_p_e =
+      static_cast<double>(n_preferreds_) / static_cast<double>(evaluated_);
   std::cout << "Preferreds per state " << p_p_e << std::endl;
-  double b_f = static_cast<double>(n_branching_)
-    / static_cast<double>(evaluated_);
+  double b_f =
+      static_cast<double>(n_branching_) / static_cast<double>(evaluated_);
   std::cout << "Average branching factor " << b_f << std::endl;
-  double p_ratio = static_cast<double>(n_preferreds_)
-    / static_cast<double>(n_branching_);
+  double p_ratio =
+      static_cast<double>(n_preferreds_) / static_cast<double>(n_branching_);
   std::cout << "Preferred ratio " << p_ratio << std::endl;
   std::cout << "Restarts " << n_restarts_ << std::endl;
 
@@ -459,7 +455,7 @@ void Mrw13::ActionElimination() {
     auto tmp = state;
     vector<pair<int, int> > precondition;
 
-    for (int j=i+1; j<n; ++j) {
+    for (int j = i + 1; j < n; ++j) {
       problem_->CopyPrecondition(plan_[j], precondition);
 
       for (auto p : precondition) {
@@ -479,7 +475,7 @@ void Mrw13::ActionElimination() {
       vector<int> new_n_preferred_successors_;
       vector<int> new_n_successors_;
 
-      for (int j=0; j<n; ++j) {
+      for (int j = 0; j < n; ++j) {
         if (marked[j]) continue;
 
         new_plan.push_back(plan_[j]);
@@ -508,30 +504,25 @@ void Mrw13::ActionElimination() {
 void Mrw13::DumpPreferringMetrics() const {
   vector<bool> in_plan(problem_->n_actions(), false);
 
-  for (auto a : plan_)
-    in_plan[a] = true;
+  for (auto a : plan_) in_plan[a] = true;
 
   int op_tp = 0;
   int op_fn = 0;
   int op_fp = 0;
   int op_tn = 0;
 
-  for (int i=0, n=problem_->n_actions(); i<n; ++i) {
-    if (in_plan[i] && is_preferred_operator_[i])
-      ++op_tp;
+  for (int i = 0, n = problem_->n_actions(); i < n; ++i) {
+    if (in_plan[i] && is_preferred_operator_[i]) ++op_tp;
 
-    if (in_plan[i] && !is_preferred_operator_[i])
-      ++op_fn;
+    if (in_plan[i] && !is_preferred_operator_[i]) ++op_fn;
 
-    if (!in_plan[i] && is_preferred_operator_[i])
-      ++op_fp;
+    if (!in_plan[i] && is_preferred_operator_[i]) ++op_fp;
 
-    if (!in_plan[i] && !is_preferred_operator_[i])
-      ++op_tn;
+    if (!in_plan[i] && !is_preferred_operator_[i]) ++op_tn;
   }
 
-  double op_ac = static_cast<double>(op_tp + op_tn)
-    / static_cast<double>(op_tp + op_fn + op_fp + op_tn);
+  double op_ac = static_cast<double>(op_tp + op_tn) /
+                 static_cast<double>(op_tp + op_fn + op_fp + op_tn);
 
   double op_pr = 0.0;
 
@@ -545,15 +536,14 @@ void Mrw13::DumpPreferringMetrics() const {
 
   double op_f = 0.0;
 
-  if (op_re + op_pr > 1.0e-14)
-    op_f = (2.0 * op_re * op_pr) / (op_re + op_pr);
+  if (op_re + op_pr > 1.0e-14) op_f = (2.0 * op_re * op_pr) / (op_re + op_pr);
 
   int st_tp = 0;
   int st_fn = 0;
   int st_fp = 0;
   int st_tn = 0;
 
-  for (int i=0, n=plan_.size(); i<n; ++i) {
+  for (int i = 0, n = plan_.size(); i < n; ++i) {
     if (is_preferred_successor_[i]) {
       ++st_tp;
       st_fp += n_preferred_successors_[i] - 1;
@@ -565,8 +555,8 @@ void Mrw13::DumpPreferringMetrics() const {
     }
   }
 
-  double st_ac = static_cast<double>(st_tp + st_tn)
-    / static_cast<double>(st_tp + st_fn + st_fp + st_tn);
+  double st_ac = static_cast<double>(st_tp + st_tn) /
+                 static_cast<double>(st_tp + st_fn + st_fp + st_tn);
 
   double st_pr = 0.0;
 
@@ -580,8 +570,7 @@ void Mrw13::DumpPreferringMetrics() const {
 
   double st_f = 0.0;
 
-  if (st_re + st_pr != 0)
-    st_f = (2.0 * st_re * st_pr) / (st_re + st_pr);
+  if (st_re + st_pr != 0) st_f = (2.0 * st_re * st_pr) / (st_re + st_pr);
 
   std::cout << std::endl;
   std::cout << "Operator TP " << op_tp << std::endl;
@@ -610,4 +599,4 @@ void Mrw13::DumpPreferringMetrics() const {
   std::cout << std::endl;
 }
 
-} // namespace pplanner
+}  // namespace pplanner

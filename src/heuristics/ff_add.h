@@ -1,6 +1,8 @@
 #ifndef FF_ADD_H_
 #define FF_ADD_H_
 
+#include <memory>
+#include <string>
 #include <unordered_set>
 #include <vector>
 
@@ -21,14 +23,13 @@ class FFAdd : public Evaluator {
         rpg_(nullptr) {}
 
   FFAdd(std::shared_ptr<const SASPlus> problem, bool simplify = true,
-        bool unit_cost = false, bool more_helpful = false)
+        bool unit_cost = false, const std::string tie_break = "fifo",
+        bool more_helpful = false)
       : unit_cost_(unit_cost),
         problem_(problem),
         r_problem_(std::make_shared<RelaxedSASPlus>(*problem, simplify)),
-        rpg_(nullptr) {
-    rpg_ = std::unique_ptr<RPGTable>(
-        new RPGTable(problem, r_problem_, more_helpful));
-  }
+        rpg_(std::make_unique<RPGTable>(problem, r_problem_, tie_break,
+                                        more_helpful)) {}
 
   ~FFAdd() {}
 
@@ -69,11 +70,10 @@ class RWFFAdd : public RandomWalkEvaluator {
   RWFFAdd() : ff_(nullptr) { ff_ = std::unique_ptr<FFAdd>(new FFAdd()); }
 
   RWFFAdd(std::shared_ptr<const SASPlus> problem, bool simplify = false,
-          bool unit_cost = false, bool more_helpful = false)
-      : ff_(nullptr) {
-    ff_ = std::unique_ptr<FFAdd>(
-        new FFAdd(problem, simplify, unit_cost, more_helpful));
-  }
+          bool unit_cost = false, const std::string &tie_break = "cpp",
+          bool more_helpful = false)
+      : ff_(std::make_unique<FFAdd>(problem, simplify, unit_cost, tie_break,
+                                    more_helpful)) {}
 
   ~RWFFAdd() {}
 

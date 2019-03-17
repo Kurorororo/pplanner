@@ -38,12 +38,12 @@ void GBFS::Init(const boost::property_tree::ptree &pt) {
   bool dump_nodes = false;
   if (auto opt = pt.get_optional<int>("dump_nodes")) dump_nodes = true;
 
-  graph_ = SearchGraphFactory(
-      problem_, closed_exponent, keep_cost, use_landmark, dump_nodes);
+  graph_ = SearchGraphFactory(problem_, closed_exponent, keep_cost,
+                              use_landmark, dump_nodes);
 
   std::shared_ptr<Evaluator> friend_evaluator = nullptr;
 
-  BOOST_FOREACH (const boost::property_tree::ptree::value_type& child,
+  BOOST_FOREACH (const boost::property_tree::ptree::value_type &child,
                  pt.get_child("evaluators")) {
     auto e = child.second;
     auto evaluator = EvaluatorFactory(problem_, graph_, friend_evaluator, e);
@@ -58,8 +58,8 @@ void GBFS::Init(const boost::property_tree::ptree &pt) {
       if (name.get() == "same") {
         preferring_ = evaluators_[0];
       } else {
-        preferring_ = EvaluatorFactory(problem_, graph_, nullptr,
-                                       preferring.get());
+        preferring_ =
+            EvaluatorFactory(problem_, graph_, nullptr, preferring.get());
       }
     }
   }
@@ -69,8 +69,7 @@ void GBFS::Init(const boost::property_tree::ptree &pt) {
 
   size_t ram = 5000000000;
 
-  if (auto opt = pt.get_optional<size_t>("ram"))
-    ram = opt.get();
+  if (auto opt = pt.get_optional<size_t>("ram")) ram = opt.get();
 
   if (auto opt = pt.get_optional<int>("dominance")) {
     use_dominance_ = true;
@@ -82,8 +81,8 @@ void GBFS::Init(const boost::property_tree::ptree &pt) {
 
   if (auto opt = pt.get_child_optional("sss")) {
     use_sss_ = true;
-    sss_aproximater_ = std::unique_ptr<SSSApproximater>(
-        new SSSApproximater(problem_));
+    sss_aproximater_ =
+        std::unique_ptr<SSSApproximater>(new SSSApproximater(problem_));
 
     if (auto n_disable = opt.get().get_optional<int>("n_pruning_disable"))
       n_pruning_disable_ = n_disable.get();
@@ -129,15 +128,15 @@ int GBFS::Expand(int node, vector<int> &state, vector<int> &child,
   if (problem_->IsGoal(state)) return node;
 
   if (use_sss_ && !sss_checked_ && expanded_ > n_pruning_disable_) {
-    double ratio = static_cast<double>(n_pruned_)
-      / static_cast<double>(n_branching_);
+    double ratio =
+        static_cast<double>(n_pruned_) / static_cast<double>(n_branching_);
 
     std::cout << "#pruned=" << n_pruned_ << std::endl;
     std::cout << "#branching=" << n_branching_ << std::endl;
     std::cout << "ratio=" << ratio << std::endl;
 
     if (n_pruned_ == 0) use_sss_ = false;
-    //if (ratio < min_pruning_ratio_) use_sss_ = false;
+    // if (ratio < min_pruning_ratio_) use_sss_ = false;
 
     sss_checked_ = true;
   }
@@ -149,14 +148,12 @@ int GBFS::Expand(int node, vector<int> &state, vector<int> &child,
     return -1;
   }
 
-  if (use_preferred_)
-    preferring_->Evaluate(state, node, applicable, preferred);
+  if (use_preferred_) preferring_->Evaluate(state, node, applicable, preferred);
 
   ++n_preferred_evaluated_;
   n_branching_ += applicable.size();
 
-  if (use_sss_)
-    sss_aproximater_->ApproximateSSS(state, applicable, sss);
+  if (use_sss_) sss_aproximater_->ApproximateSSS(state, applicable, sss);
 
   for (auto o : applicable) {
     if (use_sss_ && !sss[o]) {
@@ -166,8 +163,8 @@ int GBFS::Expand(int node, vector<int> &state, vector<int> &child,
 
     problem_->ApplyEffect(o, state, child);
 
-    if (use_dominance_ && (lds_->Dominance(child, state)
-          || lds_->Dominance(child, problem_->initial()))) {
+    if (use_dominance_ && (lds_->Dominance(child, state) ||
+                           lds_->Dominance(child, problem_->initial()))) {
       ++n_d_pruned_;
       continue;
     }
@@ -192,8 +189,8 @@ int GBFS::Expand(int node, vector<int> &state, vector<int> &child,
     if (h < best_h_) {
       best_h_ = h;
       std::cout << "New best heuristic value: " << best_h_ << std::endl;
-      std::cout << "[" << evaluated_ << " evaluated, "
-                << expanded_ << " expanded]" << std::endl;
+      std::cout << "[" << evaluated_ << " evaluated, " << expanded_
+                << " expanded]" << std::endl;
 
       if (use_preferred_) open_list_->Boost();
     }
@@ -227,7 +224,6 @@ int GBFS::Search() {
   return last_goal;
 }
 
-
 void GBFS::DumpStatistics() const {
   std::cout << "Expanded " << expanded_ << " state(s)" << std::endl;
   std::cout << "Evaluated " << evaluated_ << " state(s)" << std::endl;
@@ -237,19 +233,19 @@ void GBFS::DumpStatistics() const {
             << std::endl;
   std::cout << "Preferred successors " << n_preferreds_ << " state(s)"
             << std::endl;
-  double p_p_e = static_cast<double>(n_preferreds_)
-    / static_cast<double>(n_preferred_evaluated_);
+  double p_p_e = static_cast<double>(n_preferreds_) /
+                 static_cast<double>(n_preferred_evaluated_);
   std::cout << "Preferreds per state " << p_p_e << std::endl;
-  double b_f = static_cast<double>(n_branching_)
-    / static_cast<double>(n_preferred_evaluated_);
+  double b_f = static_cast<double>(n_branching_) /
+               static_cast<double>(n_preferred_evaluated_);
   std::cout << "Average branching factor " << b_f << std::endl;
-  double p_p_b = static_cast<double>(n_preferreds_)
-    / static_cast<double>(n_branching_);
-  std::cout << "Preferred ratio " << p_p_b  << std::endl;
+  double p_p_b =
+      static_cast<double>(n_preferreds_) / static_cast<double>(n_branching_);
+  std::cout << "Preferred ratio " << p_p_b << std::endl;
 
   if (n_plan_step_ != -1 && expanded_ > 1) {
-    double plan_length_per_expansion = static_cast<double>(n_plan_step_)
-      / static_cast<double>(expanded_ - 1);
+    double plan_length_per_expansion =
+        static_cast<double>(n_plan_step_) / static_cast<double>(expanded_ - 1);
     std::cout << "Plan steps ratio " << plan_length_per_expansion << std::endl;
   } else {
     std::cout << "Plan steps ratio " << 0 << std::endl;
@@ -261,4 +257,4 @@ void GBFS::DumpStatistics() const {
   graph_->Dump();
 }
 
-} // namespace pplanner
+}  // namespace pplanner
