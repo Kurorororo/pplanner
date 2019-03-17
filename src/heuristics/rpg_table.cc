@@ -1,5 +1,7 @@
 #include "rpg_table.h"
 
+#include <iostream>
+
 namespace pplanner {
 
 using std::unordered_set;
@@ -14,12 +16,11 @@ int RPGTable::PlanCost(const vector<int> &state, unordered_set<int> &helpful,
   std::fill(marked_.begin(), marked_.end(), false);
   helpful.clear();
 
-  for (auto g : r_problem_->goal())
-    SetPlan(g, helpful);
+  for (auto g : r_problem_->goal()) SetPlan(g, helpful);
 
   int h = 0;
 
-  for (int i=0, n=plan_set_.size(); i<n; ++i) {
+  for (int i = 0, n = plan_set_.size(); i < n; ++i) {
     if (plan_set_[i]) {
       if (unit_cost)
         ++h;
@@ -78,12 +79,11 @@ void RPGTable::SetPlan(int g, unordered_set<int> &helpful) {
         helpful.insert(r_problem_->ActionId(supporter));
   }
 
-  for (auto p : r_problem_->Precondition(unary_a))
-    SetPlan(p, helpful);
+  for (auto p : r_problem_->Precondition(unary_a)) SetPlan(p, helpful);
 }
 
 void RPGTable::GeneralizedDijkstra(const vector<int> &state, bool hmax) {
-  for (int i=0, n=r_problem_->n_actions(); i<n; ++i) {
+  for (int i = 0, n = r_problem_->n_actions(); i < n; ++i) {
     if (precondition_counter_[i] == 0) {
       is_applicable_[r_problem_->ActionId(i)] = true;
       MayPush(r_problem_->Effect(i), i);
@@ -129,10 +129,10 @@ void RPGTable::SetUp(const vector<int> &state, bool unit_cost) {
   q_ = PQueue();
 
   if (more_helpful_)
-    for (int i=0, n=r_problem_->n_facts(); i<n; ++i)
+    for (int i = 0, n = r_problem_->n_facts(); i < n; ++i)
       supporters_[i].clear();
 
-  for (int i=0, n=r_problem_->n_actions(); i<n; ++i) {
+  for (int i = 0, n = r_problem_->n_actions(); i < n; ++i) {
     precondition_counter_[i] = r_problem_->PreconditionSize(i);
 
     if (unit_cost)
@@ -153,15 +153,14 @@ void RPGTable::MayPush(int f, int a) {
     q_.push(std::make_pair(op_c, f));
   }
 
-  if (more_helpful_ && op_c == prop_cost_[f])
-    supporters_[f].push_back(a);
+  if (more_helpful_ && op_c == prop_cost_[f]) supporters_[f].push_back(a);
 }
 
 void RPGTable::ConstructRRPG(const vector<int> &state,
                              const vector<bool> &black_list) {
   SetUp(state, false);
 
-  for (int i=0, n=r_problem_->n_actions(); i<n; ++i) {
+  for (int i = 0, n = r_problem_->n_actions(); i < n; ++i) {
     if (precondition_counter_[i] == 0) {
       is_applicable_[r_problem_->ActionId(i)] = true;
       if (!black_list[i]) MayPush(r_problem_->Effect(i), i);
@@ -197,13 +196,11 @@ void RPGTable::ConstructRRPG(const vector<int> &state,
 
 void RPGTable::DisjunctiveHelpful(const vector<int> &state,
                                   const vector<int> &disjunctive_goals,
-                                  unordered_set<int> &helpful,
-                                  bool unit_cost) {
+                                  unordered_set<int> &helpful, bool unit_cost) {
   SetUp(state, unit_cost);
   std::fill(is_disjunctive_goal_.begin(), is_disjunctive_goal_.end(), false);
 
-  for (auto g : disjunctive_goals)
-    is_disjunctive_goal_[g] = true;
+  for (auto g : disjunctive_goals) is_disjunctive_goal_[g] = true;
 
   int f = DisjunctiveGeneralizedDijkstra(state);
 
@@ -216,7 +213,7 @@ void RPGTable::DisjunctiveHelpful(const vector<int> &state,
 }
 
 int RPGTable::DisjunctiveGeneralizedDijkstra(const vector<int> &state) {
-  for (int i=0, n=r_problem_->n_actions(); i<n; ++i) {
+  for (int i = 0, n = r_problem_->n_actions(); i < n; ++i) {
     if (precondition_counter_[i] == 0) {
       is_applicable_[r_problem_->ActionId(i)] = true;
       MayPush(r_problem_->Effect(i), i);
@@ -253,5 +250,4 @@ int RPGTable::DisjunctiveGeneralizedDijkstra(const vector<int> &state) {
   return -1;
 }
 
-
-} // namespace pplanne
+}  // namespace pplanner

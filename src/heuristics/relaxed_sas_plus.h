@@ -11,7 +11,7 @@ class RelaxedSASPlus {
  public:
   RelaxedSASPlus() {}
 
-  RelaxedSASPlus(const SASPlus &problem, bool simplify=true) {
+  RelaxedSASPlus(const SASPlus& problem, bool simplify = true) {
     Init(problem, simplify);
   }
 
@@ -29,7 +29,9 @@ class RelaxedSASPlus {
 
   int PreconditionSize(int i) const { return precondition_size_[i]; }
 
-  const std::vector<int>& Precondition(int i) const { return preconditions_[i]; }
+  const std::vector<int>& Precondition(int i) const {
+    return preconditions_[i];
+  }
 
   int Effect(int i) const { return effects_[i]; }
 
@@ -39,6 +41,8 @@ class RelaxedSASPlus {
 
   const std::vector<int>& goal() const { return goal_; }
 
+  const std::vector<int>& NoPreconditions() const { return no_preconditions_; }
+
   const std::vector<int>& PreconditionMap(int i) const {
     return precondition_map_[i];
   }
@@ -46,14 +50,14 @@ class RelaxedSASPlus {
   const std::vector<int>& EffectMap(int i) const { return effect_map_[i]; }
 
  private:
-  void Init(const SASPlus &problem, bool simplify) {
+  void Init(const SASPlus& problem, bool simplify) {
     InitActions(problem, simplify);
     InitGoal(problem);
   }
 
-  void InitActions(const SASPlus &problem, bool simplify);
+  void InitActions(const SASPlus& problem, bool simplify);
 
-  void InitGoal(const SASPlus &problem);
+  void InitGoal(const SASPlus& problem);
 
   void Simplify();
 
@@ -64,12 +68,13 @@ class RelaxedSASPlus {
   std::vector<std::vector<int> > preconditions_;
   std::vector<int> effects_;
   std::vector<bool> conditional_;
+  std::vector<int> no_preconditions_;
   std::vector<std::vector<int> > precondition_map_;
   std::vector<std::vector<int> > effect_map_;
   std::vector<bool> is_goal_;
   std::vector<int> goal_;
 };
 
-} // namespace pplanner
+}  // namespace pplanner
 
-#endif // RELAXED_SAS_PLUS_H_
+#endif  // RELAXED_SAS_PLUS_H_

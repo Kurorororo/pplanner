@@ -10,33 +10,35 @@
 #include <boost/property_tree/ptree.hpp>
 
 #include "evaluator.h"
+#include "open_list.h"
 #include "sas_plus.h"
 #include "search.h"
 #include "search_graph.h"
 #include "successor_generator.h"
-#include "open_list.h"
 
 namespace pplanner {
 
 class LazyGBFS : public Search {
  public:
   LazyGBFS(std::shared_ptr<const SASPlus> problem,
-       const boost::property_tree::ptree &pt)
-    : use_preferred_(false),
-      same_(false),
-      generated_(0),
-      expanded_(0),
-      evaluated_(0),
-      dead_ends_(0),
-      n_branching_(0),
-      n_preferreds_(0),
-      is_preferred_action_(problem->n_actions(), false),
-      problem_(problem),
-      preferring_(nullptr),
-      generator_(std::unique_ptr<SuccessorGenerator>(
+           const boost::property_tree::ptree &pt)
+      : use_preferred_(false),
+        same_(false),
+        generated_(0),
+        expanded_(0),
+        evaluated_(0),
+        dead_ends_(0),
+        n_branching_(0),
+        n_preferreds_(0),
+        is_preferred_action_(problem->n_actions(), false),
+        problem_(problem),
+        preferring_(nullptr),
+        generator_(std::unique_ptr<SuccessorGenerator>(
             new SuccessorGenerator(problem))),
-      graph_(nullptr),
-      open_list_(nullptr) { Init(pt); }
+        graph_(nullptr),
+        open_list_(nullptr) {
+    Init(pt);
+  }
 
   ~LazyGBFS() {}
 
@@ -55,7 +57,10 @@ class LazyGBFS : public Search {
   int Search();
 
   int Evaluate(const std::vector<int> &state, int node,
-               const std::vector<int> &applicable,
+               std::vector<int> &values);
+
+  int Evaluate(const std::vector<int> &state, int node,
+               const std::vector<int> &applicable, std::vector<int> &values,
                std::unordered_set<int> &preferred);
 
   void DumpPreferringMetrics() const;
@@ -70,7 +75,6 @@ class LazyGBFS : public Search {
   int n_preferreds_;
   std::vector<int> plan_;
   std::vector<bool> is_preferred_action_;
-  std::vector<int> values_;
   std::shared_ptr<const SASPlus> problem_;
   std::vector<std::shared_ptr<Evaluator> > evaluators_;
   std::shared_ptr<Evaluator> preferring_;
@@ -79,6 +83,6 @@ class LazyGBFS : public Search {
   std::unique_ptr<OpenList<int> > open_list_;
 };
 
-} // namespace pplanner
+}  // namespace pplanner
 
-#endif // LAZY_GBFS_H_
+#endif  // LAZY_GBFS_H_

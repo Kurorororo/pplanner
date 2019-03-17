@@ -22,7 +22,7 @@ void SuccessorGenerator::Init(std::shared_ptr<const SASPlus> problem) {
   vector<int> to_data(problem->n_facts(), -1);
   vector<vector<int> > data;
 
-  for (int i=0, n=static_cast<int>(problem->n_actions()); i<n; ++i)
+  for (int i = 0, n = static_cast<int>(problem->n_actions()); i < n; ++i)
     Insert(i, precondition, to_data, data);
 
   ConvertToData(to_data, data);
@@ -35,13 +35,14 @@ void SuccessorGenerator::Insert(int query,
   assert(nullptr != problem_);
 
   problem_->CopyPrecondition(query, precondition);
-  std::sort(precondition.begin(), precondition.end());
+
+  if (precondition.empty()) no_preconditions_.push_back(query);
 
   int n_facts = problem_->n_facts();
   int offset = 0;
   int n_ommited = 0;
 
-  for (int i=0, n=precondition.size(); i<n; ++i) {
+  for (int i = 0, n = precondition.size(); i < n; ++i) {
     int var = precondition[i].first;
     int value = precondition[i].second;
     int index = offset + problem_->Fact(var, value) - n_ommited;
@@ -83,8 +84,7 @@ void SuccessorGenerator::ConvertToData(const vector<int> &to_data,
 
   size_t size = 0;
 
-  for (auto &v : data)
-    size += v.size();
+  for (auto &v : data) size += v.size();
 
   data_.reserve(size);
 
@@ -94,8 +94,7 @@ void SuccessorGenerator::ConvertToData(const vector<int> &to_data,
     } else {
       to_data_.push_back(to_data_.back() + data[v].size());
 
-      for (auto d : data[v])
-        data_.push_back(d);
+      for (auto d : data[v]) data_.push_back(d);
     }
   }
 }
@@ -104,10 +103,10 @@ void SuccessorGenerator::DFS(const vector<int> &state, int index, int current,
                              vector<int> &result) const {
   int offset = index - problem_->VarBegin(current);
 
-  for (int i=current, n=n_variables_; i<n; ++i) {
+  for (int i = current, n = n_variables_; i < n; ++i) {
     int next = problem_->Fact(i, state[i]) + offset;
 
-    for (int j=to_data_[next], m=to_data_[next + 1]; j<m; ++j)
+    for (int j = to_data_[next], m = to_data_[next + 1]; j < m; ++j)
       result.push_back(data_[j]);
 
     int child = to_child_[next];
@@ -117,14 +116,28 @@ void SuccessorGenerator::DFS(const vector<int> &state, int index, int current,
   }
 }
 
+int SuccessorGenerator::Sample(const vector<int> &state) {
+  int result = -1;
+  unsigned int k = 1;
+
+  for (auto a : no_preconditions_) {
+    if (engine_() % k == 0) result = a;
+    ++k;
+  }
+
+  DFSample(state, 0, 0, k, result);
+
+  return result;
+}
+
 void SuccessorGenerator::DFSample(const vector<int> &state, int index,
                                   int current, unsigned int &k, int &result) {
   int offset = index - problem_->VarBegin(current);
 
-  for (int i=current, n=n_variables_; i<n; ++i) {
+  for (int i = current, n = n_variables_; i < n; ++i) {
     int next = problem_->Fact(i, state[i]) + offset;
 
-    for (int j=to_data_[next], m=to_data_[next + 1]; j<m; ++j) {
+    for (int j = to_data_[next], m = to_data_[next + 1]; j < m; ++j) {
       if (engine_() % k == 0) result = data_[j];
       ++k;
     }
@@ -139,22 +152,24 @@ void SuccessorGenerator::DFSample(const vector<int> &state, int index,
 void SuccessorGenerator::Dump() const {
   std::cout << "to child" << std::endl;
 
-  for (auto v : to_child_)
-    std::cout << v << " ";
+  for (auto v : to_child_) std::cout << v << " ";
 
   std::cout << std::endl;
   std::cout << "to data" << std::endl;
 
-  for (auto v : to_data_)
-    std::cout << v << " ";
+  for (auto v : to_data_) std::cout << v << " ";
 
   std::cout << std::endl;
   std::cout << "data" << std::endl;
 
-  for (auto v : data_)
-    std::cout << v << " ";
+  for (auto v : data_) std::cout << v << " ";
+
+  std::cout << std::endl;
+  std::cout << "no preconditions" << std::endl;
+
+  for (auto v : no_preconditions_) std::cout << v << " ";
 
   std::cout << std::endl;
 }
 
-} // namespace rwls
+}  // namespace pplanner

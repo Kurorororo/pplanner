@@ -5,24 +5,27 @@
 #include <vector>
 
 #include "evaluator.h"
-#include "random_walk_evaluator.h"
-#include "sas_plus.h"
 #include "heuristics/relaxed_sas_plus.h"
 #include "heuristics/rpg_table.h"
+#include "random_walk_evaluator.h"
+#include "sas_plus.h"
 
 namespace pplanner {
 
 class FFAdd : public Evaluator {
  public:
-  FFAdd() : unit_cost_(false), problem_(nullptr),
-            r_problem_(nullptr), rpg_(nullptr) {}
+  FFAdd()
+      : unit_cost_(false),
+        problem_(nullptr),
+        r_problem_(nullptr),
+        rpg_(nullptr) {}
 
-  FFAdd(std::shared_ptr<const SASPlus> problem, bool simplify=true,
-        bool unit_cost=false, bool more_helpful=false)
-    : unit_cost_(unit_cost),
-      problem_(problem),
-      r_problem_(std::make_shared<RelaxedSASPlus>(*problem, simplify)),
-      rpg_(nullptr) {
+  FFAdd(std::shared_ptr<const SASPlus> problem, bool simplify = true,
+        bool unit_cost = false, bool more_helpful = false)
+      : unit_cost_(unit_cost),
+        problem_(problem),
+        r_problem_(std::make_shared<RelaxedSASPlus>(*problem, simplify)),
+        rpg_(nullptr) {
     rpg_ = std::unique_ptr<RPGTable>(
         new RPGTable(problem, r_problem_, more_helpful));
   }
@@ -63,12 +66,11 @@ class FFAdd : public Evaluator {
 
 class RWFFAdd : public RandomWalkEvaluator {
  public:
-  RWFFAdd() : ff_(nullptr) {
-    ff_ = std::unique_ptr<FFAdd>(new FFAdd());
-  }
+  RWFFAdd() : ff_(nullptr) { ff_ = std::unique_ptr<FFAdd>(new FFAdd()); }
 
-  RWFFAdd(std::shared_ptr<const SASPlus> problem, bool simplify=false,
-          bool unit_cost=false, bool more_helpful=false) : ff_(nullptr) {
+  RWFFAdd(std::shared_ptr<const SASPlus> problem, bool simplify = false,
+          bool unit_cost = false, bool more_helpful = false)
+      : ff_(nullptr) {
     ff_ = std::unique_ptr<FFAdd>(
         new FFAdd(problem, simplify, unit_cost, more_helpful));
   }
@@ -98,6 +100,6 @@ class RWFFAdd : public RandomWalkEvaluator {
   std::unique_ptr<FFAdd> ff_;
 };
 
-} // namespace pplanner
+}  // namespace pplanner
 
-#endif // FF_ADD_H_
+#endif  // FF_ADD_H_

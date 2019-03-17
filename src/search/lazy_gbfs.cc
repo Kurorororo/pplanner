@@ -31,7 +31,7 @@ void LazyGBFS::Init(const boost::property_tree::ptree &pt) {
 
   std::shared_ptr<Evaluator> friend_evaluator = nullptr;
 
-  BOOST_FOREACH (const boost::property_tree::ptree::value_type& child,
+  BOOST_FOREACH (const boost::property_tree::ptree::value_type &child,
                  pt.get_child("evaluators")) {
     auto e = child.second;
     auto evaluator = EvaluatorFactory(problem_, graph_, friend_evaluator, e);
@@ -46,8 +46,8 @@ void LazyGBFS::Init(const boost::property_tree::ptree &pt) {
       if (name.get() == "same") {
         same_ = true;
       } else {
-        preferring_ = EvaluatorFactory(
-            problem_, graph_, nullptr, preferring.get());
+        preferring_ =
+            EvaluatorFactory(problem_, graph_, nullptr, preferring.get());
       }
     }
   }
@@ -68,12 +68,18 @@ int LazyGBFS::Search() {
 
   vector<int> child(state);
   vector<int> applicable;
+  vector<int> values;
   unordered_set<int> preferred;
 
+  int h = Evaluate(state, node, values);
+  std::cout << "Initial heuristic value: " << h << std::endl;
+  ++evaluated_;
+  open_list_->Push(values, node, true);
   int best_h = -1;
 
-  while (!open_list_->IsEmpty() || best_h == -1) {
-    if (best_h != -1) node = open_list_->Pop();
+  while (!open_list_->IsEmpty()) {
+    int node = open_list_->Pop();
+
     if (!graph_->CloseIfNot(node)) continue;
 
     ++expanded_;
@@ -88,7 +94,7 @@ int LazyGBFS::Search() {
       continue;
     }
 
-    int h = Evaluate(state, node, applicable, preferred);
+    int h = Evaluate(state, node, applicable, values, preferred);
     ++evaluated_;
 
     if (h == -1) {
@@ -108,14 +114,14 @@ int LazyGBFS::Search() {
     for (auto o : applicable) {
       problem_->ApplyEffect(o, state, child);
 
-      bool is_preferred = use_preferred_
-        && preferred.find(o) != preferred.end();
+      bool is_preferred =
+          use_preferred_ && preferred.find(o) != preferred.end();
 
       int child_node = graph_->GenerateNodeIfNotClosed(o, node, state, child);
       if (child_node == -1) continue;
       ++generated_;
 
-      open_list_->Push(values_, child_node, is_preferred);
+      open_list_->Push(values, child_node, is_preferred);
 
       if (is_preferred) {
         is_preferred_action_[o] = true;
@@ -130,41 +136,48 @@ int LazyGBFS::Search() {
 }
 
 int LazyGBFS::Evaluate(const vector<int> &state, int node,
-                       const vector<int> &applicable,
-                       unordered_set<int> &preferred) {
-  values_.clear();
+                       vector<int> &values) {
+  values.clear();
 
-  if (use_preferred_) {
-    bool first = true;
+  for (auto e : evaluators_) {
+    int h = e->Evaluate(state, node);
 
-    for (auto e : evaluators_) {
-      if (same_ && first) {
-        int value = e->Evaluate(state, node, applicable, preferred);
+    if (h == -1) return h;
 
-        if (value == -1) return value;
-
-        values_.push_back(value);
-        first = false;
-
-        continue;
-      }
-
-      int value = e->Evaluate(state, node);
-
-      if (value == -1) return value;
-
-      values_.push_back(value);
-    }
-
-    if (!same_) preferring_->Evaluate(state, node);
-
-    return values_[0];
+    values.push_back(h);
   }
 
-  for (auto e : evaluators_)
-    values_.push_back(e->Evaluate(state, node));
+  return values[0];
+}
 
-  return values_[0];
+int LazyGBFS::Evaluate(const vector<int> &state, int node,
+                       const vector<int> &applicable, vector<int> &values,
+                       unordered_set<int> &preferred) {
+  if (!use_preferred_) return Evaluate(state, node, values);
+
+  values.clear();
+  bool first = true;
+
+  for (auto e : evaluators_) {
+    if (same_ && first) {
+      int h = e->Evaluate(state, node, applicable, preferred);
+
+      if (h == -1) return h;
+
+      values.push_back(h);
+      first = false;
+    } else {
+      int h = e->Evaluate(state, node);
+
+      if (h == -1) return h;
+
+      values.push_back(h);
+    }
+
+    if (!same_) preferring_->Evaluate(state, node, applicable, preferred);
+  }
+
+  return values[0];
 }
 
 void LazyGBFS::DumpStatistics() const {
@@ -174,15 +187,15 @@ void LazyGBFS::DumpStatistics() const {
   std::cout << "Dead ends " << dead_ends_ << " state(s)" << std::endl;
   std::cout << "Preferred successors " << n_preferreds_ << " state(s)"
             << std::endl;
-  double p_p_e = static_cast<double>(n_preferreds_)
-    / static_cast<double>(evaluated_);
+  double p_p_e =
+      static_cast<double>(n_preferreds_) / static_cast<double>(evaluated_);
   std::cout << "Preferreds per state " << p_p_e << std::endl;
-  double b_f = static_cast<double>(n_branching_)
-    / static_cast<double>(evaluated_);
+  double b_f =
+      static_cast<double>(n_branching_) / static_cast<double>(evaluated_);
   std::cout << "Average branching factor " << b_f << std::endl;
-  double p_p_b = static_cast<double>(n_preferreds_)
-    / static_cast<double>(n_branching_);
-  std::cout << "Preferred ratio " << p_p_b  << std::endl;
+  double p_p_b =
+      static_cast<double>(n_preferreds_) / static_cast<double>(n_branching_);
+  std::cout << "Preferred ratio " << p_p_b << std::endl;
 
   DumpPreferringMetrics();
 }
@@ -190,23 +203,22 @@ void LazyGBFS::DumpStatistics() const {
 void LazyGBFS::DumpPreferringMetrics() const {
   vector<bool> in_plan(problem_->n_actions(), false);
 
-  for (auto a : plan_)
-    in_plan[a] = true;
+  for (auto a : plan_) in_plan[a] = true;
 
   int tp = 0;
   int fn = 0;
   int fp = 0;
   int tn = 0;
 
-  for (int i=0, n=problem_->n_actions(); i<n; ++i) {
+  for (int i = 0, n = problem_->n_actions(); i < n; ++i) {
     if (in_plan[i] && is_preferred_action_[i]) ++tp;
     if (in_plan[i] && !is_preferred_action_[i]) ++fn;
     if (!in_plan[i] && is_preferred_action_[i]) ++fp;
     if (!in_plan[i] && !is_preferred_action_[i]) ++tn;
   }
 
-  double accuracy = static_cast<double>(tp + tn)
-    / static_cast<double>(tp + fn + fp + tn);
+  double accuracy =
+      static_cast<double>(tp + tn) / static_cast<double>(tp + fn + fp + tn);
 
   double precision = 0.0;
 
@@ -240,4 +252,4 @@ void LazyGBFS::DumpPreferringMetrics() const {
   std::cout << std::endl;
 }
 
-} // namespace pplanner
+}  // namespace pplanner
