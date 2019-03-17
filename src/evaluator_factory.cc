@@ -70,7 +70,7 @@ std::shared_ptr<Evaluator> EvaluatorFactory(
 
     std::string tie_break = "cpp";
     auto t_option = pt.get_optional<std::string>("option.tie_break");
-    if (t_option) tie_break = option.get();
+    if (t_option) tie_break = t_option.get();
 
     return std::make_shared<FFAdd>(problem, simplify, unit_cost, tie_break,
                                    more_helpful);

@@ -23,7 +23,7 @@ class FFAdd : public Evaluator {
         rpg_(nullptr) {}
 
   FFAdd(std::shared_ptr<const SASPlus> problem, bool simplify = true,
-        bool unit_cost = false, const std::string tie_break = "fifo",
+        bool unit_cost = false, std::string tie_break = "cpp",
         bool more_helpful = false)
       : unit_cost_(unit_cost),
         problem_(problem),
@@ -70,7 +70,7 @@ class RWFFAdd : public RandomWalkEvaluator {
   RWFFAdd() : ff_(nullptr) { ff_ = std::unique_ptr<FFAdd>(new FFAdd()); }
 
   RWFFAdd(std::shared_ptr<const SASPlus> problem, bool simplify = false,
-          bool unit_cost = false, const std::string &tie_break = "cpp",
+          bool unit_cost = false, std::string tie_break = "cpp",
           bool more_helpful = false)
       : ff_(std::make_unique<FFAdd>(problem, simplify, unit_cost, tie_break,
                                     more_helpful)) {}
