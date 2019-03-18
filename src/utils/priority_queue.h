@@ -126,7 +126,8 @@ class VectorPriorityQueue : public PriorityQueue<int, U> {
     if (priority < minimum_value_ || minimum_value_ == -1)
       minimum_value_ = priority;
 
-    if (buckets_.size() <= priority) buckets_.resize(priority + 1);
+    if (static_cast<int>(buckets_.size()) <= priority)
+      buckets_.resize(priority + 1);
 
     buckets_[priority].Push(entry);
     ++size_;
