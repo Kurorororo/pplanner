@@ -22,8 +22,7 @@ class RPGTable : public RPG {
 
   RPGTable(std::shared_ptr<const SASPlus> problem,
            std::shared_ptr<const RelaxedSASPlus> r_problem,
-           bool unit_cost = false, std::string tie_break = "cpp",
-           bool more_helpful = false)
+           std::string tie_break = "cpp", bool more_helpful = false)
       : more_helpful_(more_helpful),
         goal_counter_(r_problem->n_goal_facts()),
         op_cost_(r_problem->n_actions(), -1),
@@ -38,7 +37,7 @@ class RPGTable : public RPG {
         q_(nullptr),
         problem_(problem),
         r_problem_(r_problem) {
-    if (unit_cost)
+    if (r_problem->unit_cost())
       q_ = VectorPriorityQueueFactory<int>(tie_break);
     else
       q_ = PriorityQueueFactory<int, int>(tie_break);
@@ -46,12 +45,12 @@ class RPGTable : public RPG {
 
   ~RPGTable() {}
 
-  int PlanCost(const std::vector<int> &state, bool unit_cost) override {
-    return PlanCost(state, helpful_, unit_cost);
+  int PlanCost(const std::vector<int> &state) override {
+    return PlanCost(state, helpful_);
   }
 
-  int PlanCost(const std::vector<int> &state, std::unordered_set<int> &helpful,
-               bool unit_cost) override;
+  int PlanCost(const std::vector<int> &state,
+               std::unordered_set<int> &helpful) override;
 
   void ConstructRRPG(const std::vector<int> &state,
                      const std::vector<bool> &black_list) override;
@@ -64,19 +63,18 @@ class RPGTable : public RPG {
 
   void DisjunctiveHelpful(const std::vector<int> &state,
                           const std::vector<int> &disjunctive_goals,
-                          std::unordered_set<int> &helpful,
-                          bool unit_cost) override;
+                          std::unordered_set<int> &helpful) override;
 
-  int AdditiveCost(const std::vector<int> &state, bool unit_cost = false);
+  int AdditiveCost(const std::vector<int> &state);
 
-  int HmaxCost(const std::vector<int> &state, bool unit_cost = false);
+  int HmaxCost(const std::vector<int> &state);
 
  private:
   void SetPlan(int g, std::unordered_set<int> &helpful);
 
   void GeneralizedDijkstra(const std::vector<int> &state, bool hmax = false);
 
-  void SetUp(const std::vector<int> &state, bool unit_cost);
+  void SetUp(const std::vector<int> &state);
 
   void MayPush(int f, int a);
 

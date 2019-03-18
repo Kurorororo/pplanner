@@ -15,18 +15,14 @@ namespace pplanner {
 template <typename T>
 class MFFAdd : public Heuristic<T> {
  public:
-  MFFAdd()
-      : unit_cost_(false),
-        problem_(nullptr),
-        r_problem_(nullptr),
-        rpg_(nullptr) {}
+  MFFAdd() : problem_(nullptr), r_problem_(nullptr), rpg_(nullptr) {}
 
   MFFAdd(std::shared_ptr<const SASPlus> problem, bool simplify = true,
          bool unit_cost = false, bool more_helpful = false)
-      : unit_cost_(unit_cost),
-        problem_(problem),
-        r_problem_(std::make_shared<RelaxedSASPlus>(*problem, simplify)),
-        rpg_(std::make_unique<RPGTable>(problem, r_problem_, unit_cost, "cpp",
+      : problem_(problem),
+        r_problem_(
+            std::make_shared<RelaxedSASPlus>(problem, simplify, unit_cost)),
+        rpg_(std::make_unique<RPGTable>(problem, r_problem_, "cpp",
                                         more_helpful)) {}
 
   ~MFFAdd() {}
@@ -34,7 +30,7 @@ class MFFAdd : public Heuristic<T> {
   int Evaluate(const std::vector<int> &state, T node) override {
     StateToFactVector(*problem_, state, facts_);
 
-    return rpg_->PlanCost(facts_, unit_cost_);
+    return rpg_->PlanCost(facts_);
   }
 
   int Evaluate(const std::vector<int> &state,
@@ -42,11 +38,10 @@ class MFFAdd : public Heuristic<T> {
                std::unordered_set<int> &preferred, T node) override {
     StateToFactVector(*problem_, state, facts_);
 
-    return rpg_->PlanCost(facts_, preferred, unit_cost_);
+    return rpg_->PlanCost(facts_, preferred);
   }
 
  private:
-  bool unit_cost_;
   std::vector<int> facts_;
   std::shared_ptr<const SASPlus> problem_;
   std::shared_ptr<RelaxedSASPlus> r_problem_;

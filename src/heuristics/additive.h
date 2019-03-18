@@ -6,24 +6,23 @@
 #include <vector>
 
 #include "evaluator.h"
-#include "random_walk_evaluator.h"
-#include "sas_plus.h"
 #include "heuristics/relaxed_sas_plus.h"
 #include "heuristics/rpg_table.h"
+#include "random_walk_evaluator.h"
+#include "sas_plus.h"
 
 namespace pplanner {
 
 class Additive : public Evaluator {
  public:
-  Additive() : unit_cost_(false), problem_(nullptr), r_problem_(nullptr),
-               rpg_(nullptr) {}
+  Additive() : problem_(nullptr), r_problem_(nullptr), rpg_(nullptr) {}
 
-  Additive(std::shared_ptr<const SASPlus> problem, bool simplify=true,
-           bool unit_cost=false)
-    : unit_cost_(unit_cost),
-      problem_(problem),
-      r_problem_(std::make_shared<RelaxedSASPlus>(*problem, simplify)),
-      rpg_(nullptr) {
+  Additive(std::shared_ptr<const SASPlus> problem, bool simplify = true,
+           bool unit_cost = false)
+      : problem_(problem),
+        r_problem_(
+            std::make_shared<RelaxedSASPlus>(problem, simplify, unit_cost)),
+        rpg_(nullptr) {
     rpg_ = std::unique_ptr<RPGTable>(new RPGTable(problem, r_problem_));
   }
 
@@ -32,7 +31,7 @@ class Additive : public Evaluator {
   int Evaluate(const std::vector<int> &state, int node) override {
     StateToFactVector(*problem_, state, facts_);
 
-    return rpg_->AdditiveCost(facts_, unit_cost_);
+    return rpg_->AdditiveCost(facts_);
   }
 
   int Evaluate(const std::vector<int> &state, int node, int parent) override {
@@ -52,7 +51,6 @@ class Additive : public Evaluator {
   }
 
  private:
-  bool unit_cost_;
   std::vector<int> facts_;
   std::shared_ptr<const SASPlus> problem_;
   std::shared_ptr<RelaxedSASPlus> r_problem_;
@@ -65,10 +63,11 @@ class RWAdditive : public RandomWalkEvaluator {
     additive_ = std::unique_ptr<Additive>(new Additive());
   }
 
-  RWAdditive(std::shared_ptr<const SASPlus> problem, bool simplify=true,
-             bool unit_cost=false) : additive_(nullptr) {
-    additive_ = std::unique_ptr<Additive>(
-        new Additive(problem, simplify, unit_cost));
+  RWAdditive(std::shared_ptr<const SASPlus> problem, bool simplify = true,
+             bool unit_cost = false)
+      : additive_(nullptr) {
+    additive_ =
+        std::unique_ptr<Additive>(new Additive(problem, simplify, unit_cost));
   }
 
   ~RWAdditive() {}
@@ -92,11 +91,10 @@ class RWAdditive : public RandomWalkEvaluator {
   void CopyBestToSearchGraph(int node,
                              std::shared_ptr<SearchGraph> graph) override {}
 
-  private:
-   std::unique_ptr<Additive> additive_;
+ private:
+  std::unique_ptr<Additive> additive_;
 };
 
+}  // namespace pplanner
 
-} // namespace pplanner
-
-#endif // ADDITIVE_H_
+#endif  // ADDITIVE_H_

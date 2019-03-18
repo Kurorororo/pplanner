@@ -19,21 +19,20 @@ namespace pplanner {
 class LandmarkCountBase {
  public:
   LandmarkCountBase()
-      : unit_cost_(true),
-        problem_(nullptr),
+      : problem_(nullptr),
         r_problem_(nullptr),
         rpg_(nullptr),
         graph_(nullptr) {}
 
   LandmarkCountBase(std::shared_ptr<const SASPlus> problem, bool unit_cost,
                     bool simplify, bool use_rpg_table, bool more_helpful)
-      : unit_cost_(unit_cost),
-        problem_(problem),
-        r_problem_(std::make_shared<RelaxedSASPlus>(*problem, simplify)),
+      : problem_(problem),
+        r_problem_(
+            std::make_shared<RelaxedSASPlus>(problem, simplify, unit_cost)),
         rpg_(nullptr),
         graph_(std::make_shared<LandmarkGraph>(problem)) {
     auto cpp = "cpp";
-    rpg_ = RPGFactory(problem, r_problem_, use_rpg_table, unit_cost, cpp, more_helpful);
+    rpg_ = RPGFactory(problem, r_problem_, use_rpg_table, cpp, more_helpful);
     IdentifyLandmarks(problem, r_problem_, graph_, use_rpg_table);
     AddOrderings(problem, r_problem_, graph_);
     HandleCycles(graph_);
@@ -73,7 +72,6 @@ class LandmarkCountBase {
   };
 
   int reached_size_;
-  bool unit_cost_;
   std::vector<LandmarkState> status_;
   std::shared_ptr<const SASPlus> problem_;
   std::shared_ptr<RelaxedSASPlus> r_problem_;

@@ -6,24 +6,23 @@
 #include <vector>
 
 #include "evaluator.h"
-#include "random_walk_evaluator.h"
-#include "sas_plus.h"
 #include "heuristics/relaxed_sas_plus.h"
 #include "heuristics/rpg_table.h"
+#include "random_walk_evaluator.h"
+#include "sas_plus.h"
 
 namespace pplanner {
 
 class Hmax : public Evaluator {
  public:
-  Hmax() : unit_cost_(false), problem_(nullptr), r_problem_(nullptr),
-               rpg_(nullptr) {}
+  Hmax() : problem_(nullptr), r_problem_(nullptr), rpg_(nullptr) {}
 
-  Hmax(std::shared_ptr<const SASPlus> problem, bool simplify=true,
-           bool unit_cost=false)
-    : unit_cost_(unit_cost),
-      problem_(problem),
-      r_problem_(std::make_shared<RelaxedSASPlus>(*problem, simplify)),
-      rpg_(nullptr) {
+  Hmax(std::shared_ptr<const SASPlus> problem, bool simplify = true,
+       bool unit_cost = false)
+      : problem_(problem),
+        r_problem_(
+            std::make_shared<RelaxedSASPlus>(problem, simplify, unit_cost)),
+        rpg_(nullptr) {
     rpg_ = std::unique_ptr<RPGTable>(new RPGTable(problem, r_problem_));
   }
 
@@ -32,7 +31,7 @@ class Hmax : public Evaluator {
   int Evaluate(const std::vector<int> &state, int node) override {
     StateToFactVector(*problem_, state, facts_);
 
-    return rpg_->HmaxCost(facts_, unit_cost_);
+    return rpg_->HmaxCost(facts_);
   }
 
   int Evaluate(const std::vector<int> &state, int node, int parent) override {
@@ -52,7 +51,6 @@ class Hmax : public Evaluator {
   }
 
  private:
-  bool unit_cost_;
   std::vector<int> facts_;
   std::shared_ptr<const SASPlus> problem_;
   std::shared_ptr<RelaxedSASPlus> r_problem_;
@@ -61,14 +59,12 @@ class Hmax : public Evaluator {
 
 class RWHmax : public RandomWalkEvaluator {
  public:
-  RWHmax() : hmax_(nullptr) {
-    hmax_ = std::unique_ptr<Hmax>(new Hmax());
-  }
+  RWHmax() : hmax_(nullptr) { hmax_ = std::unique_ptr<Hmax>(new Hmax()); }
 
-  RWHmax(std::shared_ptr<const SASPlus> problem, bool simplify=true,
-             bool unit_cost=false) : hmax_(nullptr) {
-    hmax_ = std::unique_ptr<Hmax>(
-        new Hmax(problem, simplify, unit_cost));
+  RWHmax(std::shared_ptr<const SASPlus> problem, bool simplify = true,
+         bool unit_cost = false)
+      : hmax_(nullptr) {
+    hmax_ = std::unique_ptr<Hmax>(new Hmax(problem, simplify, unit_cost));
   }
 
   ~RWHmax() {}
@@ -92,11 +88,10 @@ class RWHmax : public RandomWalkEvaluator {
   void CopyBestToSearchGraph(int node,
                              std::shared_ptr<SearchGraph> graph) override {}
 
-  private:
-   std::unique_ptr<Hmax> hmax_;
+ private:
+  std::unique_ptr<Hmax> hmax_;
 };
 
+}  // namespace pplanner
 
-} // namespace pplanner
-
-#endif // HMAX_H_
+#endif  // HMAX_H_

@@ -7,9 +7,8 @@ namespace pplanner {
 using std::unordered_set;
 using std::vector;
 
-int RPGTable::PlanCost(const vector<int> &state, unordered_set<int> &helpful,
-                       bool unit_cost) {
-  int additive_h = AdditiveCost(state, unit_cost);
+int RPGTable::PlanCost(const vector<int> &state, unordered_set<int> &helpful) {
+  int additive_h = AdditiveCost(state);
   if (additive_h == -1) return -1;
 
   std::fill(plan_set_.begin(), plan_set_.end(), false);
@@ -23,19 +22,14 @@ int RPGTable::PlanCost(const vector<int> &state, unordered_set<int> &helpful,
   int h = 0;
 
   for (int i = 0, n = plan_set_.size(); i < n; ++i) {
-    if (plan_set_[i]) {
-      if (unit_cost)
-        ++h;
-      else
-        h += problem_->ActionCost(i);
-    }
+    if (plan_set_[i]) h += problem_->ActionCost(i);
   }
 
   return h;
 }
 
-int RPGTable::AdditiveCost(const vector<int> &state, bool unit_cost) {
-  SetUp(state, unit_cost);
+int RPGTable::AdditiveCost(const vector<int> &state) {
+  SetUp(state);
   GeneralizedDijkstra(state);
 
   int h = 0;
@@ -49,8 +43,8 @@ int RPGTable::AdditiveCost(const vector<int> &state, bool unit_cost) {
   return h;
 }
 
-int RPGTable::HmaxCost(const vector<int> &state, bool unit_cost) {
-  SetUp(state, unit_cost);
+int RPGTable::HmaxCost(const vector<int> &state) {
+  SetUp(state);
   GeneralizedDijkstra(state, true);
 
   int h = 0;
@@ -125,7 +119,7 @@ void RPGTable::GeneralizedDijkstra(const vector<int> &state, bool hmax) {
   }
 }
 
-void RPGTable::SetUp(const vector<int> &state, bool unit_cost) {
+void RPGTable::SetUp(const vector<int> &state) {
   goal_counter_ = r_problem_->n_goal_facts();
   std::fill(best_support_.begin(), best_support_.end(), -1);
   std::fill(prop_cost_.begin(), prop_cost_.end(), -1);
@@ -138,11 +132,7 @@ void RPGTable::SetUp(const vector<int> &state, bool unit_cost) {
 
   for (int i = 0, n = r_problem_->n_actions(); i < n; ++i) {
     precondition_counter_[i] = r_problem_->PreconditionSize(i);
-
-    if (unit_cost)
-      op_cost_[i] = 1;
-    else
-      op_cost_[i] = r_problem_->ActionCost(i);
+    op_cost_[i] = r_problem_->ActionCost(i);
   }
 }
 
@@ -162,7 +152,7 @@ void RPGTable::MayPush(int f, int a) {
 
 void RPGTable::ConstructRRPG(const vector<int> &state,
                              const vector<bool> &black_list) {
-  SetUp(state, false);
+  SetUp(state);
 
   for (int i = 0, n = r_problem_->n_actions(); i < n; ++i) {
     if (precondition_counter_[i] == 0) {
@@ -197,8 +187,8 @@ void RPGTable::ConstructRRPG(const vector<int> &state,
 
 void RPGTable::DisjunctiveHelpful(const vector<int> &state,
                                   const vector<int> &disjunctive_goals,
-                                  unordered_set<int> &helpful, bool unit_cost) {
-  SetUp(state, unit_cost);
+                                  unordered_set<int> &helpful) {
+  SetUp(state);
   std::fill(is_disjunctive_goal_.begin(), is_disjunctive_goal_.end(), false);
 
   for (auto g : disjunctive_goals) is_disjunctive_goal_[g] = true;

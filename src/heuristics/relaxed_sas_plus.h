@@ -1,6 +1,7 @@
 #ifndef RELAXED_SAS_PLUS_H_
 #define RELAXED_SAS_PLUS_H_
 
+#include <memory>
 #include <vector>
 
 #include "sas_plus.h"
@@ -9,10 +10,12 @@ namespace pplanner {
 
 class RelaxedSASPlus {
  public:
-  RelaxedSASPlus() {}
+  RelaxedSASPlus() : unit_cost_(false) {}
 
-  RelaxedSASPlus(const SASPlus& problem, bool simplify = true) {
-    Init(problem, simplify);
+  RelaxedSASPlus(std::shared_ptr<const SASPlus> problem, bool simplify = true,
+                 bool unit_cost = false)
+      : unit_cost_(unit_cost) {
+    Init(problem, simplify, unit_cost);
   }
 
   int n_facts() const { return is_goal_.size(); }
@@ -20,6 +23,8 @@ class RelaxedSASPlus {
   int n_actions() const { return ids_.size(); }
 
   int n_goal_facts() const { return goal_.size(); }
+
+  bool unit_cost() const { return unit_cost_; }
 
   int ActionId(int i) const { return ids_[i]; }
 
@@ -50,17 +55,20 @@ class RelaxedSASPlus {
   const std::vector<int>& EffectMap(int i) const { return effect_map_[i]; }
 
  private:
-  void Init(const SASPlus& problem, bool simplify) {
-    InitActions(problem, simplify);
+  void Init(std::shared_ptr<const SASPlus> problem, bool simplify,
+            bool unit_cost) {
+    InitActions(problem, simplify, unit_cost);
     InitGoal(problem);
   }
 
-  void InitActions(const SASPlus& problem, bool simplify);
+  void InitActions(std::shared_ptr<const SASPlus> problem, bool simplify,
+                   bool unit_cost);
 
-  void InitGoal(const SASPlus& problem);
+  void InitGoal(std::shared_ptr<const SASPlus> problem);
 
   void Simplify();
 
+  bool unit_cost_;
   std::vector<int> ids_;
   std::vector<std::vector<int> > id_to_actions_;
   std::vector<int> costs_;

@@ -13,7 +13,8 @@ using std::vector;
 
 namespace pplanner {
 
-void RelaxedSASPlus::InitActions(const SASPlus &problem, bool simplify) {
+void RelaxedSASPlus::InitActions(std::shared_ptr<const SASPlus> problem,
+                                 bool simplify, bool unit_cost) {
   vector<pair<int, int> > pair_precondition;
   vector<pair<int, int> > pair_effect;
   vector<int> precondition;
@@ -22,23 +23,23 @@ void RelaxedSASPlus::InitActions(const SASPlus &problem, bool simplify) {
   vector<pair<int, int> > conditional_effects;
   int action = 0;
 
-  for (int i = 0, n = problem.n_actions(); i < n; ++i) {
-    problem.CopyPrecondition(i, pair_precondition);
+  for (int i = 0, n = problem->n_actions(); i < n; ++i) {
+    problem->CopyPrecondition(i, pair_precondition);
     precondition.clear();
 
     for (auto &v : pair_precondition) {
-      int f = problem.Fact(v.first, v.second);
+      int f = problem->Fact(v.first, v.second);
       precondition.push_back(f);
     }
 
-    int cost = problem.ActionCost(i);
+    int cost = 1 ? problem->ActionCost(i) : unit_cost;
     int size = precondition.size();
 
-    problem.CopyEffect(i, pair_effect);
+    problem->CopyEffect(i, pair_effect);
     actions.clear();
 
     for (auto &v : pair_effect) {
-      int f = problem.Fact(v.first, v.second);
+      int f = problem->Fact(v.first, v.second);
       ids_.push_back(i);
       actions.push_back(action++);
       costs_.push_back(cost);
@@ -48,15 +49,15 @@ void RelaxedSASPlus::InitActions(const SASPlus &problem, bool simplify) {
       conditional_.push_back(false);
     }
 
-    if (problem.HasConditionalEffects(i)) {
-      problem.CopyEffectConditions(i, effect_conditions);
-      problem.CopyConditionalEffects(i, conditional_effects);
+    if (problem->HasConditionalEffects(i)) {
+      problem->CopyEffectConditions(i, effect_conditions);
+      problem->CopyConditionalEffects(i, conditional_effects);
 
       for (int j = 0, m = effect_conditions.size(); j < m; ++j) {
         auto precondition_ec = precondition;
 
         for (auto &p : effect_conditions[j])
-          precondition_ec.push_back(problem.Fact(p.first, p.second));
+          precondition_ec.push_back(problem->Fact(p.first, p.second));
 
         ids_.push_back(i);
         actions.push_back(action++);
@@ -64,7 +65,7 @@ void RelaxedSASPlus::InitActions(const SASPlus &problem, bool simplify) {
         precondition_size_.push_back(precondition_ec.size());
         preconditions_.push_back(precondition_ec);
         auto effect = conditional_effects[j];
-        effects_.push_back(problem.Fact(effect.first, effect.second));
+        effects_.push_back(problem->Fact(effect.first, effect.second));
         conditional_.push_back(true);
       }
     }
@@ -79,14 +80,14 @@ void RelaxedSASPlus::InitActions(const SASPlus &problem, bool simplify) {
     std::cout << "simplified to " << ids_.size() << std::endl;
   }
 
-  precondition_map_.resize(problem.n_facts());
+  precondition_map_.resize(problem->n_facts());
 
   for (int i = 0, n = preconditions_.size(); i < n; ++i) {
     if (preconditions_[i].empty()) no_preconditions_.push_back(i);
     for (auto f : preconditions_[i]) precondition_map_[f].push_back(i);
   }
 
-  effect_map_.resize(problem.n_facts());
+  effect_map_.resize(problem->n_facts());
 
   for (int i = 0, n = effects_.size(); i < n; ++i) {
     int f = effects_[i];
@@ -94,13 +95,13 @@ void RelaxedSASPlus::InitActions(const SASPlus &problem, bool simplify) {
   }
 }  // namespace pplanner
 
-void RelaxedSASPlus::InitGoal(const SASPlus &problem) {
+void RelaxedSASPlus::InitGoal(std::shared_ptr<const SASPlus> problem) {
   vector<pair<int, int> > goal;
-  problem.CopyGoal(goal);
-  is_goal_.resize(problem.n_facts(), false);
+  problem->CopyGoal(goal);
+  is_goal_.resize(problem->n_facts(), false);
 
   for (auto &v : goal) {
-    int f = problem.Fact(v.first, v.second);
+    int f = problem->Fact(v.first, v.second);
     is_goal_[f] = true;
     goal_.push_back(f);
   }

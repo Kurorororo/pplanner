@@ -19,7 +19,7 @@ int LandmarkCountBase::ReachedSize(const vector<int> &state,
                                    uint8_t *accepted) {
   int size = 0;
 
-  for (int psi_id=0, n=graph_->landmark_id_max(); psi_id<n; ++psi_id) {
+  for (int psi_id = 0, n = graph_->landmark_id_max(); psi_id < n; ++psi_id) {
     if (Get(parent_accepted, psi_id)) {
       Up(accepted, psi_id);
       ++size;
@@ -42,7 +42,7 @@ int LandmarkCountBase::NeededSize(const vector<int> &state,
                                   const uint8_t *accepted) {
   int size = 0;
 
-  for (int phi_id=0, n=graph_->landmark_id_max(); phi_id<n; ++phi_id) {
+  for (int phi_id = 0, n = graph_->landmark_id_max(); phi_id < n; ++phi_id) {
     if (!Get(accepted, phi_id)) continue;
     status_[phi_id] = REACHED;
 
@@ -78,11 +78,11 @@ int LandmarkCountBase::Evaluate(const vector<int> &state,
   reached_size_ = 0;
 
   if (parent_accepted == nullptr) {
-    for (int i=0, n=graph_->landmark_id_max(); i<n; ++i) {
+    for (int i = 0, n = graph_->landmark_id_max(); i < n; ++i) {
       const Landmark &psi = graph_->GetLandmark(i);
 
-      if (!psi.IsEmpty() && psi.IsImplicated(state)
-          && graph_->GetInitIdsByTermId(i).empty()) {
+      if (!psi.IsEmpty() && psi.IsImplicated(state) &&
+          graph_->GetInitIdsByTermId(i).empty()) {
         status_[i] = REACHED;
         Up(accepted, i);
         ++reached_size_;
@@ -94,12 +94,12 @@ int LandmarkCountBase::Evaluate(const vector<int> &state,
 
   int needed_size = NeededSize(state, accepted);
 
-  for (int i=0, n=graph_->landmark_id_max(); i<n; ++i) {
+  for (int i = 0, n = graph_->landmark_id_max(); i < n; ++i) {
     const Landmark &psi = graph_->GetLandmark(i);
 
-    if (!psi.IsEmpty() && ((status_[i] == NOT_REACHED
-          && graph_->GetFirstAchieversSize(i) == 0)
-        || (status_[i] == NEEDED && graph_->GetPossibleAchieversSize(i) == 0)))
+    if (!psi.IsEmpty() &&
+        ((status_[i] == NOT_REACHED && graph_->GetFirstAchieversSize(i) == 0) ||
+         (status_[i] == NEEDED && graph_->GetPossibleAchieversSize(i) == 0)))
       return -1;
   }
 
@@ -124,11 +124,11 @@ int LandmarkCountBase::Evaluate(const vector<int> &state,
   if (preferred.empty()) {
     disjunctive_goals.clear();
 
-    for (int i=0, n=graph_->landmark_id_max(); i<n; ++i) {
+    for (int i = 0, n = graph_->landmark_id_max(); i < n; ++i) {
       if (!Get(accepted, i) && IsLeaf(i, accepted)) {
         auto l = graph_->GetLandmark(i);
 
-        for (int j=0, m=l.size(); j<m; ++j) {
+        for (int j = 0, m = l.size(); j < m; ++j) {
           int f = problem_->Fact(l.VarValue(j));
           disjunctive_goals.push_back(f);
         }
@@ -138,9 +138,9 @@ int LandmarkCountBase::Evaluate(const vector<int> &state,
     StateToFactVector(*problem_, state, facts);
 
     if (disjunctive_goals.empty())
-      rpg_->PlanCost(facts, preferred, unit_cost_);
+      rpg_->PlanCost(facts, preferred);
     else
-      rpg_->DisjunctiveHelpful(facts, disjunctive_goals, preferred, unit_cost_);
+      rpg_->DisjunctiveHelpful(facts, disjunctive_goals, preferred);
 
     if (preferred.empty()) return -1;
   }
@@ -188,12 +188,10 @@ void LandmarkCountBase::NextStepOperators(const vector<int> &state,
   }
 
   if (fact_lm_operators.empty()) {
-    for (auto o : disj_lm_operators)
-      preferred.insert(o);
+    for (auto o : disj_lm_operators) preferred.insert(o);
   } else {
-    for (auto o : fact_lm_operators)
-      preferred.insert(o);
+    for (auto o : fact_lm_operators) preferred.insert(o);
   }
 }
 
-} // namespace pplanner
+}  // namespace pplanner

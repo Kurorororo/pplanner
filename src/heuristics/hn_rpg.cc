@@ -18,17 +18,16 @@ vector<int> HNRPG::Plan(const vector<int> &state, unordered_set<int> &helpful) {
   return result;
 }
 
-int HNRPG::PlanCost(const vector<int> &state, bool unit_cost) {
+int HNRPG::PlanCost(const vector<int> &state) {
   ConstructGraph(state);
   if (n_layers_ == -1) return -1;
   InitializeGSet();
 
-  return ExtractCost(unit_cost);
+  return ExtractCost();
 }
 
-int HNRPG::PlanCost(const vector<int> &state, unordered_set<int> &helpful,
-                    bool unit_cost) {
-  int h = PlanCost(state, unit_cost);
+int HNRPG::PlanCost(const vector<int> &state, unordered_set<int> &helpful) {
+  int h = PlanCost(state);
   ExtractHelpful(helpful);
 
   return h;
@@ -178,7 +177,7 @@ vector<int> HNRPG::ExtractPlan() {
   return result;
 }
 
-int HNRPG::ExtractCost(bool unit_cost) {
+int HNRPG::ExtractCost() {
   int m = n_layers_ - 1;
   int h = 0;
 
@@ -189,11 +188,7 @@ int HNRPG::ExtractCost(bool unit_cost) {
     for (auto g : g_set_[i]) {
       if (marked_[1][g]) continue;
       int o = ExtractAction(i, g);
-
-      if (unit_cost)
-        ++h;
-      else
-        h += problem_->ActionCost(o);
+      h += problem_->ActionCost(o);
     }
   }
 
@@ -257,14 +252,14 @@ void HNRPG::ExtractHelpful(unordered_set<int> &helpful) {
 
 void HNRPG::DisjunctiveHelpful(const vector<int> &state,
                                const vector<int> &disjunctive_goal,
-                               unordered_set<int> &helpful, bool unit_cost) {
+                               unordered_set<int> &helpful) {
   int f = ConstructDisjunctiveRPG(state, disjunctive_goal, helpful);
 
   if (f == -1) return;
 
   g_set_.resize(n_layers_);
   g_set_[fact_layer_membership_[f]].push_back(f);
-  ExtractCost(unit_cost);
+  ExtractCost();
   ExtractHelpful(helpful);
 }
 

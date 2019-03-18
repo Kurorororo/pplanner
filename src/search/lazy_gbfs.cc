@@ -72,7 +72,6 @@ int LazyGBFS::Search() {
 
   int h = Evaluate(state, node, values);
   std::cout << "Initial heuristic value: " << h << std::endl;
-  ++evaluated_;
   open_list_->Push(values, node, true);
   int best_h = -1;
 
@@ -100,8 +99,6 @@ int LazyGBFS::Search() {
       continue;
     }
 
-    ++expanded_;
-
     if (h < best_h || best_h == -1) {
       best_h = h;
       std::cout << "New best heuristic value: " << best_h << std::endl;
@@ -110,6 +107,8 @@ int LazyGBFS::Search() {
 
       if (use_preferred_) open_list_->Boost();
     }
+
+    ++expanded_;
 
     for (auto o : applicable) {
       problem_->ApplyEffect(o, state, child);

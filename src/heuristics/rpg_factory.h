@@ -14,10 +14,9 @@ namespace pplanner {
 inline std::shared_ptr<RPG> RPGFactory(
     std::shared_ptr<const SASPlus> problem,
     std::shared_ptr<const RelaxedSASPlus> r_problem, bool use_rpg_table,
-    bool unit_cost = false, std::string tie_break = "cpp",
-    bool more_helpful = false) {
+    std::string tie_break = "cpp", bool more_helpful = false) {
   if (use_rpg_table)
-    return std::make_shared<RPGTable>(problem, r_problem, unit_cost, tie_break,
+    return std::make_shared<RPGTable>(problem, r_problem, tie_break,
                                       more_helpful);
 
   return std::make_shared<HNRPG>(r_problem);

@@ -5,24 +5,23 @@
 #include <vector>
 
 #include "evaluator.h"
+#include "heuristics/hn_rpg.h"
+#include "heuristics/relaxed_sas_plus.h"
 #include "random_walk_evaluator.h"
 #include "sas_plus.h"
-#include "heuristics/relaxed_sas_plus.h"
-#include "heuristics/hn_rpg.h"
 
 namespace pplanner {
 
 class FF : public Evaluator {
  public:
-  FF() : unit_cost_(false), problem_(nullptr),
-         r_problem_(nullptr), rpg_(nullptr) {}
+  FF() : problem_(nullptr), r_problem_(nullptr), rpg_(nullptr) {}
 
-  FF(std::shared_ptr<const SASPlus> problem, bool simplify=false,
-     bool unit_cost=false)
-    : unit_cost_(unit_cost),
-      problem_(problem),
-      r_problem_(std::make_shared<RelaxedSASPlus>(*problem, simplify)),
-      rpg_(nullptr) {
+  FF(std::shared_ptr<const SASPlus> problem, bool simplify = false,
+     bool unit_cost = false)
+      : problem_(problem),
+        r_problem_(
+            std::make_shared<RelaxedSASPlus>(problem, simplify, unit_cost)),
+        rpg_(nullptr) {
     rpg_ = std::unique_ptr<HNRPG>(new HNRPG(r_problem_));
   }
 
@@ -31,7 +30,7 @@ class FF : public Evaluator {
   int Evaluate(const std::vector<int> &state, int node) override {
     StateToFactVector(*problem_, state, facts_);
 
-    return rpg_->PlanCost(facts_, unit_cost_);
+    return rpg_->PlanCost(facts_);
   }
 
   int Evaluate(const std::vector<int> &state, int node, int parent) override {
@@ -43,7 +42,7 @@ class FF : public Evaluator {
                std::unordered_set<int> &preferred) override {
     StateToFactVector(*problem_, state, facts_);
 
-    return rpg_->PlanCost(facts_, preferred, unit_cost_);
+    return rpg_->PlanCost(facts_, preferred);
   }
 
   int Evaluate(const std::vector<int> &state, int node, int parent,
@@ -53,7 +52,6 @@ class FF : public Evaluator {
   }
 
  private:
-  bool unit_cost_;
   std::vector<int> facts_;
   std::shared_ptr<const SASPlus> problem_;
   std::shared_ptr<RelaxedSASPlus> r_problem_;
@@ -62,12 +60,11 @@ class FF : public Evaluator {
 
 class RWFF : public RandomWalkEvaluator {
  public:
-  RWFF() : ff_(nullptr) {
-    ff_ = std::unique_ptr<FF>(new FF());
-  }
+  RWFF() : ff_(nullptr) { ff_ = std::unique_ptr<FF>(new FF()); }
 
-  RWFF(std::shared_ptr<const SASPlus> problem, bool simplify=false,
-       bool unit_cost=false) : ff_(nullptr) {
+  RWFF(std::shared_ptr<const SASPlus> problem, bool simplify = false,
+       bool unit_cost = false)
+      : ff_(nullptr) {
     ff_ = std::unique_ptr<FF>(new FF(problem, simplify, unit_cost));
   }
 
@@ -96,6 +93,6 @@ class RWFF : public RandomWalkEvaluator {
   std::unique_ptr<FF> ff_;
 };
 
-} // namespace pplanner
+}  // namespace pplanner
 
-#endif // FF_H_
+#endif  // FF_H_
