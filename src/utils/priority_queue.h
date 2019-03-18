@@ -56,8 +56,7 @@ class CppPriorityQueue : public PriorityQueue<T, U> {
   }
 
   void Clear() override {
-    auto new_q = PQueue();
-    q_.swap(new_q);
+    while (!q_.empty()) q_.pop();
   }
 
  private:
