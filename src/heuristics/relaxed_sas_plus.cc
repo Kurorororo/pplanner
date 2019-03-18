@@ -93,7 +93,7 @@ void RelaxedSASPlus::InitActions(std::shared_ptr<const SASPlus> problem,
     int f = effects_[i];
     effect_map_[f].push_back(i);
   }
-}  // namespace pplanner
+}
 
 void RelaxedSASPlus::InitGoal(std::shared_ptr<const SASPlus> problem) {
   vector<pair<int, int> > goal;

@@ -1,7 +1,5 @@
 #include "rpg_table.h"
 
-#include <iostream>
-
 namespace pplanner {
 
 using std::unordered_set;

@@ -35,7 +35,11 @@ std::shared_ptr<Evaluator> EvaluatorFactory(
     option = pt.get_optional<int>("option.unit_cost");
     if (option && !unit_cost) unit_cost = option.get() == 1;
 
-    return std::make_shared<Additive>(problem, simplify, unit_cost);
+    std::string tie_break = "cpp";
+    auto t_option = pt.get_optional<std::string>("option.tie_break");
+    if (t_option) tie_break = t_option.get();
+
+    return std::make_shared<Additive>(problem, simplify, unit_cost, tie_break);
   }
 
   if (name.get() == "hmax") {

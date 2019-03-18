@@ -18,12 +18,12 @@ class Additive : public Evaluator {
   Additive() : problem_(nullptr), r_problem_(nullptr), rpg_(nullptr) {}
 
   Additive(std::shared_ptr<const SASPlus> problem, bool simplify = true,
-           bool unit_cost = false)
+           bool unit_cost = false, std::string tie_break = "cpp")
       : problem_(problem),
         r_problem_(
             std::make_shared<RelaxedSASPlus>(problem, simplify, unit_cost)),
         rpg_(nullptr) {
-    rpg_ = std::unique_ptr<RPGTable>(new RPGTable(problem, r_problem_));
+    rpg_ = std::unique_ptr<RPGTable>(new RPGTable(problem, r_problem_, tie_break));
   }
 
   ~Additive() {}

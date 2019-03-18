@@ -13,14 +13,12 @@ namespace pplanner {
 
 const string kFormatError = "Exception: invalid SAS file";
 const string kAxiomNotSupported = "Exceptin: axiom is not supported";
-const string kConditionalEffectNotSupported = "Exceptin: conditional effect is not supported";
 
 inline void CheckString(const string &expected, queue<string> &lines) {
   auto line = lines.front();
   lines.pop();
 
-  if (expected != line)
-    throw std::runtime_error(kFormatError);
+  if (expected != line) throw std::runtime_error(kFormatError);
 }
 
 int ParseN(queue<string> &lines) {
@@ -76,8 +74,7 @@ vector<string> ParseVariable(queue<string> &lines) {
   vector<string> predicates;
   predicates.reserve(n);
 
-  for (int i=0; i<n; ++i)
-    predicates.push_back(ParsePredicate(lines));
+  for (int i = 0; i < n; ++i) predicates.push_back(ParsePredicate(lines));
 
   CheckString("end_variable", lines);
 
@@ -105,7 +102,8 @@ vector<int> ParseMutexGroup(const Facts &facts, queue<std::string> &lines) {
   std::vector<int> group;
   group.reserve(n);
 
-  for (int i=0; i<n; ++i) { auto var_value = ParseVarValue(lines);
+  for (int i = 0; i < n; ++i) {
+    auto var_value = ParseVarValue(lines);
     int f = facts.Fact(var_value.first, var_value.second);
     group.push_back(f);
   }
@@ -121,8 +119,7 @@ vector<int> ParseInitial(const Facts &facts, queue<string> &lines) {
   int n = facts.n_variables();
   vector<int> initial(n);
 
-  for (int i=0; i<n; ++i)
-    initial[i] = ParseN(lines);
+  for (int i = 0; i < n; ++i) initial[i] = ParseN(lines);
 
   CheckString("end_state", lines);
 
@@ -136,8 +133,7 @@ vector<pair<int, int> > ParseGoal(queue<string> &lines) {
   vector<pair<int, int> > goal;
   goal.reserve(n);
 
-  for (int i=0; i<n; ++i)
-    goal.push_back(ParseVarValue(lines));
+  for (int i = 0; i < n; ++i) goal.push_back(ParseVarValue(lines));
 
   CheckString("end_goal", lines);
 
@@ -150,8 +146,7 @@ void ParsePrecondition(queue<string> &lines,
   int n = ParseN(lines);
   precondition.reserve(n);
 
-  for (int i=0; i<n; ++i)
-    precondition.push_back(ParseVarValue(lines));
+  for (int i = 0; i < n; ++i) precondition.push_back(ParseVarValue(lines));
 }
 
 void ParseEffect(queue<string> &lines, vector<pair<int, int> > &precondition,
@@ -165,7 +160,7 @@ void ParseEffect(queue<string> &lines, vector<pair<int, int> > &precondition,
   effect.reserve(n);
   string buffer;
 
-  for (int i=0; i<n; ++i) {
+  for (int i = 0; i < n; ++i) {
     std::istringstream line_separater(lines.front());
     lines.pop();
     std::getline(line_separater, buffer, ' ');
@@ -173,7 +168,7 @@ void ParseEffect(queue<string> &lines, vector<pair<int, int> > &precondition,
 
     if (n_ce > 0) effect_conditions.push_back(vector<pair<int, int> >());
 
-    for (int j=0; j<n_ce; ++j) {
+    for (int j = 0; j < n_ce; ++j) {
       std::getline(line_separater, buffer, ' ');
       int var = std::stoi(buffer);
       std::getline(line_separater, buffer, ' ');
@@ -186,7 +181,11 @@ void ParseEffect(queue<string> &lines, vector<pair<int, int> > &precondition,
     std::getline(line_separater, buffer, ' ');
     int value = std::stoi(buffer);
 
-    if (value != -1) precondition.push_back(std::make_pair(var, value));
+    if (value != -1) {
+      auto p = std::make_pair(var, value);
+      auto result = std::find(precondition.begin(), precondition.end(), p);
+      if (result == precondition.end()) precondition.push_back(p);
+    }
 
     std::getline(line_separater, buffer, ' ');
     value = std::stoi(buffer);
@@ -222,4 +221,4 @@ void ParseAxiom(queue<string> &lines) {
   throw std::runtime_error(kAxiomNotSupported);
 }
 
-} // namespace pplanner
+}  // namespace pplanner

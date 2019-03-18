@@ -38,7 +38,7 @@ void SetPossibleAchievers(const Landmark &psi,
 
   if (psi_id == -1) return;
 
-  for (int i=0, n=psi.size(); i<n; ++i) {
+  for (int i = 0, n = psi.size(); i < n; ++i) {
     int f = problem->Fact(psi.VarValue(i));
 
     for (auto o : r_problem->EffectMap(f)) {
@@ -59,7 +59,7 @@ void RRPG(const Landmark &psi, shared_ptr<const SASPlus> problem,
 
   std::fill(black_list.begin(), black_list.end(), false);
 
-  for (int i=0, n=psi.size(); i<n; ++i) {
+  for (int i = 0, n = psi.size(); i < n; ++i) {
     int f = problem->Fact(psi.VarValue(i));
 
     for (auto o : r_problem->EffectMap(f)) {
@@ -68,8 +68,7 @@ void RRPG(const Landmark &psi, shared_ptr<const SASPlus> problem,
       } else {
         int a = r_problem->ActionId(o);
 
-        for (auto p : r_problem->IdToActions(a))
-          black_list[p] = true;
+        for (auto p : r_problem->IdToActions(a)) black_list[p] = true;
       }
     }
   }
@@ -103,13 +102,12 @@ vector<pair<int, int> > ExtendedPreconditions(const Landmark &psi,
     vector<pair<int, int> > conditional_effects;
     problem->CopyConditionalEffects(action, conditional_effects);
 
-    for (int i=0, n=effect_conditions.size(); i<n; ++i) {
+    for (int i = 0, n = effect_conditions.size(); i < n; ++i) {
       auto e = conditional_effects[i];
 
-      for (int j=0, m=psi.size(); j<m; ++j) {
+      for (int j = 0, m = psi.size(); j < m; ++j) {
         if (psi.Var(j) == e.first && psi.Value(j) == e.second) {
-          for (auto p : effect_conditions[i])
-            precondition.push_back(p);
+          for (auto p : effect_conditions[i]) precondition.push_back(p);
 
           break;
         }
@@ -120,8 +118,7 @@ vector<pair<int, int> > ExtendedPreconditions(const Landmark &psi,
   // Add the initial assignment of a variable in psi to the precondition
   // if the variable takes only two values and initialy takes different value
   // from that of psi, and the action has an effect on the variable.
-  for (auto p : precondition)
-    has_precondition[p.first] = true;
+  for (auto p : precondition) has_precondition[p.first] = true;
 
   auto iter = problem->EffectVarsBegin(action);
   auto end = problem->EffectVarsEnd(action);
@@ -131,7 +128,7 @@ vector<pair<int, int> > ExtendedPreconditions(const Landmark &psi,
     int var = *iter;
 
     if (!has_precondition[var] && problem->VarRange(var) == 2)
-      for (int i=0, n=psi.size(); i<n; ++i)
+      for (int i = 0, n = psi.size(); i < n; ++i)
         if (psi.Var(i) == var && psi.Value(i) != initial[var])
           precondition.push_back(make_pair(var, initial[var]));
   }
@@ -156,7 +153,7 @@ pair_map PreShared(const Landmark &psi, shared_ptr<const SASPlus> problem,
 
   int n = achievers.size();
 
-  for (int i=1; i<n; ++i)
+  for (int i = 1; i < n; ++i)
     for (auto p : ExtendedPreconditions(psi, problem, achievers[i]))
       if (pre_shared.find(p) != pre_shared.end()) ++pre_shared[p];
 
@@ -173,8 +170,7 @@ pair_map PreShared(const Landmark &psi, shared_ptr<const SASPlus> problem,
 }
 
 unordered_map<string, Landmark> PreDisj(
-    const Landmark &psi,
-    shared_ptr<const SASPlus> problem,
+    const Landmark &psi, shared_ptr<const SASPlus> problem,
     shared_ptr<const LandmarkGraph> graph,
     unordered_map<string, int> &candidate_counts) {
   unordered_map<string, Landmark> pre_disj;
@@ -217,11 +213,11 @@ unordered_map<string, Landmark> PreDisj(
 }
 
 void RemoveNodesByRRPG(shared_ptr<const SASPlus> &problem,
-                       shared_ptr<const RPG> rrpg,
-                       int var, int goal_value, shared_ptr<DTG> dtg) {
+                       shared_ptr<const RPG> rrpg, int var, int goal_value,
+                       shared_ptr<DTG> dtg) {
   dtg->RecoverSoftDelete();
 
-  for (int i=0, m=problem->VarRange(var); i<m; ++i) {
+  for (int i = 0, m = problem->VarRange(var); i < m; ++i) {
     if (i == goal_value) continue;
     int f = problem->Fact(var, i);
     if (!rrpg->IsIn(f)) dtg->SoftRemoveNode(i);
@@ -229,13 +225,12 @@ void RemoveNodesByRRPG(shared_ptr<const SASPlus> &problem,
 }
 
 void PreLookAhead(shared_ptr<const SASPlus> &problem,
-                  shared_ptr<const RPG> rrpg,
-                  int var, int start, int goal, shared_ptr<DTG> dtg,
-                  vector<int> &pre_lookahead) {
+                  shared_ptr<const RPG> rrpg, int var, int start, int goal,
+                  shared_ptr<DTG> dtg, vector<int> &pre_lookahead) {
   pre_lookahead.clear();
   RemoveNodesByRRPG(problem, rrpg, var, goal, dtg);
 
-  for (int i=0, n=problem->VarRange(var); i<n; ++i) {
+  for (int i = 0, n = problem->VarRange(var); i < n; ++i) {
     if (i == goal) continue;
     if (!dtg->IsConnected(start, goal, i)) pre_lookahead.push_back(i);
   }
@@ -258,7 +253,7 @@ void AddLandmarkAndOrdering(Landmark &phi, int term_id,
 
 bool HaveSameOperator(const Landmark &psi, shared_ptr<const SASPlus> problem,
                       shared_ptr<const RelaxedSASPlus> r_problem, int f) {
-  for (int i=0, n=psi.size(); i<n; ++i) {
+  for (int i = 0, n = psi.size(); i < n; ++i) {
     int f_v = problem->Fact(psi.VarValue(i));
 
     for (auto o_v : r_problem->EffectMap(f_v))
@@ -269,19 +264,17 @@ bool HaveSameOperator(const Landmark &psi, shared_ptr<const SASPlus> problem,
   return false;
 }
 
-void ExtendPotential(
-    const Landmark &psi,
-    shared_ptr<const SASPlus> problem,
-    shared_ptr<const RelaxedSASPlus> r_problem,
-    shared_ptr<const RPG> rrpg,
-    shared_ptr<const LandmarkGraph> graph,
-    unordered_map<int, pair_set> &potential_orderings) {
+void ExtendPotential(const Landmark &psi, shared_ptr<const SASPlus> problem,
+                     shared_ptr<const RelaxedSASPlus> r_problem,
+                     shared_ptr<const RPG> rrpg,
+                     shared_ptr<const LandmarkGraph> graph,
+                     unordered_map<int, pair_set> &potential_orderings) {
   int psi_id = graph->ToId(psi);
 
   if (psi_id == -1) return;
 
-  for (int i=0, n=problem->n_variables(); i<n; ++i) {
-    for (int j=0, m=problem->VarRange(i); j<m; ++j) {
+  for (int i = 0, n = problem->n_variables(); i < n; ++i) {
+    for (int j = 0, m = problem->VarRange(i); j < m; ++j) {
       int f = problem->Fact(i, j);
       if (rrpg->IsIn(f)) continue;
       if (HaveSameOperator(psi, problem, r_problem, f)) continue;
@@ -309,8 +302,7 @@ void AddFurtherOrderings(
 
 void IdentifyLandmarks(shared_ptr<const SASPlus> problem,
                        shared_ptr<const RelaxedSASPlus> r_problem,
-                       shared_ptr<LandmarkGraph> graph,
-                       bool use_rpg_table) {
+                       shared_ptr<LandmarkGraph> graph, bool use_rpg_table) {
   auto initial = problem->initial();
   vector<int> initial_facts;
   StateToFactVector(*problem, initial, initial_facts);
@@ -381,11 +373,10 @@ void IdentifyLandmarks(shared_ptr<const SASPlus> problem,
 
   AddFurtherOrderings(potential_orderings, graph);
 
-  std::cout << "Discovered " << graph->n_landmarks()
-            << " landmarks, of which " << graph->n_disjunctive()
-            << " are disjunctive" << std::endl;
+  std::cout << "Discovered " << graph->n_landmarks() << " landmarks, of which "
+            << graph->n_disjunctive() << " are disjunctive" << std::endl;
   std::cout << n_initial << " initial landmarks, " << problem->n_goal_facts()
-            << " goal landmarks"  << std::endl;
+            << " goal landmarks" << std::endl;
 }
 
-} // namespace pplanner
+}  // namespace pplanner
