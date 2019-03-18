@@ -28,8 +28,8 @@ class FFAdd : public Evaluator {
       : unit_cost_(unit_cost),
         problem_(problem),
         r_problem_(std::make_shared<RelaxedSASPlus>(*problem, simplify)),
-        rpg_(std::make_unique<RPGTable>(problem, r_problem_, tie_break,
-                                        more_helpful)) {}
+        rpg_(std::make_unique<RPGTable>(problem, r_problem_, unit_cost,
+                                        tie_break, more_helpful)) {}
 
   ~FFAdd() {}
 

@@ -111,6 +111,62 @@ class TieBreakingPriorityQueue : public PriorityQueue<T, U> {
   std::map<T, V> buckets_;
 };
 
+template <typename U, typename V>
+class VectorPriorityQueue : public PriorityQueue<int, U> {
+ public:
+  VectorPriorityQueue() : size_(0), minimum_value_(-1), buckets_(100) {}
+
+  ~VectorPriorityQueue() {}
+
+  std::size_t size() const override { return size_; }
+
+  bool IsEmpty() const override { return size_ == 0; }
+
+  void Push(int priority, U entry) override {
+    if (priority < minimum_value_ || minimum_value_ == -1)
+      minimum_value_ = priority;
+
+    if (buckets_.size() <= priority) buckets_.resize(priority + 1);
+
+    buckets_[priority].Push(entry);
+    ++size_;
+  }
+
+  const int& MinimumValue() const override { return minimum_value_; }
+
+  U Pop() override {
+    auto result = buckets_[minimum_value_].Pop();
+    --size_;
+
+    if (buckets_[minimum_value_].IsEmpty()) {
+      if (size_ > 0) {
+        for (int i = minimum_value_ + 1, n = buckets_.size(); i < n; ++i) {
+          if (!buckets_[i].IsEmpty()) {
+            minimum_value_ = i;
+            break;
+          }
+        }
+      } else {
+        minimum_value_ = -1;
+      }
+    }
+
+    return result;
+  }
+
+  void Clear() override {
+    size_ = 0;
+    minimum_value_ = -1;
+
+    for (auto& bucket : buckets_) bucket.Clear();
+  }
+
+ private:
+  std::size_t size_;
+  int minimum_value_;
+  std::vector<V> buckets_;
+};
+
 template <typename T, typename U>
 std::unique_ptr<PriorityQueue<T, U> > PriorityQueueFactory(
     const std::string& tie_break) {
@@ -125,7 +181,22 @@ std::unique_ptr<PriorityQueue<T, U> > PriorityQueueFactory(
   if (tie_break == "ro")
     return std::make_unique<TieBreakingPriorityQueue<T, U, ROList<U> > >();
 
-  return std::make_unique<TieBreakingPriorityQueue<T, U, FIFOList<U> > >();
+  return std::make_unique<CppPriorityQueue<T, U> >();
+}
+
+template <typename U>
+std::unique_ptr<PriorityQueue<int, U> > VectorPriorityQueueFactory(
+    const std::string& tie_break) {
+  if (tie_break == "fifo")
+    return std::make_unique<VectorPriorityQueue<U, FIFOList<U> > >();
+
+  if (tie_break == "lifo")
+    return std::make_unique<VectorPriorityQueue<U, LIFOList<U> > >();
+
+  if (tie_break == "ro")
+    return std::make_unique<VectorPriorityQueue<U, ROList<U> > >();
+
+  return std::make_unique<VectorPriorityQueue<U, FIFOList<U> > >();
 }
 
 }  // namespace pplanner

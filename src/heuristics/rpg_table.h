@@ -22,7 +22,8 @@ class RPGTable : public RPG {
 
   RPGTable(std::shared_ptr<const SASPlus> problem,
            std::shared_ptr<const RelaxedSASPlus> r_problem,
-           std::string tie_break = "cpp", bool more_helpful = false)
+           bool unit_cost = false, std::string tie_break = "cpp",
+           bool more_helpful = false)
       : more_helpful_(more_helpful),
         goal_counter_(r_problem->n_goal_facts()),
         op_cost_(r_problem->n_actions(), -1),
@@ -34,9 +35,14 @@ class RPGTable : public RPG {
         is_applicable_(problem->n_actions(), false),
         is_disjunctive_goal_(problem->n_facts(), false),
         supporters_(problem->n_facts()),
-        q_(PriorityQueueFactory<int, int>(tie_break)),
+        q_(nullptr),
         problem_(problem),
-        r_problem_(r_problem) {}
+        r_problem_(r_problem) {
+    if (unit_cost)
+      q_ = VectorPriorityQueueFactory<int>(tie_break);
+    else
+      q_ = PriorityQueueFactory<int, int>(tie_break);
+  }
 
   ~RPGTable() {}
 

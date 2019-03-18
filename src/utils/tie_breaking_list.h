@@ -12,6 +12,8 @@ class FIFOList {
  public:
   FIFOList() {}
 
+  std::size_t size() const { return list_.size(); }
+
   bool IsEmpty() const { return list_.empty(); }
 
   void Push(const T& a) { list_.push_back(a); }
@@ -23,6 +25,8 @@ class FIFOList {
     return f;
   }
 
+  void Clear() { list_.clear(); }
+
  private:
   std::deque<T> list_;
 };
@@ -31,6 +35,8 @@ template <typename T>
 class LIFOList {
  public:
   LIFOList() {}
+
+  std::size_t size() const { return list_.size(); }
 
   bool IsEmpty() const { return list_.empty(); }
 
@@ -43,6 +49,8 @@ class LIFOList {
     return f;
   }
 
+  void Clear() { list_.clear(); }
+
  private:
   std::deque<T> list_;
 };
@@ -54,6 +62,8 @@ class ROList {
     std::random_device rng;
     engine_ = std::mt19937(rng());
   }
+
+  std::size_t size() const { return list_.size(); }
 
   bool IsEmpty() const { return list_.empty(); }
 
@@ -68,6 +78,8 @@ class ROList {
 
     return f;
   }
+
+  void Clear() { list_.clear(); }
 
  private:
   std::vector<T> list_;

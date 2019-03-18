@@ -33,7 +33,7 @@ class LandmarkCountBase {
         rpg_(nullptr),
         graph_(std::make_shared<LandmarkGraph>(problem)) {
     auto cpp = "cpp";
-    rpg_ = RPGFactory(problem, r_problem_, use_rpg_table, cpp, more_helpful);
+    rpg_ = RPGFactory(problem, r_problem_, use_rpg_table, unit_cost, cpp, more_helpful);
     IdentifyLandmarks(problem, r_problem_, graph_, use_rpg_table);
     AddOrderings(problem, r_problem_, graph_);
     HandleCycles(graph_);
