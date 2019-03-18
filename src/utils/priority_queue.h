@@ -188,6 +188,8 @@ std::unique_ptr<PriorityQueue<T, U> > PriorityQueueFactory(
 template <typename U>
 std::unique_ptr<PriorityQueue<int, U> > VectorPriorityQueueFactory(
     const std::string& tie_break) {
+  if (tie_break == "cpp") return std::make_unique<CppPriorityQueue<int, U> >();
+
   if (tie_break == "fifo")
     return std::make_unique<VectorPriorityQueue<U, FIFOList<U> > >();
 

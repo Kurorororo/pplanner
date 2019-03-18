@@ -1,6 +1,7 @@
 #ifndef RPG_TABLE_H_
 #define RPG_TABLE_H_
 
+#include <iostream>
 #include <string>
 #include <utility>
 #include <vector>
