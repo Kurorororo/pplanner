@@ -2,6 +2,7 @@
 
 #include "sas_plus/facts.h"
 
+#include <algorithm>
 #include <sstream>
 
 using std::pair;
