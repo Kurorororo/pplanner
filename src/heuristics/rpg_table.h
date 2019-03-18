@@ -15,7 +15,8 @@ namespace pplanner {
 class RPGTable : public RPG {
  public:
   RPGTable()
-      : more_helpful_(false),
+      : unit_cost_(false),
+        more_helpful_(false),
         q_(nullptr),
         problem_(nullptr),
         r_problem_(nullptr) {}
@@ -23,7 +24,8 @@ class RPGTable : public RPG {
   RPGTable(std::shared_ptr<const SASPlus> problem,
            std::shared_ptr<const RelaxedSASPlus> r_problem,
            std::string tie_break = "cpp", bool more_helpful = false)
-      : more_helpful_(more_helpful),
+      : unit_cost_(r_problem->unit_cost()),
+        more_helpful_(more_helpful),
         goal_counter_(r_problem->n_goal_facts()),
         op_cost_(r_problem->n_actions(), -1),
         precondition_counter_(r_problem->n_actions(), -1),
@@ -80,6 +82,7 @@ class RPGTable : public RPG {
 
   int DisjunctiveGeneralizedDijkstra(const std::vector<int> &state);
 
+  bool unit_cost_;
   bool more_helpful_;
   int goal_counter_;
   std::vector<int> op_cost_;

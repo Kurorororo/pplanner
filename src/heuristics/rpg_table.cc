@@ -22,7 +22,7 @@ int RPGTable::PlanCost(const vector<int> &state, unordered_set<int> &helpful) {
   int h = 0;
 
   for (int i = 0, n = plan_set_.size(); i < n; ++i) {
-    if (plan_set_[i]) h += problem_->ActionCost(i);
+    if (plan_set_[i]) h += unit_cost_ ? 1 : problem_->ActionCost(i);
   }
 
   return h;

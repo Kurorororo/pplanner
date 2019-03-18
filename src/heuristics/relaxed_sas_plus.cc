@@ -32,7 +32,7 @@ void RelaxedSASPlus::InitActions(std::shared_ptr<const SASPlus> problem,
       precondition.push_back(f);
     }
 
-    int cost = 1 ? problem->ActionCost(i) : unit_cost;
+    int cost = unit_cost ? 1 : problem->ActionCost(i);
     int size = precondition.size();
 
     problem->CopyEffect(i, pair_effect);
