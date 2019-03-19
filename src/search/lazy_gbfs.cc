@@ -53,7 +53,7 @@ void LazyGBFS::Init(const boost::property_tree::ptree &pt) {
   }
 
   auto open_list_option = pt.get_child("open_list");
-  open_list_ = OpenListFactory(open_list_option);
+  open_list_ = OpenListFactory<std::pair<int, int> >(open_list_option);
 
   if (auto ram = pt.get_optional<size_t>("ram"))
     graph_->ReserveByRAMSize(ram.get());
@@ -70,28 +70,47 @@ int LazyGBFS::Search() {
   vector<int> values;
   unordered_set<int> preferred;
 
-  int h = Evaluate(state, node, values);
+  generator_->Generate(state, applicable);
+  int h = Evaluate(state, node, applicable, values, preferred);
+  ++evaluated_;
+  ++expanded_;
   std::cout << "Initial heuristic value: " << h << std::endl;
-  open_list_->Push(values, node, true);
+
+  for (auto o : applicable) {
+    bool is_preferred = use_preferred_ && preferred.find(o) != preferred.end();
+    open_list_->Push(values, std::make_pair(node, o), is_preferred);
+
+    if (is_preferred) {
+      is_preferred_action_[o] = true;
+      ++n_preferreds_;
+    }
+
+    ++n_branching_;
+  }
+
   int best_h = -1;
 
   while (!open_list_->IsEmpty()) {
-    int node = open_list_->Pop();
+    auto p = open_list_->Pop();
+    int parent = p.first;
+    int action = p.second;
 
-    if (!graph_->CloseIfNot(node)) continue;
+    graph_->Expand(parent, state);
+    problem_->ApplyEffect(action, state, child);
+    int node = graph_->GenerateAndCloseNode(action, parent, state, child);
 
-    graph_->Expand(node, state);
+    if (node == -1) continue;
 
-    if (problem_->IsGoal(state)) return node;
+    if (problem_->IsGoal(child)) return node;
 
-    generator_->Generate(state, applicable);
+    generator_->Generate(child, applicable);
 
     if (applicable.empty()) {
       ++dead_ends_;
       continue;
     }
 
-    int h = Evaluate(state, node, applicable, values, preferred);
+    int h = Evaluate(child, node, applicable, values, preferred);
     ++evaluated_;
 
     if (h == -1) {
@@ -111,16 +130,10 @@ int LazyGBFS::Search() {
     ++expanded_;
 
     for (auto o : applicable) {
-      problem_->ApplyEffect(o, state, child);
-
       bool is_preferred =
           use_preferred_ && preferred.find(o) != preferred.end();
-
-      int child_node = graph_->GenerateNodeIfNotClosed(o, node, state, child);
-      if (child_node == -1) continue;
+      open_list_->Push(values, std::make_pair(node, o), is_preferred);
       ++generated_;
-
-      open_list_->Push(values, child_node, is_preferred);
 
       if (is_preferred) {
         is_preferred_action_[o] = true;

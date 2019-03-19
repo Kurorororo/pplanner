@@ -5,6 +5,7 @@
 #include <random>
 #include <string>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 #include <boost/property_tree/ptree.hpp>
@@ -80,7 +81,7 @@ class LazyGBFS : public Search {
   std::shared_ptr<Evaluator> preferring_;
   std::unique_ptr<SuccessorGenerator> generator_;
   std::shared_ptr<SearchGraph> graph_;
-  std::unique_ptr<OpenList<int> > open_list_;
+  std::unique_ptr<OpenList<std::pair<int, int> > > open_list_;
 };
 
 }  // namespace pplanner

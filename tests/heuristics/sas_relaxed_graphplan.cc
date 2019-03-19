@@ -7,8 +7,8 @@
 
 #include <boost/program_options.hpp>
 
-#include "sas_plus.h"
 #include "heuristics/relaxed_sas_plus.h"
+#include "sas_plus.h"
 #include "utils/file_utils.h"
 
 using namespace pplanner;
@@ -16,15 +16,14 @@ using namespace pplanner;
 int main(int argc, char *argv[]) {
   namespace po = boost::program_options;
   po::options_description opt("Options");
-  opt.add_options()
-    ("help,h", "help")
-    ("file,f", po::value<std::string>(), "input sas+ file name")
-    ("simplify,s", "simplify unary operators");
+  opt.add_options()("help,h", "help")("file,f", po::value<std::string>(),
+                                      "input sas+ file name")(
+      "simplify,s", "simplify unary operators");
   po::variables_map vm;
 
   try {
     po::store(po::parse_command_line(argc, argv, opt), vm);
-  } catch(const po::error_with_option_name& e) {
+  } catch (const po::error_with_option_name &e) {
     std::cout << e.what() << std::endl;
   }
 
@@ -42,7 +41,7 @@ int main(int argc, char *argv[]) {
   auto sas = std::make_shared<SASPlus>();
   sas->InitFromLines(lines);
 
-  auto r_sas = std::make_shared<RelaxedSASPlus>(*sas, simplify);
+  auto r_sas = std::make_shared<RelaxedSASPlus>(sas, simplify);
   HNRPG rpg(r_sas);
   std::unordered_set<int> preferred;
 
@@ -51,7 +50,7 @@ int main(int argc, char *argv[]) {
   StateToFactVector(*sas, initial, initial_facts);
 
   auto result = rpg.Plan(initial_facts, preferred);
-  int result_cost = rpg.PlanCost(initial_facts, preferred, false);
+  int result_cost = rpg.PlanCost(initial_facts, preferred);
   std::cout << "plan" << std::endl;
   int cost = 0;
 
@@ -78,8 +77,7 @@ int main(int argc, char *argv[]) {
 
   std::cout << "preferred" << std::endl;
 
-  for (auto o : preferred)
-    std::cout << sas->ActionName(o) << std::endl;
+  for (auto o : preferred) std::cout << sas->ActionName(o) << std::endl;
 
   std::cout << std::endl;
 
@@ -87,7 +85,7 @@ int main(int argc, char *argv[]) {
   std::vector<int> facts(sas->n_facts(), 0);
   std::cout << "ini: ";
 
-  for (int i=0, n=initial.size(); i<n; ++i) {
+  for (int i = 0, n = initial.size(); i < n; ++i) {
     int f = sas->Fact(i, initial[i]);
     std::cout << "fact" << f << "|";
     std::cout << "var" << i << "=" << initial[i] << ", ";
@@ -106,15 +104,14 @@ int main(int argc, char *argv[]) {
 
     for (auto p : precondition) {
       int f = sas->Fact(p.first, p.second);
-      std::cout << "fact" << f  << "|";
+      std::cout << "fact" << f << "|";
       std::cout << "var" << p.first << "=" << p.second << ", ";
 
       if (facts[f] == 0) {
         std::cout << std::endl << std::endl;
-        std::cerr << "fact" << f << "|var"
-                  << p.first << "="
-                  << p.second << " is not satisfied for action "
-                  << o << " " << sas->ActionName(o) << std::endl;
+        std::cerr << "fact" << f << "|var" << p.first << "=" << p.second
+                  << " is not satisfied for action " << o << " "
+                  << sas->ActionName(o) << std::endl;
         exit(1);
       }
     }
@@ -141,7 +138,7 @@ int main(int argc, char *argv[]) {
       std::vector<std::pair<int, int> > conditional_effects;
       sas->CopyConditionalEffects(o, conditional_effects);
 
-      for (int j=0, m=effect_conditions.size(); j<m; ++j) {
+      for (int j = 0, m = effect_conditions.size(); j < m; ++j) {
         bool all = true;
         std::cout << "condition: ";
 
@@ -174,7 +171,6 @@ int main(int argc, char *argv[]) {
   }
 
   for (auto g : r_sas->goal()) {
-
     if (facts[g] == 0) {
       std::cerr << "goal fact " << g << " is not satisfied" << std::endl;
       exit(1);
