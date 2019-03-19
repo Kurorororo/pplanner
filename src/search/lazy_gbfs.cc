@@ -73,7 +73,6 @@ int LazyGBFS::Search() {
   generator_->Generate(state, applicable);
   int h = Evaluate(state, node, applicable, values, preferred);
   ++evaluated_;
-  ++expanded_;
   std::cout << "Initial heuristic value: " << h << std::endl;
 
   for (auto o : applicable) {
