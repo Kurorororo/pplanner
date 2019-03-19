@@ -183,10 +183,10 @@ vector<int> Mrw13::Plan() {
                              tmp_n_successors_.end());
       }
 
-      std::cout << "New best heuristic value : " << h << std::endl;
-      std::cout << "#walks " << walks << std::endl;
-      std::cout << "[" << evaluated_ << " evaluated, " << expanded_
-                << " expanded]" << std::endl;
+      // std::cout << "New best heuristic value : " << h << std::endl;
+      // std::cout << "#walks " << walks << std::endl;
+      // std::cout << "[" << evaluated_ << " evaluated, " << expanded_
+      //          << " expanded]" << std::endl;
     } else {
       Feedback(arg_rl, 0, cost, value_rls_, cost_rls_);
     }
@@ -220,7 +220,7 @@ vector<int> Mrw13::Plan() {
       std::fill(q1_.begin(), q1_.end(), 1.0);
       std::fill(qw_.begin(), qw_.end(), 1.0);
 
-      std::cout << "restart new tg=" << tg_ << std::endl;
+      // std::cout << "restart new tg=" << tg_ << std::endl;
     }
   }
 }
