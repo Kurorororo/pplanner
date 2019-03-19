@@ -14,8 +14,7 @@ queue<string> FileToLines(const string &filename) {
   std::string buffer;
   std::queue<std::string> lines;
 
-  while (std::getline(input, buffer))
-    lines.push(buffer);
+  while (std::getline(input, buffer)) lines.push(buffer);
 
   input.close();
 
@@ -30,7 +29,7 @@ void WritePlan(const SASPlus &sas, const std::vector<int> &plan) {
   for (auto a : plan) {
     auto name = sas.ActionName(a);
     int cost = sas.ActionCost(a);
-    std::cout << name  << "(" << cost << ")" << std::endl;
+    std::cout << name << "(" << cost << ")" << std::endl;
     sas_plan << "(" << name << ")" << std::endl;
     total_cost += cost;
   }
@@ -46,4 +45,4 @@ void WritePlan(const SASPlus &sas, const std::vector<int> &plan) {
   std::cout << "Plan cost: " << total_cost << std::endl;
 }
 
-} // namespace pplanner
+}  // namespace pplanner
