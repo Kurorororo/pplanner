@@ -1,5 +1,7 @@
 #include "mrw13.h"
 
+#include <cmath>
+
 #include <array>
 #include <iostream>
 #include <utility>
@@ -438,6 +440,16 @@ void Mrw13::DumpStatistics() const {
       static_cast<double>(n_preferreds_) / static_cast<double>(n_branching_);
   std::cout << "Preferred ratio " << p_ratio << std::endl;
   std::cout << "Restarts " << n_restarts_ << std::endl;
+
+  double cumsum = 0.0;
+
+  for (auto q : q1_) cumsum += q;
+
+  double entropy = 0.0;
+
+  for (auto q : q1_) entropy += -1.0 * q / cumsum * std::log2(q / cumsum);
+
+  std::cout << "Entropy " << entropy << std::endl;
 
   if (measure_ && solved_) DumpPreferringMetrics();
 }
