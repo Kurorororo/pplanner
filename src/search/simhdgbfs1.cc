@@ -232,7 +232,7 @@ int SIMHDGBFS1::Expand(int node, vector<int> &state) {
 
   int node_to_keep = -1;
 
-  if (take_ == 0 && (NoNode() || value_array[arg_min] < MinimumValues()))
+  if (take_ == 0 && (NoNode() || value_array[arg_min] < MinimumValue()))
     node_to_keep = arg_min;
 
   if (take_ == 1 && value_array[arg_min] < best_values_[rank_])
@@ -255,7 +255,7 @@ int SIMHDGBFS1::Expand(int node, vector<int> &state) {
     }
 
     if (to_rank != -1 && to_rank != rank_) {
-      if (i == arg_min && (no_node || values < MinimumValues())) ++n_sent_next_;
+      if (i == arg_min && (no_node || values < MinimumValue())) ++n_sent_next_;
 
       unsigned char *buffer = ExtendOutgoingBuffer(
           to_rank, values.size() * sizeof(int) + node_size());
@@ -267,7 +267,7 @@ int SIMHDGBFS1::Expand(int node, vector<int> &state) {
     }
 
     if (i == node_to_keep || to_rank == rank_) {
-      if (i == arg_min && (no_node || values < MinimumValues()))
+      if (i == arg_min && (no_node || values < MinimumValue()))
         ++n_pushed_next_;
 
       int child_node = graphs_[rank_]->GenerateEvaluatedNode(

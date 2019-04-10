@@ -25,38 +25,38 @@ namespace pplanner {
 class SBHDGBFS : public Search {
  public:
   SBHDGBFS(std::shared_ptr<const SASPlus> problem,
-         const boost::property_tree::ptree &pt)
-    : use_preferred_(false),
-      runup_(false),
-      limit_expansion_(false),
-      use_sss_(false),
-      max_expansion_(0),
-      generated_(0),
-      expanded_(0),
-      evaluated_(0),
-      dead_ends_(0),
-      n_preferred_evaluated_(0),
-      n_branching_(0),
-      n_preferreds_(0),
-      n_sent_(0),
-      n_sent_or_generated_(0),
-      n_received_(0),
-      best_h_(-1),
-      initial_rank_(0),
-      world_size_(2),
-      rank_(0),
-      n_evaluators_(0),
-      mpi_buffer_(nullptr),
-      tmp_state_(problem->n_variables()),
-      problem_(problem),
-      preferring_(nullptr),
-      generator_(std::unique_ptr<SuccessorGenerator>(
+           const boost::property_tree::ptree &pt)
+      : use_preferred_(false),
+        runup_(false),
+        limit_expansion_(false),
+        use_sss_(false),
+        max_expansion_(0),
+        generated_(0),
+        expanded_(0),
+        evaluated_(0),
+        dead_ends_(0),
+        n_preferred_evaluated_(0),
+        n_branching_(0),
+        n_preferreds_(0),
+        n_sent_(0),
+        n_sent_or_generated_(0),
+        n_received_(0),
+        best_h_(-1),
+        initial_rank_(0),
+        world_size_(2),
+        rank_(0),
+        n_evaluators_(0),
+        mpi_buffer_(nullptr),
+        tmp_state_(problem->n_variables()),
+        problem_(problem),
+        preferring_(nullptr),
+        generator_(std::unique_ptr<SuccessorGenerator>(
             new SuccessorGenerator(problem))),
-      graph_(nullptr),
-      open_list_(nullptr),
-      z_hash_(nullptr),
-      manager_(std::make_shared<SymmetryManager>(problem)),
-      sss_aproximater_(nullptr) {
+        graph_(nullptr),
+        open_list_(nullptr),
+        z_hash_(nullptr),
+        manager_(std::make_shared<SymmetryManager>(problem)),
+        sss_aproximater_(nullptr) {
     Init(pt);
   }
 
@@ -110,9 +110,9 @@ class SBHDGBFS : public Search {
 
   std::shared_ptr<DistributedSearchGraph> graph() { return graph_; }
 
-  std::vector<int> InitialEvaluate(bool eager_dd=false);
+  std::vector<int> InitialEvaluate(bool eager_dd = false);
 
-  int Expand(int node, std::vector<int> &state, bool eager_dd=false);
+  int Expand(int node, std::vector<int> &state, bool eager_dd = false);
 
   int Evaluate(const std::vector<int> &state, int node,
                std::vector<int> &values);
@@ -123,25 +123,22 @@ class SBHDGBFS : public Search {
 
   bool NoNode() const { return open_list_->IsEmpty(); }
 
-  int MinimumValue(int i) const { return open_list_->MinimumValue(i); }
+  const std::vector<int> &MinimumValue() const {
+    return open_list_->MinimumValue();
+  }
 
   std::size_t n_open_nodes() const { return open_list_->size(); }
 
-  int IndependentExpand(int node, std::vector<int> &state, bool eager_dd=false);
+  int IndependentExpand(int node, std::vector<int> &state,
+                        bool eager_dd = false);
 
-  int Distribute(bool eager_dd=false);
+  int Distribute(bool eager_dd = false);
 
-  unsigned char* IncomingBuffer() {
-    return incoming_buffer_.data();
-  }
+  unsigned char *IncomingBuffer() { return incoming_buffer_.data(); }
 
-  void ResizeIncomingBuffer(std::size_t size) {
-    incoming_buffer_.resize(size);
-  }
+  void ResizeIncomingBuffer(std::size_t size) { incoming_buffer_.resize(size); }
 
-  unsigned char* OutgoingBuffer(int i) {
-    return outgoing_buffers_[i].data();
-  }
+  unsigned char *OutgoingBuffer(int i) { return outgoing_buffers_[i].data(); }
 
   std::size_t OutgoingBufferSize(int i) const {
     return outgoing_buffers_[i].size();
@@ -151,7 +148,7 @@ class SBHDGBFS : public Search {
     return outgoing_buffers_[i].empty();
   }
 
-  unsigned char* ExtendOutgoingBuffer(int i, std::size_t size) {
+  unsigned char *ExtendOutgoingBuffer(int i, std::size_t size) {
     std::size_t index = outgoing_buffers_[i].size();
     outgoing_buffers_[i].resize(index + size);
 
@@ -219,13 +216,13 @@ class SBHDGBFS : public Search {
   std::shared_ptr<Evaluator> preferring_;
   std::unique_ptr<SuccessorGenerator> generator_;
   std::shared_ptr<DistributedSearchGraph> graph_;
-  std::unique_ptr<OpenList<int> > open_list_;
+  std::unique_ptr<OpenList<> > open_list_;
   std::shared_ptr<DistributionHash> z_hash_;
   std::shared_ptr<SymmetryManager> manager_;
   std::vector<uint32_t> states_;
   std::unique_ptr<SSSApproximater> sss_aproximater_;
 };
 
-} // namespace pplanner
+}  // namespace pplanner
 
-#endif // SBHDGBFS_H_
+#endif  // SBHDGBFS_H_

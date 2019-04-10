@@ -27,6 +27,7 @@
 #include "search_graph/state_packer.h"
 #include "search_node.h"
 #include "successor_generator.h"
+#include "utils/priority_queue.h"
 
 namespace pplanner {
 
@@ -45,7 +46,10 @@ class MCSIndependent : public Search {
         problem_(problem),
         generator_(std::make_unique<SuccessorGenerator>(problem)),
         packer_(std::make_unique<StatePacker>(problem)),
-        hash_(std::make_unique<ZobristHash>(problem, 4166245435)) {
+        hash_(std::make_unique<ZobristHash>(problem, 4166245435)),
+        foci_(PriorityQueueFactory<std::vector<int>,
+                                   std::shared_ptr<IndependentContext> >(
+            "fifo")) {
     Init(pt);
   }
 
@@ -60,23 +64,23 @@ class MCSIndependent : public Search {
   void DumpStatistics() const override;
 
  private:
-  SearchNodeWithNext *Search();
+  SearchNode *Search();
 
   void InitialEvaluate();
 
   void Expand(int i);
 
-  int Evaluate(int i, const std::vector<int> &state, SearchNodeWithNext *node,
+  int Evaluate(int i, const std::vector<int> &state, SearchNode *node,
                std::vector<int> &values);
 
   int IncrementNFoci();
 
   int DecrementNFoci();
 
-  std::shared_ptr<IndependentContext<SearchNodeWithNext *> > TryPopFocus(
-      std::shared_ptr<IndependentContext<SearchNodeWithNext *> > focus) {
+  std::shared_ptr<IndependentContext> TryPopFocus(
+      std::shared_ptr<IndependentContext> focus) {
     if (open_mtx_.try_lock()) {
-      if (!foci_->IsEmpty() && foci_->MinimumValues() < focus->Priority()) {
+      if (!foci_->IsEmpty() && foci_->MinimumValue() < focus->Priority()) {
         auto tmp_focus = foci_->Pop();
         foci_->Push(focus->Priority(), focus);
         focus = tmp_focus;
@@ -88,7 +92,7 @@ class MCSIndependent : public Search {
     return focus;
   }
 
-  std::shared_ptr<IndependentContext<SearchNodeWithNext *> > LockedPopFocus() {
+  std::shared_ptr<IndependentContext> LockedPopFocus() {
     std::lock_guard<std::mutex> lock(open_mtx_);
 
     if (foci_->IsEmpty()) return nullptr;
@@ -96,30 +100,20 @@ class MCSIndependent : public Search {
     return foci_->Pop();
   }
 
-  std::shared_ptr<IndependentContext<SearchNodeWithNext *> >
-  LockedPopWorstFocus() {
-    std::lock_guard<std::mutex> lock(open_mtx_);
-
-    if (foci_->IsEmpty()) return nullptr;
-
-    return foci_->PopWorst();
-  }
-
-  void LockedPushFocus(
-      std::shared_ptr<IndependentContext<SearchNodeWithNext *> > focus) {
+  void LockedPushFocus(std::shared_ptr<IndependentContext> focus) {
     std::lock_guard<std::mutex> lock(open_mtx_);
 
     foci_->Push(focus->Priority(), focus);
   }
 
-  std::shared_ptr<IndependentContext<SearchNodeWithNext *> > CreateNewFocus(
-      const std::vector<int> &values, SearchNodeWithNext *node, bool is_pref) {
-    return std::make_shared<IndependentContext<SearchNodeWithNext *> >(
-        open_list_option_, values, node, is_pref);
+  std::shared_ptr<IndependentContext> CreateNewFocus(
+      const std::vector<int> &values, SearchNode *node, bool is_pref) {
+    return std::make_shared<IndependentContext>(open_list_option_, values, node,
+                                                is_pref);
   }
 
-  void WriteGoal(SearchNodeWithNext *goal) {
-    SearchNodeWithNext *expected = nullptr;
+  void WriteGoal(SearchNode *goal) {
+    SearchNode *expected = nullptr;
     goal_.compare_exchange_strong(expected, goal);
   }
 
@@ -150,7 +144,7 @@ class MCSIndependent : public Search {
   int generated_;
   int dead_ends_;
   std::atomic<int> n_foci_;
-  std::atomic<SearchNodeWithNext *> goal_;
+  std::atomic<SearchNode *> goal_;
   std::shared_ptr<const SASPlus> problem_;
   std::unique_ptr<SuccessorGenerator> generator_;
   std::unique_ptr<StatePacker> packer_;
@@ -159,8 +153,8 @@ class MCSIndependent : public Search {
   std::vector<std::shared_ptr<Evaluator> > preferring_;
   std::vector<std::vector<std::shared_ptr<Evaluator> > > evaluators_;
   boost::property_tree::ptree open_list_option_;
-  std::unique_ptr<FIFOOpenListImpl<
-      std::shared_ptr<IndependentContext<SearchNodeWithNext *> > > >
+  std::unique_ptr<
+      PriorityQueue<std::vector<int>, std::shared_ptr<IndependentContext> > >
       foci_;
   std::mutex open_mtx_;
   std::mutex stat_mtx_;

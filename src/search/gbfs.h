@@ -9,8 +9,8 @@
 
 #include <boost/property_tree/ptree.hpp>
 
-#include "evaluator.h"
 #include "dominance/lds.h"
+#include "evaluator.h"
 #include "open_list.h"
 #include "sas_plus.h"
 #include "sas_plus/strong_stubborn_sets.h"
@@ -24,33 +24,35 @@ class GBFS : public Search {
  public:
   GBFS(std::shared_ptr<const SASPlus> problem,
        const boost::property_tree::ptree &pt)
-    : use_preferred_(false),
-      exhaust_(false),
-      limit_expansion_(false),
-      use_sss_(false),
-      use_dominance_(false),
-      sss_checked_(false),
-      max_expansion_(0),
-      generated_(0),
-      expanded_(0),
-      evaluated_(0),
-      dead_ends_(0),
-      n_preferred_evaluated_(0),
-      n_branching_(0),
-      n_preferreds_(0),
-      n_pruned_(0),
-      n_pruning_disable_(1000),
-      n_plan_step_(-1),
-      n_d_pruned_(0),
-      min_pruning_ratio_(0.0),
-      problem_(problem),
-      preferring_(nullptr),
-      generator_(std::unique_ptr<SuccessorGenerator>(
+      : use_preferred_(false),
+        exhaust_(false),
+        limit_expansion_(false),
+        use_sss_(false),
+        use_dominance_(false),
+        sss_checked_(false),
+        max_expansion_(0),
+        generated_(0),
+        expanded_(0),
+        evaluated_(0),
+        dead_ends_(0),
+        n_preferred_evaluated_(0),
+        n_branching_(0),
+        n_preferreds_(0),
+        n_pruned_(0),
+        n_pruning_disable_(1000),
+        n_plan_step_(-1),
+        n_d_pruned_(0),
+        min_pruning_ratio_(0.0),
+        problem_(problem),
+        preferring_(nullptr),
+        generator_(std::unique_ptr<SuccessorGenerator>(
             new SuccessorGenerator(problem))),
-      graph_(nullptr),
-      open_list_(nullptr),
-      sss_aproximater_(nullptr),
-      lds_(nullptr) { Init(pt); }
+        graph_(nullptr),
+        open_list_(nullptr),
+        sss_aproximater_(nullptr),
+        lds_(nullptr) {
+    Init(pt);
+  }
 
   virtual ~GBFS() {}
 
@@ -107,11 +109,11 @@ class GBFS : public Search {
   std::shared_ptr<Evaluator> preferring_;
   std::unique_ptr<SuccessorGenerator> generator_;
   std::shared_ptr<SearchGraph> graph_;
-  std::unique_ptr<OpenList<int> > open_list_;
+  std::unique_ptr<OpenList<> > open_list_;
   std::unique_ptr<SSSApproximater> sss_aproximater_;
   std::unique_ptr<LDS> lds_;
 };
 
-} // namespace pplanner
+}  // namespace pplanner
 
-#endif // GBFS_H_
+#endif  // GBFS_H_

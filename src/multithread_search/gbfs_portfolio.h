@@ -103,7 +103,9 @@ class GBFSPortfolio : public Search {
   std::vector<std::vector<SearchNode *> > node_pool_;
   std::vector<std::shared_ptr<Evaluator> > preferring_;
   std::vector<std::vector<std::shared_ptr<Evaluator> > > evaluators_;
-  std::vector<std::shared_ptr<OpenList<SearchNodeWithNext *> > > open_lists_;
+  std::vector<
+      std::shared_ptr<OpenList<std::vector<int>, SearchNodeWithNext *> > >
+      open_lists_;
   std::vector<std::shared_ptr<ClosedList> > closed_lists_;
   std::unique_ptr<LockFreeClosedList> shared_closed_;
   std::mutex stat_mtx_;

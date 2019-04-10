@@ -54,7 +54,8 @@ void SBPDDSGBFS::CallbackOnReceiveNode(int source, const unsigned char *d,
 
   if (node != -1) {
     IncrementGenerated();
-    const uint32_t *packed = reinterpret_cast<const uint32_t*>(d + node_size());
+    const uint32_t *packed =
+        reinterpret_cast<const uint32_t *>(d + node_size());
     g->Unpack(packed, tmp_state);
     SavePackedState(packed);
     int h = Evaluate(tmp_state, node, values);
@@ -65,17 +66,16 @@ void SBPDDSGBFS::CallbackOnReceiveNode(int source, const unsigned char *d,
       return;
     }
 
-    if (no_node
-        || (steal_best_ && h < best_h())
-        || (steal_better_ && h < MinimumValue(0))) {
+    if (no_node || (steal_best_ && h < best_h()) ||
+        (steal_better_ && h < MinimumValue()[0])) {
       Push(values, node);
     } else {
       size_t h_size = values.size() * sizeof(int);
       unsigned char *b = ExtendOutgoingBuffer(source, node_size() + h_size);
       memcpy(b, values.data(), h_size);
       memcpy(new_d.data(), d, 3 * sizeof(int) + sizeof(uint32_t));
-      memcpy(new_d.data() + 3 * sizeof(int) + sizeof(uint32_t),
-             packed, g->block_size() * sizeof(uint32_t));
+      memcpy(new_d.data() + 3 * sizeof(int) + sizeof(uint32_t), packed,
+             g->block_size() * sizeof(uint32_t));
       g->BufferNode(node, new_d.data(), b + h_size);
     }
   }
@@ -86,8 +86,8 @@ void SBPDDSGBFS::RegainNodes() {
 
   int has_received = 0;
   MPI_Status status;
-  MPI_Iprobe(
-      MPI_ANY_SOURCE, kRegainTag, MPI_COMM_WORLD, &has_received, &status);
+  MPI_Iprobe(MPI_ANY_SOURCE, kRegainTag, MPI_COMM_WORLD, &has_received,
+             &status);
   size_t unit_size = n_evaluators() * sizeof(int) + node_size();
   auto g = graph();
 
@@ -101,12 +101,12 @@ void SBPDDSGBFS::RegainNodes() {
 
     size_t n_nodes = d_size / unit_size;
 
-    for (size_t i=0; i<n_nodes; ++i) {
-      int node = g->GenerateNodeFromBytes(
-          IncomingBuffer() + i * unit_size, values);
-      const uint32_t *packed = reinterpret_cast<const uint32_t*>(
-          IncomingBuffer() + i * unit_size + (n_evaluators() + 3) * sizeof(int)
-          + sizeof(uint32_t));
+    for (size_t i = 0; i < n_nodes; ++i) {
+      int node =
+          g->GenerateNodeFromBytes(IncomingBuffer() + i * unit_size, values);
+      const uint32_t *packed = reinterpret_cast<const uint32_t *>(
+          IncomingBuffer() + i * unit_size +
+          (n_evaluators() + 3) * sizeof(int) + sizeof(uint32_t));
       SavePackedState(packed);
       IncrementGenerated();
       g->SetH(node, values[0]);
@@ -114,9 +114,9 @@ void SBPDDSGBFS::RegainNodes() {
     }
 
     has_received = 0;
-    MPI_Iprobe(
-        MPI_ANY_SOURCE, kRegainTag, MPI_COMM_WORLD, &has_received, &status);
+    MPI_Iprobe(MPI_ANY_SOURCE, kRegainTag, MPI_COMM_WORLD, &has_received,
+               &status);
   }
 }
 
-} // namespace pplanner
+}  // namespace pplanner

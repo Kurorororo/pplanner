@@ -18,8 +18,8 @@ SearchNode* MergeableFocus::Pop() {
   for (int i = 0, n = open_lists_.size(); i < n; ++i) {
     if (open_lists_[i]->IsEmpty()) continue;
 
-    if (arg_min_ == -1 || open_lists_[i]->MinimumValues() < minimum_values_) {
-      minimum_values_ = ptr->MinimumValues();
+    if (arg_min_ == -1 || open_lists_[i]->MinimumValue() < minimum_values_) {
+      minimum_values_ = ptr->MinimumValue();
       arg_min_ = i;
     }
   }
@@ -32,7 +32,7 @@ void MergeableFocus::Merge(std::shared_ptr<MergeableFocus> focus) {
 
   if (focus->IsEmpty()) return;
 
-  if (IsEmpty() || focus->MinimumValues() < MinimumValues()) {
+  if (IsEmpty() || focus->MinimumValue() < MinimumValue()) {
     arg_min_ = open_lists_.size() + focus->arg_min_;
     minimum_values_ = focus->minimum_values_;
   }
@@ -41,5 +41,4 @@ void MergeableFocus::Merge(std::shared_ptr<MergeableFocus> focus) {
                      focus->open_lists_.end());
 }
 
-
-} // namespace pplanner
+}  // namespace pplanner

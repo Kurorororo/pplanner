@@ -45,7 +45,8 @@ void MultiGBFS::Init(const boost::property_tree::ptree& pt) {
     closed_exponent = closed_exponent_opt.get();
 
   auto open_list_option = pt.get_child("open_list");
-  open_list_ = OpenListFactory<SearchNodeWithNext*>(open_list_option);
+  open_list_ =
+      OpenListFactory<std::vector<int>, SearchNodeWithNext*>(open_list_option);
   closed_ = std::make_unique<LockFreeClosedList>(closed_exponent);
 
   if (auto opt = pt.get_optional<int>("n_threads")) n_threads_ = opt.get();

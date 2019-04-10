@@ -27,6 +27,7 @@
 #include "search_graph/state_packer.h"
 #include "search_node.h"
 #include "successor_generator.h"
+#include "utils/priority_queue.h"
 
 namespace pplanner {
 
@@ -45,7 +46,10 @@ class MultiFocusGBFS : public Search {
         problem_(problem),
         generator_(std::make_unique<SuccessorGenerator>(problem)),
         packer_(std::make_unique<StatePacker>(problem)),
-        hash_(std::make_unique<ZobristHash>(problem, 4166245435)) {
+        hash_(std::make_unique<ZobristHash>(problem, 4166245435)),
+        foci_(PriorityQueueFactory<
+              std::vector<int>, std::shared_ptr<Focus<SearchNodeWithNext *> > >(
+            "fifo")) {
     Init(pt);
   }
 
@@ -76,7 +80,7 @@ class MultiFocusGBFS : public Search {
   std::shared_ptr<Focus<SearchNodeWithNext *> > TryPopFocus(
       std::shared_ptr<Focus<SearchNodeWithNext *> > focus) {
     if (open_mtx_.try_lock()) {
-      if (!foci_->IsEmpty() && foci_->MinimumValues() < focus->Priority()) {
+      if (!foci_->IsEmpty() && foci_->MinimumValue() < focus->Priority()) {
         auto tmp_focus = foci_->Pop();
         foci_->Push(focus->Priority(), focus);
         focus = tmp_focus;
@@ -94,14 +98,6 @@ class MultiFocusGBFS : public Search {
     if (foci_->IsEmpty()) return nullptr;
 
     return foci_->Pop();
-  }
-
-  std::shared_ptr<Focus<SearchNodeWithNext *> > LockedPopWorstFocus() {
-    std::lock_guard<std::mutex> lock(open_mtx_);
-
-    if (foci_->IsEmpty()) return nullptr;
-
-    return foci_->PopWorst();
   }
 
   void LockedPushFocus(std::shared_ptr<Focus<SearchNodeWithNext *> > focus) {
@@ -158,8 +154,8 @@ class MultiFocusGBFS : public Search {
   std::vector<std::shared_ptr<Evaluator> > preferring_;
   std::vector<std::vector<std::shared_ptr<Evaluator> > > evaluators_;
   boost::property_tree::ptree open_list_option_;
-  std::unique_ptr<
-      FIFOOpenListImpl<std::shared_ptr<Focus<SearchNodeWithNext *> > > >
+  std::unique_ptr<PriorityQueue<
+      std::vector<int>, std::shared_ptr<Focus<SearchNodeWithNext *> > > >
       foci_;
   std::mutex open_mtx_;
   std::mutex stat_mtx_;

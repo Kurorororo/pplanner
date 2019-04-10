@@ -38,14 +38,14 @@ void GBFSPortfolio::InitHeuristics(int i,
   }
 
   if (all_fifo_ || i == 0) {
-    open_lists_[i] =
-        std::make_shared<SingleOpenList<SearchNodeWithNext*> >("fifo");
+    open_lists_[i] = std::make_shared<
+        SingleOpenList<std::vector<int>, SearchNodeWithNext*> >("fifo");
   } else if (i == 1) {
-    open_lists_[i] =
-        std::make_shared<SingleOpenList<SearchNodeWithNext*> >("lifo");
+    open_lists_[i] = std::make_shared<
+        SingleOpenList<std::vector<int>, SearchNodeWithNext*> >("lifo");
   } else {
-    open_lists_[i] =
-        std::make_shared<SingleOpenList<SearchNodeWithNext*> >("ro");
+    open_lists_[i] = std::make_shared<
+        SingleOpenList<std::vector<int>, SearchNodeWithNext*> >("ro");
   }
 
   if (!share_closed_) closed_lists_[i] = std::make_shared<ClosedList>(22);
@@ -190,7 +190,7 @@ void GBFSPortfolio::Distribute() {
   if (open_lists_[0]->IsEmpty()) return;
 
   for (int i = 1; i < n_threads_; ++i) {
-    auto values = open_lists_[0]->MinimumValues();
+    auto values = open_lists_[0]->MinimumValue();
     auto node = open_lists_[0]->Pop();
     open_lists_[i]->Push(values, node, true);
   }

@@ -107,7 +107,7 @@ class GreedyPBNF : public Search {
                     const std::shared_ptr<const NBlock> &b) const {
       if (a->IsEmpty()) return false;
 
-      return b->IsEmpty() || a->MinimumValues() < b->MinimumValues();
+      return b->IsEmpty() || a->MinimumValue() < b->MinimumValue();
     }
   };
 

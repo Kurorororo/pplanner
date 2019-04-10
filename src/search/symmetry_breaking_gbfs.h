@@ -23,27 +23,29 @@ namespace pplanner {
 class SBGBFS : public Search {
  public:
   SBGBFS(std::shared_ptr<const SASPlus> problem,
-       const boost::property_tree::ptree &pt)
-    : use_preferred_(false),
-      exhaust_(false),
-      limit_expansion_(false),
-      use_sss_(false),
-      max_expansion_(0),
-      generated_(0),
-      expanded_(0),
-      evaluated_(0),
-      dead_ends_(0),
-      n_preferred_evaluated_(0),
-      n_branching_(0),
-      n_preferreds_(0),
-      problem_(problem),
-      preferring_(nullptr),
-      generator_(std::unique_ptr<SuccessorGenerator>(
+         const boost::property_tree::ptree &pt)
+      : use_preferred_(false),
+        exhaust_(false),
+        limit_expansion_(false),
+        use_sss_(false),
+        max_expansion_(0),
+        generated_(0),
+        expanded_(0),
+        evaluated_(0),
+        dead_ends_(0),
+        n_preferred_evaluated_(0),
+        n_branching_(0),
+        n_preferreds_(0),
+        problem_(problem),
+        preferring_(nullptr),
+        generator_(std::unique_ptr<SuccessorGenerator>(
             new SuccessorGenerator(problem))),
-      graph_(nullptr),
-      open_list_(nullptr),
-      manager_(std::make_shared<SymmetryManager>(problem)),
-      sss_aproximater_(nullptr) { Init(pt); }
+        graph_(nullptr),
+        open_list_(nullptr),
+        manager_(std::make_shared<SymmetryManager>(problem)),
+        sss_aproximater_(nullptr) {
+    Init(pt);
+  }
 
   virtual ~SBGBFS() {}
 
@@ -91,12 +93,12 @@ class SBGBFS : public Search {
   std::shared_ptr<Evaluator> preferring_;
   std::unique_ptr<SuccessorGenerator> generator_;
   std::shared_ptr<SearchGraph> graph_;
-  std::unique_ptr<OpenList<int> > open_list_;
+  std::unique_ptr<OpenList<> > open_list_;
   std::shared_ptr<SymmetryManager> manager_;
   std::vector<uint32_t> states_;
   std::unique_ptr<SSSApproximater> sss_aproximater_;
 };
 
-} // namespace pplanner
+}  // namespace pplanner
 
-#endif // SBGBFS_H_
+#endif  // SBGBFS_H_

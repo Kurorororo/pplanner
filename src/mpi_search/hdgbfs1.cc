@@ -269,13 +269,13 @@ int HDGBFS1::Expand(int node, vector<int> &state) {
 
   int node_to_keep = -1;
 
-  if (take_ == 0 && (NoNode() || value_array[arg_min] < MinimumValues()))
+  if (take_ == 0 && (NoNode() || value_array[arg_min] < MinimumValue()))
     node_to_keep = arg_min;
 
   if (take_ == 1 && value_array[arg_min] < best_values_) node_to_keep = arg_min;
 
   if (take_ == 1 && use_local_open_ && reset_best_ &&
-      (NoNode() || value_array[arg_min] < MinimumValues())) {
+      (NoNode() || value_array[arg_min] < MinimumValue())) {
     best_values_ = value_array[arg_min];
     node_to_keep = arg_min;
   }

@@ -52,6 +52,9 @@ class MCSDump : public Search {
         generator_(std::make_unique<SuccessorGenerator>(problem)),
         packer_(std::make_unique<StatePacker>(problem)),
         hash_(std::make_unique<ZobristHash>(problem, 4166245435)),
+        foci_(PriorityQueueFactory<
+              std::vector<int>,
+              std::shared_ptr<Focus<SearchNodeWithTimeStamp *> > >("fifo")),
         start_(std::chrono::system_clock::now()) {
     Init(pt);
   }
@@ -85,7 +88,7 @@ class MCSDump : public Search {
   std::shared_ptr<Focus<SearchNodeWithTimeStamp *> > TryPopFocus(
       std::shared_ptr<Focus<SearchNodeWithTimeStamp *> > focus) {
     if (open_mtx_.try_lock()) {
-      if (!foci_->IsEmpty() && foci_->MinimumValues() < focus->Priority()) {
+      if (!foci_->IsEmpty() && foci_->MinimumValue() < focus->Priority()) {
         auto tmp_focus = foci_->Pop();
         foci_->Push(focus->Priority(), focus);
         focus = tmp_focus;
@@ -103,14 +106,6 @@ class MCSDump : public Search {
     if (foci_->IsEmpty()) return nullptr;
 
     return foci_->Pop();
-  }
-
-  std::shared_ptr<Focus<SearchNodeWithTimeStamp *> > LockedPopWorstFocus() {
-    std::lock_guard<std::mutex> lock(open_mtx_);
-
-    if (foci_->IsEmpty()) return nullptr;
-
-    return foci_->PopWorst();
   }
 
   void LockedPushFocus(
@@ -170,8 +165,8 @@ class MCSDump : public Search {
   std::vector<std::shared_ptr<Evaluator> > preferring_;
   std::vector<std::vector<std::shared_ptr<Evaluator> > > evaluators_;
   boost::property_tree::ptree open_list_option_;
-  std::unique_ptr<
-      FIFOOpenListImpl<std::shared_ptr<Focus<SearchNodeWithTimeStamp *> > > >
+  std::unique_ptr<PriorityQueue<
+      std::vector<int>, std::shared_ptr<Focus<SearchNodeWithTimeStamp *> > > >
       foci_;
   std::mutex open_mtx_;
   std::mutex stat_mtx_;

@@ -7,28 +7,28 @@
 #include "gtest/gtest.h"
 
 #include "evaluator.h"
-#include "sas_plus.h"
 #include "heuristics/blind.h"
+#include "sas_plus.h"
 
 namespace pplanner {
 
 std::queue<std::string> ExampleSASPlusLines();
 
-class SingleOpenListTest: public ::testing::Test {
+class SingleOpenListTest : public ::testing::Test {
  protected:
   virtual void SetUp() {
-    list_0_ = std::make_unique<SingleOpenList<int> >("fifo");
+    list_0_ = std::make_unique<SingleOpenList<> >("fifo");
 
     auto lines = ExampleSASPlusLines();
     auto sas = std::make_shared<SASPlus>();
     sas->InitFromLines(lines);
-    list_1_ = std::make_unique<SingleOpenList<int> >("fifo");
+    list_1_ = std::make_unique<SingleOpenList<> >("fifo");
 
     state_ = sas->initial();
   }
 
-  std::unique_ptr<SingleOpenList<int> > list_0_;
-  std::unique_ptr<SingleOpenList<int> > list_1_;
+  std::unique_ptr<SingleOpenList<> > list_0_;
+  std::unique_ptr<SingleOpenList<> > list_1_;
   std::vector<int> state_;
 };
 
@@ -172,4 +172,4 @@ std::queue<std::string> ExampleSASPlusLines() {
   return q;
 }
 
-} // namespace pplanner
+}  // namespace pplanner

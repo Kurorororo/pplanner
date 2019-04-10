@@ -9,17 +9,17 @@
 
 namespace pplanner {
 
-template<typename T>
+template <typename T>
 class Focus {
  public:
   Focus() : best_h_(-1), n_plateau_(0) {}
 
   Focus(const boost::property_tree::ptree &pt, const std::vector<int> &values,
         T node, bool is_pref)
-    : best_h_(values[0]),
-      n_plateau_(0),
-      priority_(values.size() + 1),
-      open_list_(OpenListFactory<T>(pt)) {
+      : best_h_(values[0]),
+        n_plateau_(0),
+        priority_(values.size() + 1),
+        open_list_(OpenListFactory<std::vector<int>, T>(pt)) {
     Push(values, node, is_pref);
   }
 
@@ -35,7 +35,7 @@ class Focus {
 
   T Pop() { return open_list_->Pop(); }
 
-  const std::vector<int>& Priority() const { return priority_; }
+  const std::vector<int> &Priority() const { return priority_; }
 
   void Boost() { open_list_->Boost(); }
 
@@ -49,17 +49,17 @@ class Focus {
   int best_h_;
   int n_plateau_;
   std::vector<int> priority_;
-  std::unique_ptr<OpenList<T> > open_list_;
+  std::unique_ptr<OpenList<std::vector<int>, T> > open_list_;
 };
 
-template<typename T>
+template <typename T>
 void Focus<T>::UpdatePriority(int plateau_threshold) {
   priority_[0] = n_plateau_ / plateau_threshold;
 
-  for (int i = 0, n = open_list_->MinimumValues().size(); i < n; ++i)
-    priority_[i + 1] = open_list_->MinimumValue(i);
+  for (int i = 0, n = open_list_->MinimumValue().size(); i < n; ++i)
+    priority_[i + 1] = open_list_->MinimumValue()[i];
 }
 
-} // namespace pplanner
+}  // namespace pplanner
 
-#endif // FOCUS_H_
+#endif  // FOCUS_H_

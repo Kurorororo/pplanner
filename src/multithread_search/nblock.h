@@ -24,7 +24,8 @@ class NBlock {
         minimum_(-1),
         hot_(false),
         inuse_(false),
-        open_list_(OpenListFactory<SearchNode*>(open_list_option)),
+        open_list_(
+            OpenListFactory<std::vector<int>, SearchNode*>(open_list_option)),
         closed_list_(std::make_unique<ClosedList>(closd_exponent)) {}
 
   int abstract_node_id() const { return abstract_node_id_; }
@@ -71,15 +72,15 @@ class NBlock {
 
   SearchNode* Pop() {
     auto top = open_list_->Pop();
-    minimum_ = open_list_->IsEmpty() ? -1 : open_list_->MinimumValues()[0];
+    minimum_ = open_list_->IsEmpty() ? -1 : open_list_->MinimumValue()[0];
 
     return top;
   }
 
   int priority() const { return minimum_; }
 
-  const std::vector<int>& MinimumValues() const {
-    return open_list_->MinimumValues();
+  const std::vector<int>& MinimumValue() const {
+    return open_list_->MinimumValue();
   }
 
   bool IsClosed(uint32_t hash,
@@ -106,7 +107,7 @@ class NBlock {
     if (open_list_->IsEmpty())
       std::cout << " empty" << std::endl;
     else
-      std::cout << " h=" << MinimumValues()[0] << std::endl;
+      std::cout << " h=" << MinimumValue()[0] << std::endl;
   }
 
  private:
@@ -117,7 +118,7 @@ class NBlock {
   int minimum_;
   bool hot_;
   bool inuse_;
-  std::unique_ptr<OpenList<SearchNode*> > open_list_;
+  std::unique_ptr<OpenList<std::vector<int>, SearchNode*> > open_list_;
   std::unique_ptr<ClosedList> closed_list_;
 };
 

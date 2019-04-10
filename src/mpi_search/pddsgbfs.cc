@@ -4,8 +4,8 @@
 
 namespace pplanner {
 
-using std::vector;
 using std::size_t;
+using std::vector;
 
 int PDDSGBFS::Search() {
   auto state = InitialEvaluate(true);
@@ -62,9 +62,8 @@ void PDDSGBFS::CallbackOnReceiveNode(int source, const unsigned char *d,
       return;
     }
 
-    if (no_node
-        || (steal_best_ && h < best_h())
-        || (steal_better_ && h < MinimumValue(0))) {
+    if (no_node || (steal_best_ && h < best_h()) ||
+        (steal_better_ && h < MinimumValue()[0])) {
       Push(values, node);
     } else {
       size_t h_size = values.size() * sizeof(int);
@@ -80,8 +79,8 @@ void PDDSGBFS::RegainNodes() {
 
   int has_received = 0;
   MPI_Status status;
-  MPI_Iprobe(
-      MPI_ANY_SOURCE, kRegainTag, MPI_COMM_WORLD, &has_received, &status);
+  MPI_Iprobe(MPI_ANY_SOURCE, kRegainTag, MPI_COMM_WORLD, &has_received,
+             &status);
   size_t unit_size = n_evaluators() * sizeof(int) + node_size();
   auto g = graph();
 
@@ -95,18 +94,18 @@ void PDDSGBFS::RegainNodes() {
 
     size_t n_nodes = d_size / unit_size;
 
-    for (size_t i=0; i<n_nodes; ++i) {
-      int node = g->GenerateNodeFromBytes(
-          IncomingBuffer() + i * unit_size, values);
+    for (size_t i = 0; i < n_nodes; ++i) {
+      int node =
+          g->GenerateNodeFromBytes(IncomingBuffer() + i * unit_size, values);
       IncrementGenerated();
       g->SetH(node, values[0]);
       Push(values, node);
     }
 
     has_received = 0;
-    MPI_Iprobe(
-        MPI_ANY_SOURCE, kRegainTag, MPI_COMM_WORLD, &has_received, &status);
+    MPI_Iprobe(MPI_ANY_SOURCE, kRegainTag, MPI_COMM_WORLD, &has_received,
+               &status);
   }
 }
 
-} // namespace pplanner
+}  // namespace pplanner

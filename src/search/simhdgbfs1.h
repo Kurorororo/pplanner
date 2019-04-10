@@ -8,45 +8,47 @@
 
 #include <boost/property_tree/ptree.hpp>
 
-#include "evaluator.h"
 #include "dominance/lds.h"
+#include "evaluator.h"
+#include "hash/distribution_hash.h"
+#include "open_list.h"
 #include "sas_plus.h"
 #include "sas_plus/strong_stubborn_sets.h"
 #include "search.h"
 #include "search_graph/distributed_search_graph.h"
 #include "successor_generator.h"
-#include "open_list.h"
-#include "hash/distribution_hash.h"
 
 namespace pplanner {
 
 class SIMHDGBFS1 : public Search {
  public:
   SIMHDGBFS1(std::shared_ptr<const SASPlus> problem,
-         const boost::property_tree::ptree &pt)
-    : limit_expansion_(false),
-      use_local_open_(false),
-      take_(0),
-      max_expansion_(0),
-      generated_(0),
-      expanded_(0),
-      evaluated_(0),
-      dead_ends_(0),
-      n_branching_(0),
-      n_sent_(0),
-      n_sent_or_generated_(0),
-      best_h_(-1),
-      world_size_(1),
-      rank_(0),
-      n_pushed_next_(0),
-      n_sent_next_(0),
-      delay_(1),
-      delay_index_(0),
-      n_evaluators_(0),
-      problem_(problem),
-      generator_(std::unique_ptr<SuccessorGenerator>(
+             const boost::property_tree::ptree &pt)
+      : limit_expansion_(false),
+        use_local_open_(false),
+        take_(0),
+        max_expansion_(0),
+        generated_(0),
+        expanded_(0),
+        evaluated_(0),
+        dead_ends_(0),
+        n_branching_(0),
+        n_sent_(0),
+        n_sent_or_generated_(0),
+        best_h_(-1),
+        world_size_(1),
+        rank_(0),
+        n_pushed_next_(0),
+        n_sent_next_(0),
+        delay_(1),
+        delay_index_(0),
+        n_evaluators_(0),
+        problem_(problem),
+        generator_(std::unique_ptr<SuccessorGenerator>(
             new SuccessorGenerator(problem))),
-      z_hash_(nullptr) { Init(pt); }
+        z_hash_(nullptr) {
+    Init(pt);
+  }
 
   virtual ~SIMHDGBFS1() {}
 
@@ -97,21 +99,21 @@ class SIMHDGBFS1 : public Search {
   }
 
   bool NoNode() const {
-    return open_lists_[rank_]->IsEmpty()
-      && (!use_local_open_ || local_open_lists_[rank_]->IsEmpty());
+    return open_lists_[rank_]->IsEmpty() &&
+           (!use_local_open_ || local_open_lists_[rank_]->IsEmpty());
   }
 
-  const std::vector<int>& MinimumValues() const {
-    if (use_local_open_ && !local_open_lists_[rank_]->IsEmpty()
-        && (open_lists_[rank_]->IsEmpty()
-          || local_open_lists_[rank_]->MinimumValues()
-          < open_lists_[rank_]->MinimumValues()))
-      return local_open_lists_[rank_]->MinimumValues();
+  const std::vector<int> &MinimumValue() const {
+    if (use_local_open_ && !local_open_lists_[rank_]->IsEmpty() &&
+        (open_lists_[rank_]->IsEmpty() ||
+         local_open_lists_[rank_]->MinimumValue() <
+             open_lists_[rank_]->MinimumValue()))
+      return local_open_lists_[rank_]->MinimumValue();
 
-    return open_lists_[rank_]->MinimumValues();
+    return open_lists_[rank_]->MinimumValue();
   }
 
-  unsigned char* ExtendOutgoingBuffer(int i, size_t size) {
+  unsigned char *ExtendOutgoingBuffer(int i, size_t size) {
     size_t index = outgoing_buffers_[rank_][i].size();
     outgoing_buffers_[rank_][i].resize(index + size);
 
@@ -157,10 +159,10 @@ class SIMHDGBFS1 : public Search {
   std::shared_ptr<DistributionHash> z_hash_;
   std::vector<std::vector<std::shared_ptr<Evaluator> > > evaluators_;
   std::vector<std::shared_ptr<DistributedSearchGraph> > graphs_;
-  std::vector<std::unique_ptr<OpenList<int> > > open_lists_;
-  std::vector<std::unique_ptr<OpenList<int> > > local_open_lists_;
+  std::vector<std::unique_ptr<OpenList<> > > open_lists_;
+  std::vector<std::unique_ptr<OpenList<> > > local_open_lists_;
 };
 
-} // namespace pplanner
+}  // namespace pplanner
 
-#endif // SIMHDGBFS1_H_
+#endif  // SIMHDGBFS1_H_

@@ -114,7 +114,7 @@ class MultiGBFS : public Search {
   std::unique_ptr<LockFreeClosedList> closed_;
   std::vector<std::shared_ptr<Evaluator> > preferring_;
   std::vector<std::vector<std::shared_ptr<Evaluator> > > evaluators_;
-  std::shared_ptr<OpenList<SearchNodeWithNext *> > open_list_;
+  std::shared_ptr<OpenList<std::vector<int>, SearchNodeWithNext *> > open_list_;
   std::mutex open_mtx_;
   std::mutex stat_mtx_;
 };

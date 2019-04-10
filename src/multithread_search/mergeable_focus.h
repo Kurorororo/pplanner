@@ -9,23 +9,23 @@
 
 namespace pplanner {
 
-template<typename T>
+template <typename T>
 class MergeableFocus {
  public:
   MergeableFocus() : best_h_(-1), idx_(0) {}
 
   MergeableFocus(const boost::property_tree::ptree &pt,
-                const std::vector<int> &values, T node, bool is_pref,
-                int plateau_threshold, std::shared_ptr<MergeableFocus> parent)
-    : best_h_(values[0]),
-      plateau_threshold_(plateau_threshold),
-      n_plateau_(0),
-      idx_(0),
-      size_(0),
-      minimum_values_(values),
-      priority_(values.size() + 1),
-      open_lists_(1, SharedOpenListFactory<T>(pt)),
-      parent_(parent) {
+                 const std::vector<int> &values, T node, bool is_pref,
+                 int plateau_threshold, std::shared_ptr<MergeableFocus> parent)
+      : best_h_(values[0]),
+        plateau_threshold_(plateau_threshold),
+        n_plateau_(0),
+        idx_(0),
+        size_(0),
+        minimum_values_(values),
+        priority_(values.size() + 1),
+        open_lists_(1, SharedOpenListFactory<T>(pt)),
+        parent_(parent) {
     Push(values, node, is_pref);
     UpdatePriority();
   }
@@ -43,7 +43,7 @@ class MergeableFocus {
 
   T Pop();
 
-  const std::vector<int>& Priority() const { return priority_; }
+  const std::vector<int> &Priority() const { return priority_; }
 
   void Merge(std::shared_ptr<MergeableFocus<T> > focus);
 
@@ -67,7 +67,7 @@ class MergeableFocus {
   std::vector<std::shared_ptr<OpenList<T> > > open_lists_;
 };
 
-template<typename T>
+template <typename T>
 void MergeableFocus<T>::UpdatePriority() {
   priority_[0] = n_plateau_ / plateau_threshold_;
 
@@ -77,9 +77,9 @@ void MergeableFocus<T>::UpdatePriority() {
   for (int i = 0, n = open_lists_.size(); i < n; ++i) {
     if (open_lists_[i]->IsEmpty()) continue;
 
-    if (arg_min == -1 || open_lists_[i]->MinimumValues() < minimum_values_) {
+    if (arg_min == -1 || open_lists_[i]->MinimumValue() < minimum_values_) {
       arg_min = i;
-      minimum_values_ = open_lists_[i]->MinimumValues();
+      minimum_values_ = open_lists_[i]->MinimumValue();
     }
   }
 
@@ -87,7 +87,7 @@ void MergeableFocus<T>::UpdatePriority() {
     priority_[i + 1] = minimum_values_[i];
 }
 
-template<typename T>
+template <typename T>
 T MergeableFocus<T>::Pop() {
   --size_;
   idx_ = (idx_ + 1) % open_lists_.size();
@@ -96,15 +96,14 @@ T MergeableFocus<T>::Pop() {
     for (int i = 0, n = open_lists_.size(); i < n; ++i) {
       idx_ = (idx_ + 1) % open_lists_.size();
 
-      if (!open_lists_[idx_]->IsEmpty())
-        return open_lists_[idx_]->Pop();
+      if (!open_lists_[idx_]->IsEmpty()) return open_lists_[idx_]->Pop();
     }
   }
 
-  return  open_lists_[idx_]->Pop();
+  return open_lists_[idx_]->Pop();
 }
 
-template<typename T>
+template <typename T>
 void MergeableFocus<T>::Merge(std::shared_ptr<MergeableFocus<T> > focus) {
   best_h_ = best_h_ < focus->best_h_ ? best_h_ : focus->best_h_;
   size_ += focus->size_;
@@ -115,6 +114,6 @@ void MergeableFocus<T>::Merge(std::shared_ptr<MergeableFocus<T> > focus) {
                      focus->open_lists_.end());
 }
 
-} // namespace pplanner
+}  // namespace pplanner
 
-#endif // MERGEABLE_FOCUS_H_
+#endif  // MERGEABLE_FOCUS_H_

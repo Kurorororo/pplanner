@@ -81,7 +81,7 @@ class LazyGBFS : public Search {
   std::shared_ptr<Evaluator> preferring_;
   std::unique_ptr<SuccessorGenerator> generator_;
   std::shared_ptr<SearchGraph> graph_;
-  std::unique_ptr<OpenList<std::pair<int, int> > > open_list_;
+  std::unique_ptr<OpenList<std::vector<int>, std::pair<int, int> > > open_list_;
 };
 
 }  // namespace pplanner

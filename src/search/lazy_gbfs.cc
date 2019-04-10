@@ -53,7 +53,8 @@ void LazyGBFS::Init(const boost::property_tree::ptree &pt) {
   }
 
   auto open_list_option = pt.get_child("open_list");
-  open_list_ = OpenListFactory<std::pair<int, int> >(open_list_option);
+  open_list_ =
+      OpenListFactory<std::vector<int>, std::pair<int, int> >(open_list_option);
 
   if (auto ram = pt.get_optional<size_t>("ram"))
     graph_->ReserveByRAMSize(ram.get());

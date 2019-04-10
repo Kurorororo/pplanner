@@ -45,8 +45,6 @@ void MultiFocusGBFS::Init(const boost::property_tree::ptree &pt) {
     closed_exponent = closed_exponent_opt.get();
 
   open_list_option_ = pt.get_child("open_list");
-  foci_ = std::make_unique<
-      FIFOOpenListImpl<std::shared_ptr<Focus<SearchNodeWithNext *> > > >();
   closed_ = std::make_unique<LockFreeClosedList>(closed_exponent);
 
   if (auto opt = pt.get_optional<int>("n_threads")) n_threads_ = opt.get();

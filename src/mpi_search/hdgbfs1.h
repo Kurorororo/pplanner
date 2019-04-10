@@ -10,62 +10,64 @@
 
 #include <boost/property_tree/ptree.hpp>
 
-#include "evaluator.h"
 #include "dominance/lds.h"
+#include "evaluator.h"
+#include "hash/distribution_hash.h"
+#include "open_list.h"
 #include "sas_plus.h"
 #include "sas_plus/strong_stubborn_sets.h"
 #include "search.h"
 #include "search_graph/distributed_search_graph.h"
 #include "successor_generator.h"
-#include "open_list.h"
-#include "hash/distribution_hash.h"
 
 namespace pplanner {
 
 class HDGBFS1 : public Search {
  public:
   HDGBFS1(std::shared_ptr<const SASPlus> problem,
-         const boost::property_tree::ptree &pt)
-    : use_preferred_(false),
-      limit_expansion_(false),
-      use_local_open_(false),
-      reset_best_(false),
-      use_sss_(false),
-      sss_checked_(false),
-      use_dominance_(false),
-      take_(0),
-      max_expansion_(0),
-      generated_(0),
-      expanded_(0),
-      evaluated_(0),
-      dead_ends_(0),
-      expanded_local_(0),
-      n_preferred_evaluated_(0),
-      n_branching_(0),
-      n_preferreds_(0),
-      n_pruned_(0),
-      n_pruning_disable_(1000),
-      n_sent_(0),
-      n_sent_or_generated_(0),
-      n_received_(0),
-      best_h_(-1),
-      initial_rank_(0),
-      world_size_(1),
-      rank_(0),
-      n_d_pruned_(0),
-      n_evaluators_(0),
-      mpi_buffer_(nullptr),
-      min_pruning_ratio_(0.0),
-      problem_(problem),
-      preferring_(nullptr),
-      generator_(std::unique_ptr<SuccessorGenerator>(
+          const boost::property_tree::ptree &pt)
+      : use_preferred_(false),
+        limit_expansion_(false),
+        use_local_open_(false),
+        reset_best_(false),
+        use_sss_(false),
+        sss_checked_(false),
+        use_dominance_(false),
+        take_(0),
+        max_expansion_(0),
+        generated_(0),
+        expanded_(0),
+        evaluated_(0),
+        dead_ends_(0),
+        expanded_local_(0),
+        n_preferred_evaluated_(0),
+        n_branching_(0),
+        n_preferreds_(0),
+        n_pruned_(0),
+        n_pruning_disable_(1000),
+        n_sent_(0),
+        n_sent_or_generated_(0),
+        n_received_(0),
+        best_h_(-1),
+        initial_rank_(0),
+        world_size_(1),
+        rank_(0),
+        n_d_pruned_(0),
+        n_evaluators_(0),
+        mpi_buffer_(nullptr),
+        min_pruning_ratio_(0.0),
+        problem_(problem),
+        preferring_(nullptr),
+        generator_(std::unique_ptr<SuccessorGenerator>(
             new SuccessorGenerator(problem))),
-      graph_(nullptr),
-      open_list_(nullptr),
-      local_open_list_(nullptr),
-      z_hash_(nullptr),
-      sss_aproximater_(nullptr),
-      lds_(nullptr) { Init(pt); }
+        graph_(nullptr),
+        open_list_(nullptr),
+        local_open_list_(nullptr),
+        z_hash_(nullptr),
+        sss_aproximater_(nullptr),
+        lds_(nullptr) {
+    Init(pt);
+  }
 
   virtual ~HDGBFS1() {
     Flush(kNodeTag);
@@ -127,28 +129,26 @@ class HDGBFS1 : public Search {
   }
 
   bool NoNode() const {
-    return open_list_->IsEmpty()
-      && (!use_local_open_ || local_open_list_->IsEmpty());
+    return open_list_->IsEmpty() &&
+           (!use_local_open_ || local_open_list_->IsEmpty());
   }
 
   bool LocalNoNode() const {
     return !use_local_open_ || local_open_list_->IsEmpty();
   }
 
-  const std::vector<int>& MinimumValues() const {
+  const std::vector<int> &MinimumValue() const {
     if (use_local_open_ && !local_open_list_->IsEmpty())
-      return local_open_list_->MinimumValues();
+      return local_open_list_->MinimumValue();
 
-    return open_list_->MinimumValues();
+    return open_list_->MinimumValue();
   }
 
-  unsigned char* IncomingBuffer() { return incoming_buffer_.data(); }
+  unsigned char *IncomingBuffer() { return incoming_buffer_.data(); }
 
-  void ResizeIncomingBuffer(std::size_t size) {
-    incoming_buffer_.resize(size);
-  }
+  void ResizeIncomingBuffer(std::size_t size) { incoming_buffer_.resize(size); }
 
-  unsigned char* ExtendOutgoingBuffer(int i, std::size_t size) {
+  unsigned char *ExtendOutgoingBuffer(int i, std::size_t size) {
     std::size_t index = outgoing_buffers_[i].size();
     outgoing_buffers_[i].resize(index + size);
 
@@ -220,13 +220,13 @@ class HDGBFS1 : public Search {
   std::shared_ptr<Evaluator> preferring_;
   std::unique_ptr<SuccessorGenerator> generator_;
   std::shared_ptr<DistributedSearchGraph> graph_;
-  std::unique_ptr<OpenList<int> > open_list_;
-  std::unique_ptr<OpenList<int> > local_open_list_;
+  std::unique_ptr<OpenList<> > open_list_;
+  std::unique_ptr<OpenList<> > local_open_list_;
   std::shared_ptr<DistributionHash> z_hash_;
   std::unique_ptr<SSSApproximater> sss_aproximater_;
   std::unique_ptr<LDS> lds_;
 };
 
-} // namespace pplanner
+}  // namespace pplanner
 
-#endif // HDGBFS1_H_
+#endif  // HDGBFS1_H_

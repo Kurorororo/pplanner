@@ -8,42 +8,44 @@
 
 #include <boost/property_tree/ptree.hpp>
 
-#include "evaluator.h"
 #include "dominance/lds.h"
+#include "evaluator.h"
+#include "hash/distribution_hash.h"
+#include "open_list.h"
 #include "sas_plus.h"
 #include "sas_plus/strong_stubborn_sets.h"
 #include "search.h"
 #include "search_graph/distributed_search_graph.h"
 #include "successor_generator.h"
-#include "open_list.h"
-#include "hash/distribution_hash.h"
 
 namespace pplanner {
 
 class SIMHDGBFS : public Search {
  public:
   SIMHDGBFS(std::shared_ptr<const SASPlus> problem,
-         const boost::property_tree::ptree &pt)
-    : limit_expansion_(false),
-      max_expansion_(0),
-      generated_(0),
-      expanded_(0),
-      evaluated_(0),
-      dead_ends_(0),
-      n_branching_(0),
-      n_sent_(0),
-      n_sent_or_generated_(0),
-      best_h_(-1),
-      world_size_(2),
-      rank_(0),
-      delay_(1),
-      delay_index_(0),
-      n_evaluators_(0),
-      tmp_state_(problem->n_variables()),
-      problem_(problem),
-      generator_(std::unique_ptr<SuccessorGenerator>(
+            const boost::property_tree::ptree &pt)
+      : limit_expansion_(false),
+        max_expansion_(0),
+        generated_(0),
+        expanded_(0),
+        evaluated_(0),
+        dead_ends_(0),
+        n_branching_(0),
+        n_sent_(0),
+        n_sent_or_generated_(0),
+        best_h_(-1),
+        world_size_(2),
+        rank_(0),
+        delay_(1),
+        delay_index_(0),
+        n_evaluators_(0),
+        tmp_state_(problem->n_variables()),
+        problem_(problem),
+        generator_(std::unique_ptr<SuccessorGenerator>(
             new SuccessorGenerator(problem))),
-      z_hash_(nullptr) { Init(pt); }
+        z_hash_(nullptr) {
+    Init(pt);
+  }
 
   virtual ~SIMHDGBFS() {}
 
@@ -88,7 +90,7 @@ class SIMHDGBFS : public Search {
 
   void Push(std::vector<int> &values, int node);
 
-  unsigned char* ExtendOutgoingBuffer(int i, std::size_t size) {
+  unsigned char *ExtendOutgoingBuffer(int i, std::size_t size) {
     std::size_t index = outgoing_buffers_[rank_][i].size();
     outgoing_buffers_[rank_][i].resize(index + size);
 
@@ -130,9 +132,9 @@ class SIMHDGBFS : public Search {
   std::shared_ptr<DistributionHash> z_hash_;
   std::vector<std::vector<std::shared_ptr<Evaluator> > > evaluators_;
   std::vector<std::shared_ptr<DistributedSearchGraph> > graphs_;
-  std::vector<std::unique_ptr<OpenList<int> > > open_lists_;
+  std::vector<std::unique_ptr<OpenList<> > > open_lists_;
 };
 
-} // namespace pplanner
+}  // namespace pplanner
 
-#endif // SIMHDGBFS_H_
+#endif  // SIMHDGBFS_H_

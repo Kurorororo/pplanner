@@ -41,8 +41,6 @@ void MCSIndependent::Init(const boost::property_tree::ptree &pt) {
   goal_.store(nullptr);
 
   open_list_option_ = pt.get_child("open_list");
-  foci_ = std::make_unique<FIFOOpenListImpl<
-      std::shared_ptr<IndependentContext<SearchNodeWithNext *> > > >();
 
   if (auto opt = pt.get_optional<int>("n_threads")) n_threads_ = opt.get();
 
@@ -71,14 +69,13 @@ void MCSIndependent::Init(const boost::property_tree::ptree &pt) {
 
 void MCSIndependent::InitialEvaluate() {
   auto state = problem_->initial();
-  auto node = new SearchNodeWithNext();
+  auto node = new SearchNode();
   node->cost = 0;
   node->action = -1;
   node->parent = nullptr;
   node->packed_state.resize(packer_->block_size());
   packer_->Pack(state, node->packed_state.data());
   node->hash = hash_->operator()(state);
-  node->next.store(nullptr);
 
   std::vector<int> values;
   node->h = Evaluate(0, state, node, values);
@@ -102,8 +99,8 @@ MCSIndependent::~MCSIndependent() {
   for (int i = 0; i < n_threads_; ++i) ts[i].join();
 }
 
-int MCSIndependent::Evaluate(int i, const vector<int> &state,
-                             SearchNodeWithNext *node, vector<int> &values) {
+int MCSIndependent::Evaluate(int i, const vector<int> &state, SearchNode *node,
+                             vector<int> &values) {
   values.clear();
 
   for (auto e : evaluators_[i]) {
@@ -141,14 +138,14 @@ void MCSIndependent::Expand(int i) {
   unordered_set<int> preferred;
   vector<uint32_t> packed(packer_->block_size(), 0);
   vector<vector<int> > values;
-  vector<SearchNodeWithNext *> nodes;
+  vector<SearchNode *> nodes;
   vector<bool> is_pref;
 
   int expanded = 0;
   int evaluated = 0;
   int generated = 0;
   int dead_ends = 0;
-  std::shared_ptr<IndependentContext<SearchNodeWithNext *> > focus = nullptr;
+  std::shared_ptr<IndependentContext> focus = nullptr;
 
   while (goal_.load() == nullptr) {
     if (focus == nullptr) {
@@ -166,7 +163,7 @@ void MCSIndependent::Expand(int i) {
     int counter = min_expansion_per_focus_;
 
     while (goal_.load() == nullptr && counter > 0 && !focus->IsEmpty()) {
-      SearchNodeWithNext *node = focus->Pop();
+      SearchNode *node = focus->Pop();
 
       if (!focus->Close(node)) break;
 
@@ -203,13 +200,12 @@ void MCSIndependent::Expand(int i) {
 
         if (focus->IsClosed(hash, packed)) continue;
 
-        auto child_node = new SearchNodeWithNext();
+        auto child_node = new SearchNode();
         child_node->cost = node->cost + problem_->ActionCost(o);
         child_node->action = o;
         child_node->parent = node;
         child_node->packed_state = packed;
         child_node->hash = hash;
-        child_node->next.store(nullptr);
         ++generated;
 
         int h = Evaluate(i, child, child_node, values[c]);
@@ -275,7 +271,7 @@ void MCSIndependent::Expand(int i) {
   WriteStat(expanded, evaluated, generated, dead_ends);
 }
 
-SearchNodeWithNext *MCSIndependent::Search() {
+SearchNode *MCSIndependent::Search() {
   InitialEvaluate();
   vector<std::thread> ts;
 
