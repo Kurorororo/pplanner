@@ -6,7 +6,6 @@
 #include <vector>
 
 #include "evaluator.h"
-#include "random_walk_evaluator.h"
 #include "sas_plus.h"
 
 namespace pplanner {

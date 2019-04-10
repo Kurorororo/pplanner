@@ -4,8 +4,8 @@
 
 namespace pplanner {
 
-using std::vector;
 using std::pair;
+using std::vector;
 
 bool EffectVector::Condition(int i, int j, const vector<int> &state) const {
   int b = effect_condition_offsets_2_[effect_condition_offsets_1_[i] + j];
@@ -21,9 +21,8 @@ bool EffectVector::Condition(int i, int j, const vector<int> &state) const {
   return true;
 }
 
-
-void EffectVector::Apply(int i, const vector<int> &state, vector<int> &child)
-  const {
+void EffectVector::Apply(int i, const vector<int> &state,
+                         vector<int> &child) const {
   child = state;
   auto value_iter = ValuesBegin(i);
 
@@ -36,15 +35,13 @@ void EffectVector::Apply(int i, const vector<int> &state, vector<int> &child)
     int n = NConditionalEffects(i);
 
     for (int j = 0; j < n; ++j)
-      if (Condition(i, j, state))
-        ApplyConditionalEffect(i, j, child);
+      if (Condition(i, j, state)) ApplyConditionalEffect(i, j, child);
   }
 }
 
 void EffectVector::AddConditionalEffect(
     const vector<vector<pair<int, int> > > &conditions,
     const vector<pair<int, int> > &effects) {
-
   if (conditions.empty()) {
     has_conditional_.push_back(false);
     effect_condition_offsets_1_.push_back(effect_condition_offsets_1_.back());
@@ -75,8 +72,7 @@ void EffectVector::AddConditionalEffect(
 }
 
 void EffectVector::CopyEffectConditions(
-    int i,
-    vector<vector<pair<int, int> > > &conditions) const {
+    int i, vector<vector<pair<int, int> > > &conditions) const {
   conditions.clear();
   int begin = effect_condition_offsets_1_[i];
   int end = effect_condition_offsets_1_[i + 1];
@@ -95,8 +91,7 @@ void EffectVector::CopyEffectConditions(
 }
 
 void EffectVector::CopyConditionalEffects(
-    int i,
-    vector<pair<int, int> > &effects) const {
+    int i, vector<pair<int, int> > &effects) const {
   effects.clear();
   int begin = effect_condition_offsets_1_[i];
   int end = effect_condition_offsets_1_[i + 1];
@@ -128,18 +123,22 @@ void EffectVector::Dump(int i) const {
         std::cout << "var" << var << "=" << value << ", ";
       }
 
-      std::cout << std::endl << "effect: " << "var";
+      std::cout << std::endl
+                << "effect: "
+                << "var";
       std::cout << conditional_effect_vars_[j] << "=";
-      std::cout << conditional_effect_values_[j] << std::endl;;
+      std::cout << conditional_effect_values_[j] << std::endl;
+      ;
     }
   }
 }
 
 void EffectVector::DumpConditions() const {
   std::cout << "full dump" << std::endl;
-  for (int j = 0; j < effect_condition_vars_.size(); ++j) {
-    std::cout << "eff var" << effect_condition_vars_[j] << "=" << effect_condition_values_[j] << std::endl;
+  for (int j = 0, n = effect_condition_vars_.size(); j < n; ++j) {
+    std::cout << "eff var" << effect_condition_vars_[j] << "="
+              << effect_condition_values_[j] << std::endl;
   }
 }
 
-};
+};  // namespace pplanner

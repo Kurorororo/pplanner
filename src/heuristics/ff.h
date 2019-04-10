@@ -7,7 +7,6 @@
 #include "evaluator.h"
 #include "heuristics/hn_rpg.h"
 #include "heuristics/relaxed_sas_plus.h"
-#include "random_walk_evaluator.h"
 #include "sas_plus.h"
 #include "search_graph.h"
 #include "search_node.h"

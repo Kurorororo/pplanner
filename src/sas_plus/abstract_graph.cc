@@ -171,7 +171,7 @@ void AbstractGraph::AddEdge(
     std::shared_ptr<const SASPlus> problem, int action,
     const std::vector<std::vector<int> > &possible_values, int index,
     std::vector<int> &state) {
-  if (index == vars_.size()) {
+  if (index == static_cast<int>(vars_.size())) {
     auto child = state;
     ApplyEffect(problem, action, state, child);
     int p = LexicalOrder(state, ranges_);
@@ -182,7 +182,7 @@ void AbstractGraph::AddEdge(
       to_parents_[c].push_back(p);
       to_children_[p].push_back(c);
 
-      if (to_children_[p].size() > max_out_degree_)
+      if (static_cast<int>(to_children_[p].size()) > max_out_degree_)
         max_out_degree_ = to_children_[p].size();
     }
 

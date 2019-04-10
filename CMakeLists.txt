@@ -306,16 +306,6 @@ add_executable(test_ff_add
 target_link_libraries(test_ff_add sas_plus gtest gtest_main pthread)
 add_test(NAME FFAddTest COMMAND test_ff_add)
 
-add_executable(test_fifo_open_list_impl
-  ./tests/open_lists/test_fifo_open_list_impl.cc)
-target_link_libraries(test_fifo_open_list_impl gtest gtest_main pthread)
-add_test(NAME FIFOOpenListImplTest COMMAND test_fifo_open_list_impl)
-
-add_executable(test_open_list_impl_factory
-  ./tests/open_lists/test_open_list_impl_factory.cc)
-target_link_libraries(test_open_list_impl_factory gtest gtest_main pthread)
-add_test(NAME OpenListImplFactoryTest COMMAND test_open_list_impl_factory)
-
 add_executable(test_single_open_list
   ./tests/open_lists/test_single_open_list.cc
   ./src/heuristics/blind.cc

@@ -5,7 +5,6 @@
 #include <vector>
 
 #include "evaluator.h"
-#include "random_walk_evaluator.h"
 #include "sas_plus.h"
 #include "search_graph.h"
 #include "search_node.h"
