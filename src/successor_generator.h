@@ -44,6 +44,10 @@ class SuccessorGenerator {
 
   const int *data() const { return data_.data(); }
 
+  const int *no_preconditions() const { return no_preconditions_.data(); }
+
+  std::size_t no_preconditions_size() const { return no_preconditions_.size(); }
+
  private:
   void Insert(int query, std::vector<std::pair<int, int> > &precondition,
               std::vector<int> &to_data, std::vector<std::vector<int> > &data);

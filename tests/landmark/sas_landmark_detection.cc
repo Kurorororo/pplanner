@@ -3,10 +3,10 @@
 #include <iostream>
 #include <string>
 
-#include "sas_plus.h"
 #include "heuristics/relaxed_sas_plus.h"
 #include "landmark/generating_orderings.h"
 #include "landmark/landmark_graph.h"
+#include "sas_plus.h"
 #include "utils/file_utils.h"
 
 using namespace pplanner;
@@ -21,7 +21,7 @@ int main(int argc, char *argv[]) {
   auto lines = FileToLines(filename);
   auto sas = std::make_shared<pplanner::SASPlus>();
   sas->InitFromLines(lines);
-  auto r_sas = std::make_shared<RelaxedSASPlus>(*sas, false);
+  auto r_sas = std::make_shared<RelaxedSASPlus>(sas, false);
   auto graph = std::make_shared<LandmarkGraph>(sas);
 
   IdentifyLandmarks(sas, r_sas, graph);
@@ -35,8 +35,7 @@ int main(int argc, char *argv[]) {
   auto end = std::remove_if(landmarks.begin(), landmarks.end(), remove_cond);
   landmarks.erase(end, landmarks.end());
   auto lambda = [](const Landmark &l1, const Landmark &l2) {
-    if (l1.size() == l2.size())
-      return l1.VarValue(0) > l2.VarValue(0);
+    if (l1.size() == l2.size()) return l1.VarValue(0) > l2.VarValue(0);
     return l1.size() > l2.size();
   };
   std::sort(landmarks.begin(), landmarks.end(), lambda);
@@ -45,8 +44,8 @@ int main(int argc, char *argv[]) {
     int id = graph->ToId(landmark);
     std::cout << "id: " << id << " ";
     landmark.Dump();
-    std::cout << "Achievers (" << graph->GetPossibleAchieversSize(id)
-              << ", " << graph->GetFirstAchieversSize(id) << ")" << std::endl;
+    std::cout << "Achievers (" << graph->GetPossibleAchieversSize(id) << ", "
+              << graph->GetFirstAchieversSize(id) << ")" << std::endl;
 
     for (auto init_id : graph->GetInitIdsByTermId(id)) {
       std::cout << "    <-_";

@@ -1,6 +1,7 @@
 #include "heuristics/relaxed_sas_plus.h"
 
 #include <algorithm>
+#include <memory>
 #include <queue>
 #include <string>
 
@@ -16,8 +17,8 @@ class RelaxedSASPlusTest : public ::testing::Test {
  protected:
   virtual void SetUp() {
     auto lines = ExampleSASPlusLines();
-    SASPlus sas;
-    sas.InitFromLines(lines);
+    auto sas = std::make_shared<SASPlus>();
+    sas->InitFromLines(lines);
 
     r_sas_0_ = RelaxedSASPlus(sas, false);
     r_sas_1_ = RelaxedSASPlus(sas, true);
@@ -74,16 +75,16 @@ TEST_F(RelaxedSASPlusTest, ActionIdWorks) {
   EXPECT_EQ(6, r_sas_0_.ActionId(10));
 
   // Simplify breaks oreder of actions
-  //EXPECT_EQ(0, r_sas_1_.ActionId(0));
-  //EXPECT_EQ(0, r_sas_1_.ActionId(1));
-  //EXPECT_EQ(1, r_sas_1_.ActionId(2));
-  //EXPECT_EQ(1, r_sas_1_.ActionId(3));
-  //EXPECT_EQ(2, r_sas_1_.ActionId(4));
-  //EXPECT_EQ(3, r_sas_1_.ActionId(5));
-  //EXPECT_EQ(4, r_sas_1_.ActionId(6));
-  //EXPECT_EQ(4, r_sas_1_.ActionId(7));
-  //EXPECT_EQ(5, r_sas_1_.ActionId(8));
-  //EXPECT_EQ(5, r_sas_1_.ActionId(9));
+  // EXPECT_EQ(0, r_sas_1_.ActionId(0));
+  // EXPECT_EQ(0, r_sas_1_.ActionId(1));
+  // EXPECT_EQ(1, r_sas_1_.ActionId(2));
+  // EXPECT_EQ(1, r_sas_1_.ActionId(3));
+  // EXPECT_EQ(2, r_sas_1_.ActionId(4));
+  // EXPECT_EQ(3, r_sas_1_.ActionId(5));
+  // EXPECT_EQ(4, r_sas_1_.ActionId(6));
+  // EXPECT_EQ(4, r_sas_1_.ActionId(7));
+  // EXPECT_EQ(5, r_sas_1_.ActionId(8));
+  // EXPECT_EQ(5, r_sas_1_.ActionId(9));
 }
 
 TEST_F(RelaxedSASPlusTest, IdToActionsWorks) {
@@ -123,16 +124,16 @@ TEST_F(RelaxedSASPlusTest, ActionCostWorks) {
   EXPECT_EQ(2, r_sas_0_.ActionCost(10));
 
   // Simplify breaks oreder of actions
-  //EXPECT_EQ(1, r_sas_1_.ActionCost(0));
-  //EXPECT_EQ(1, r_sas_1_.ActionCost(1));
-  //EXPECT_EQ(1, r_sas_1_.ActionCost(2));
-  //EXPECT_EQ(1, r_sas_1_.ActionCost(3));
-  //EXPECT_EQ(1, r_sas_1_.ActionCost(4));
-  //EXPECT_EQ(1, r_sas_1_.ActionCost(5));
-  //EXPECT_EQ(1, r_sas_1_.ActionCost(6));
-  //EXPECT_EQ(1, r_sas_1_.ActionCost(7));
-  //EXPECT_EQ(1, r_sas_1_.ActionCost(8));
-  //EXPECT_EQ(1, r_sas_1_.ActionCost(9));
+  // EXPECT_EQ(1, r_sas_1_.ActionCost(0));
+  // EXPECT_EQ(1, r_sas_1_.ActionCost(1));
+  // EXPECT_EQ(1, r_sas_1_.ActionCost(2));
+  // EXPECT_EQ(1, r_sas_1_.ActionCost(3));
+  // EXPECT_EQ(1, r_sas_1_.ActionCost(4));
+  // EXPECT_EQ(1, r_sas_1_.ActionCost(5));
+  // EXPECT_EQ(1, r_sas_1_.ActionCost(6));
+  // EXPECT_EQ(1, r_sas_1_.ActionCost(7));
+  // EXPECT_EQ(1, r_sas_1_.ActionCost(8));
+  // EXPECT_EQ(1, r_sas_1_.ActionCost(9));
 }
 
 TEST_F(RelaxedSASPlusTest, PreconditionSizeWorks) {
@@ -149,16 +150,16 @@ TEST_F(RelaxedSASPlusTest, PreconditionSizeWorks) {
   EXPECT_EQ(3, r_sas_0_.PreconditionSize(10));
 
   // Simplify breaks oreder of actions
-  //EXPECT_EQ(2, r_sas_1_.PreconditionSize(0));
-  //EXPECT_EQ(2, r_sas_1_.PreconditionSize(1));
-  //EXPECT_EQ(2, r_sas_1_.PreconditionSize(2));
-  //EXPECT_EQ(2, r_sas_1_.PreconditionSize(3));
-  //EXPECT_EQ(1, r_sas_1_.PreconditionSize(4));
-  //EXPECT_EQ(1, r_sas_1_.PreconditionSize(5));
-  //EXPECT_EQ(3, r_sas_1_.PreconditionSize(6));
-  //EXPECT_EQ(3, r_sas_1_.PreconditionSize(7));
-  //EXPECT_EQ(3, r_sas_1_.PreconditionSize(8));
-  //EXPECT_EQ(3, r_sas_1_.PreconditionSize(9));
+  // EXPECT_EQ(2, r_sas_1_.PreconditionSize(0));
+  // EXPECT_EQ(2, r_sas_1_.PreconditionSize(1));
+  // EXPECT_EQ(2, r_sas_1_.PreconditionSize(2));
+  // EXPECT_EQ(2, r_sas_1_.PreconditionSize(3));
+  // EXPECT_EQ(1, r_sas_1_.PreconditionSize(4));
+  // EXPECT_EQ(1, r_sas_1_.PreconditionSize(5));
+  // EXPECT_EQ(3, r_sas_1_.PreconditionSize(6));
+  // EXPECT_EQ(3, r_sas_1_.PreconditionSize(7));
+  // EXPECT_EQ(3, r_sas_1_.PreconditionSize(8));
+  // EXPECT_EQ(3, r_sas_1_.PreconditionSize(9));
 }
 
 TEST_F(RelaxedSASPlusTest, PreconditionWorks) {
@@ -197,36 +198,36 @@ TEST_F(RelaxedSASPlusTest, PreconditionWorks) {
   EXPECT_EQ(std::vector<int>({1, 3, 5}), state);
 
   // Simplify breaks oreder of actions
-  //state = r_sas_1_.Precondition(0);
-  //std::sort(state.begin(), state.end());
-  //EXPECT_EQ(std::vector<int>({0, 2}), state);
-  //state = r_sas_1_.Precondition(1);
-  //std::sort(state.begin(), state.end());
-  //EXPECT_EQ(std::vector<int>({0, 2}), state);
-  //state = r_sas_1_.Precondition(2);
-  //std::sort(state.begin(), state.end());
-  //EXPECT_EQ(std::vector<int>({1, 2}), state);
-  //state = r_sas_1_.Precondition(3);
-  //std::sort(state.begin(), state.end());
-  //EXPECT_EQ(std::vector<int>({1, 2}), state);
-  //state = r_sas_1_.Precondition(4);
-  //std::sort(state.begin(), state.end());
-  //EXPECT_EQ(std::vector<int>({0}), state);
-  //state = r_sas_1_.Precondition(5);
-  //std::sort(state.begin(), state.end());
-  //EXPECT_EQ(std::vector<int>({1}), state);
-  //state = r_sas_1_.Precondition(6);
-  //std::sort(state.begin(), state.end());
-  //EXPECT_EQ(std::vector<int>({0, 3, 4}), state);
-  //state = r_sas_1_.Precondition(7);
-  //std::sort(state.begin(), state.end());
-  //EXPECT_EQ(std::vector<int>({0, 3, 4}), state);
-  //state = r_sas_1_.Precondition(8);
-  //std::sort(state.begin(), state.end());
-  //EXPECT_EQ(std::vector<int>({1, 3, 5}), state);
-  //state = r_sas_1_.Precondition(9);
-  //std::sort(state.begin(), state.end());
-  //EXPECT_EQ(std::vector<int>({1, 3, 5}), state);
+  // state = r_sas_1_.Precondition(0);
+  // std::sort(state.begin(), state.end());
+  // EXPECT_EQ(std::vector<int>({0, 2}), state);
+  // state = r_sas_1_.Precondition(1);
+  // std::sort(state.begin(), state.end());
+  // EXPECT_EQ(std::vector<int>({0, 2}), state);
+  // state = r_sas_1_.Precondition(2);
+  // std::sort(state.begin(), state.end());
+  // EXPECT_EQ(std::vector<int>({1, 2}), state);
+  // state = r_sas_1_.Precondition(3);
+  // std::sort(state.begin(), state.end());
+  // EXPECT_EQ(std::vector<int>({1, 2}), state);
+  // state = r_sas_1_.Precondition(4);
+  // std::sort(state.begin(), state.end());
+  // EXPECT_EQ(std::vector<int>({0}), state);
+  // state = r_sas_1_.Precondition(5);
+  // std::sort(state.begin(), state.end());
+  // EXPECT_EQ(std::vector<int>({1}), state);
+  // state = r_sas_1_.Precondition(6);
+  // std::sort(state.begin(), state.end());
+  // EXPECT_EQ(std::vector<int>({0, 3, 4}), state);
+  // state = r_sas_1_.Precondition(7);
+  // std::sort(state.begin(), state.end());
+  // EXPECT_EQ(std::vector<int>({0, 3, 4}), state);
+  // state = r_sas_1_.Precondition(8);
+  // std::sort(state.begin(), state.end());
+  // EXPECT_EQ(std::vector<int>({1, 3, 5}), state);
+  // state = r_sas_1_.Precondition(9);
+  // std::sort(state.begin(), state.end());
+  // EXPECT_EQ(std::vector<int>({1, 3, 5}), state);
 }
 
 TEST_F(RelaxedSASPlusTest, PreconditionMapWorks) {
@@ -239,13 +240,14 @@ TEST_F(RelaxedSASPlusTest, PreconditionMapWorks) {
   EXPECT_EQ(std::vector<int>({}), r_sas_0_.PreconditionMap(6));
 
   // Simplify breaks oreder of actions
-  //EXPECT_EQ(std::vector<int>({0, 1, 4, 6, 7}), r_sas_1_.PreconditionMap(0));
-  //EXPECT_EQ(std::vector<int>({2, 3, 5, 8, 9, 10}), r_sas_1_.PreconditionMap(1));
-  //EXPECT_EQ(std::vector<int>({0, 1, 2, 3}), r_sas_1_.PreconditionMap(2));
-  //EXPECT_EQ(std::vector<int>({6, 7, 8, 9, 10}), r_sas_1_.PreconditionMap(3));
-  //EXPECT_EQ(std::vector<int>({6, 7}), r_sas_1_.PreconditionMap(4));
-  //EXPECT_EQ(std::vector<int>({8, 9, 10}), r_sas_1_.PreconditionMap(5));
-  //EXPECT_EQ(std::vector<int>({}), r_sas_1_.PreconditionMap(6));
+  // EXPECT_EQ(std::vector<int>({0, 1, 4, 6, 7}), r_sas_1_.PreconditionMap(0));
+  // EXPECT_EQ(std::vector<int>({2, 3, 5, 8, 9, 10}),
+  // r_sas_1_.PreconditionMap(1)); EXPECT_EQ(std::vector<int>({0, 1, 2, 3}),
+  // r_sas_1_.PreconditionMap(2)); EXPECT_EQ(std::vector<int>({6, 7, 8, 9, 10}),
+  // r_sas_1_.PreconditionMap(3)); EXPECT_EQ(std::vector<int>({6, 7}),
+  // r_sas_1_.PreconditionMap(4)); EXPECT_EQ(std::vector<int>({8, 9, 10}),
+  // r_sas_1_.PreconditionMap(5)); EXPECT_EQ(std::vector<int>({}),
+  // r_sas_1_.PreconditionMap(6));
 }
 
 TEST_F(RelaxedSASPlusTest, EffectMapWorks) {
@@ -258,13 +260,13 @@ TEST_F(RelaxedSASPlusTest, EffectMapWorks) {
   EXPECT_EQ(std::vector<int>({7, 9}), r_sas_0_.EffectMap(6));
 
   // Simplify breaks oreder of actions
-  //EXPECT_EQ(std::vector<int>({5}), r_sas_1_.EffectMap(0));
-  //EXPECT_EQ(std::vector<int>({4}), r_sas_1_.EffectMap(1));
-  //EXPECT_EQ(std::vector<int>({7, 9}), r_sas_1_.EffectMap(2));
-  //EXPECT_EQ(std::vector<int>({1, 3}), r_sas_1_.EffectMap(3));
-  //EXPECT_EQ(std::vector<int>({0}), r_sas_1_.EffectMap(4));
-  //EXPECT_EQ(std::vector<int>({2}), r_sas_1_.EffectMap(5));
-  //EXPECT_EQ(std::vector<int>({6, 8}), r_sas_1_.EffectMap(6));
+  // EXPECT_EQ(std::vector<int>({5}), r_sas_1_.EffectMap(0));
+  // EXPECT_EQ(std::vector<int>({4}), r_sas_1_.EffectMap(1));
+  // EXPECT_EQ(std::vector<int>({7, 9}), r_sas_1_.EffectMap(2));
+  // EXPECT_EQ(std::vector<int>({1, 3}), r_sas_1_.EffectMap(3));
+  // EXPECT_EQ(std::vector<int>({0}), r_sas_1_.EffectMap(4));
+  // EXPECT_EQ(std::vector<int>({2}), r_sas_1_.EffectMap(5));
+  // EXPECT_EQ(std::vector<int>({6, 8}), r_sas_1_.EffectMap(6));
 }
 
 std::queue<std::string> ExampleSASPlusLines() {
@@ -380,4 +382,4 @@ std::queue<std::string> ExampleSASPlusLines() {
   return q;
 }
 
-} // namespace pplanner
+}  // namespace pplanner
