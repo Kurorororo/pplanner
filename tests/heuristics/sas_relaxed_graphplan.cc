@@ -47,7 +47,7 @@ int main(int argc, char *argv[]) {
 
   auto initial = sas->initial();
   std::vector<int> initial_facts;
-  StateToFactVector(*sas, initial, initial_facts);
+  StateToFactVector(sas, initial, initial_facts);
 
   auto result = rpg.Plan(initial_facts, preferred);
   int result_cost = rpg.PlanCost(initial_facts, preferred);

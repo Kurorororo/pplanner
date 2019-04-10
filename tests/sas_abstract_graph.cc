@@ -1,4 +1,4 @@
-#include "multithread_search/abstract_graph.h"
+#include "sas_plus/abstract_graph.h"
 
 #include <iostream>
 #include <memory>
@@ -43,8 +43,7 @@ int main(int argc, char *argv[]) {
 
     std::cout << "selected:";
 
-    for (auto v : selected)
-      std::cout << v << " ";
+    for (auto v : selected) std::cout << v << " ";
 
     std::cout << std::endl;
     std::cout << "#nodes=" << graph->n_nodes() << std::endl;

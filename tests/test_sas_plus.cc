@@ -1,6 +1,7 @@
 #include "sas_plus.h"
 
 #include <algorithm>
+#include <memory>
 #include <queue>
 #include <string>
 
@@ -8,58 +9,54 @@
 
 namespace pplanner {
 
-std::queue<std::string> ExampleSASPlusLines(bool unit_cost=true);
+std::queue<std::string> ExampleSASPlusLines(bool unit_cost = true);
 
 class SASPlusTest : public ::testing::Test {
  protected:
   virtual void SetUp() {
     auto lines = ExampleSASPlusLines();
-    sas_1_.InitFromLines(lines);
+    sas_0_ = std::make_shared<SASPlus>();
+    sas_1_ = std::make_shared<SASPlus>();
+    sas_1_->InitFromLines(lines);
   }
 
-  SASPlus sas_0_;
-  SASPlus sas_1_;
+  std::shared_ptr<SASPlus> sas_0_;
+  std::shared_ptr<SASPlus> sas_1_;
 };
 
 TEST_F(SASPlusTest, IsInitialized) {
-  EXPECT_EQ(0, sas_0_.metric());
-  EXPECT_EQ(nullptr, sas_0_.facts());
-  EXPECT_EQ(nullptr, sas_0_.goal());
-  EXPECT_EQ(nullptr, sas_0_.preconditions());
-  EXPECT_EQ(nullptr, sas_0_.effects());
+  EXPECT_EQ(0, sas_0_->metric());
+  EXPECT_EQ(nullptr, sas_0_->facts());
+  EXPECT_EQ(nullptr, sas_0_->goal());
+  EXPECT_EQ(nullptr, sas_0_->preconditions());
+  EXPECT_EQ(nullptr, sas_0_->effects());
 }
 
 TEST_F(SASPlusTest, InitFromLinesWorks) {
   auto lines = ExampleSASPlusLines();
-  sas_0_.InitFromLines(lines);
-  EXPECT_EQ(0, sas_0_.metric());
-  EXPECT_NE(nullptr, sas_0_.facts());
-  EXPECT_NE(nullptr, sas_0_.goal());
-  EXPECT_NE(nullptr, sas_0_.preconditions());
-  EXPECT_NE(nullptr, sas_0_.effects());
+  sas_0_->InitFromLines(lines);
+  EXPECT_EQ(0, sas_0_->metric());
+  EXPECT_NE(nullptr, sas_0_->facts());
+  EXPECT_NE(nullptr, sas_0_->goal());
+  EXPECT_NE(nullptr, sas_0_->preconditions());
+  EXPECT_NE(nullptr, sas_0_->effects());
 }
 
-TEST_F(SASPlusTest, NVariablesWorks) {
-  EXPECT_EQ(4, sas_1_.n_variables());
-}
+TEST_F(SASPlusTest, NVariablesWorks) { EXPECT_EQ(4, sas_1_->n_variables()); }
 
-TEST_F(SASPlusTest, NGoalFactsWorks) {
-  EXPECT_EQ(1, sas_1_.n_goal_facts());
-}
+TEST_F(SASPlusTest, NGoalFactsWorks) { EXPECT_EQ(1, sas_1_->n_goal_facts()); }
 
-TEST_F(SASPlusTest, NActionsWorks) {
-  EXPECT_EQ(7, sas_1_.n_actions());
-}
+TEST_F(SASPlusTest, NActionsWorks) { EXPECT_EQ(7, sas_1_->n_actions()); }
 
 TEST_F(SASPlusTest, MetricWorks) {
-  EXPECT_EQ(0, sas_1_.metric());
+  EXPECT_EQ(0, sas_1_->metric());
   auto lines = ExampleSASPlusLines(false);
-  sas_0_.InitFromLines(lines);
-  EXPECT_EQ(1, sas_0_.metric());
+  sas_0_->InitFromLines(lines);
+  EXPECT_EQ(1, sas_0_->metric());
 }
 
 TEST_F(SASPlusTest, InitialWorks) {
-  auto state = sas_1_.initial();
+  auto state = sas_1_->initial();
   EXPECT_EQ(0, state[0]);
   EXPECT_EQ(1, state[1]);
   EXPECT_EQ(0, state[2]);
@@ -67,111 +64,111 @@ TEST_F(SASPlusTest, InitialWorks) {
 }
 
 TEST_F(SASPlusTest, FactWorks) {
-  EXPECT_EQ(0, sas_1_.Fact(0, 0));
-  EXPECT_EQ(1, sas_1_.Fact(0, 1));
-  EXPECT_EQ(2, sas_1_.Fact(1, 0));
-  EXPECT_EQ(3, sas_1_.Fact(1, 1));
-  EXPECT_EQ(4, sas_1_.Fact(2, 0));
-  EXPECT_EQ(5, sas_1_.Fact(2, 1));
-  EXPECT_EQ(6, sas_1_.Fact(2, 2));
-  EXPECT_EQ(7, sas_1_.Fact(3, 0));
-  EXPECT_EQ(8, sas_1_.Fact(3, 1));
+  EXPECT_EQ(0, sas_1_->Fact(0, 0));
+  EXPECT_EQ(1, sas_1_->Fact(0, 1));
+  EXPECT_EQ(2, sas_1_->Fact(1, 0));
+  EXPECT_EQ(3, sas_1_->Fact(1, 1));
+  EXPECT_EQ(4, sas_1_->Fact(2, 0));
+  EXPECT_EQ(5, sas_1_->Fact(2, 1));
+  EXPECT_EQ(6, sas_1_->Fact(2, 2));
+  EXPECT_EQ(7, sas_1_->Fact(3, 0));
+  EXPECT_EQ(8, sas_1_->Fact(3, 1));
 
-  EXPECT_EQ(0, sas_1_.Fact(std::make_pair(0, 0)));
-  EXPECT_EQ(1, sas_1_.Fact(std::make_pair(0, 1)));
-  EXPECT_EQ(2, sas_1_.Fact(std::make_pair(1, 0)));
-  EXPECT_EQ(3, sas_1_.Fact(std::make_pair(1, 1)));
-  EXPECT_EQ(4, sas_1_.Fact(std::make_pair(2, 0)));
-  EXPECT_EQ(5, sas_1_.Fact(std::make_pair(2, 1)));
-  EXPECT_EQ(6, sas_1_.Fact(std::make_pair(2, 2)));
-  EXPECT_EQ(7, sas_1_.Fact(std::make_pair(3, 0)));
-  EXPECT_EQ(8, sas_1_.Fact(std::make_pair(3, 1)));
+  EXPECT_EQ(0, sas_1_->Fact(std::make_pair(0, 0)));
+  EXPECT_EQ(1, sas_1_->Fact(std::make_pair(0, 1)));
+  EXPECT_EQ(2, sas_1_->Fact(std::make_pair(1, 0)));
+  EXPECT_EQ(3, sas_1_->Fact(std::make_pair(1, 1)));
+  EXPECT_EQ(4, sas_1_->Fact(std::make_pair(2, 0)));
+  EXPECT_EQ(5, sas_1_->Fact(std::make_pair(2, 1)));
+  EXPECT_EQ(6, sas_1_->Fact(std::make_pair(2, 2)));
+  EXPECT_EQ(7, sas_1_->Fact(std::make_pair(3, 0)));
+  EXPECT_EQ(8, sas_1_->Fact(std::make_pair(3, 1)));
 }
 
 TEST_F(SASPlusTest, VarBeginWorks) {
-  EXPECT_EQ(0, sas_1_.VarBegin(0));
-  EXPECT_EQ(2, sas_1_.VarBegin(1));
-  EXPECT_EQ(4, sas_1_.VarBegin(2));
-  EXPECT_EQ(7, sas_1_.VarBegin(3));
+  EXPECT_EQ(0, sas_1_->VarBegin(0));
+  EXPECT_EQ(2, sas_1_->VarBegin(1));
+  EXPECT_EQ(4, sas_1_->VarBegin(2));
+  EXPECT_EQ(7, sas_1_->VarBegin(3));
 }
 
 TEST_F(SASPlusTest, VarRangeWorks) {
-  EXPECT_EQ(2, sas_1_.VarRange(0));
-  EXPECT_EQ(2, sas_1_.VarRange(1));
-  EXPECT_EQ(3, sas_1_.VarRange(2));
-  EXPECT_EQ(2, sas_1_.VarRange(3));
+  EXPECT_EQ(2, sas_1_->VarRange(0));
+  EXPECT_EQ(2, sas_1_->VarRange(1));
+  EXPECT_EQ(3, sas_1_->VarRange(2));
+  EXPECT_EQ(2, sas_1_->VarRange(3));
 }
 
 TEST_F(SASPlusTest, PredicateWorks) {
-  EXPECT_EQ(std::string("at-robby"), sas_1_.Predicate(0, 0));
-  EXPECT_EQ(std::string("at-robby"), sas_1_.Predicate(0, 1));
-  EXPECT_EQ(std::string("carry"), sas_1_.Predicate(1, 0));
-  EXPECT_EQ(std::string("free"), sas_1_.Predicate(1, 1));
-  EXPECT_EQ(std::string("at"), sas_1_.Predicate(2, 0));
-  EXPECT_EQ(std::string("at"), sas_1_.Predicate(2, 1));
-  EXPECT_EQ(std::string("<none of those>"), sas_1_.Predicate(2, 2));
-  EXPECT_EQ(std::string("low"), sas_1_.Predicate(3, 0));
-  EXPECT_EQ(std::string("high"), sas_1_.Predicate(3, 1));
+  EXPECT_EQ(std::string("at-robby"), sas_1_->Predicate(0, 0));
+  EXPECT_EQ(std::string("at-robby"), sas_1_->Predicate(0, 1));
+  EXPECT_EQ(std::string("carry"), sas_1_->Predicate(1, 0));
+  EXPECT_EQ(std::string("free"), sas_1_->Predicate(1, 1));
+  EXPECT_EQ(std::string("at"), sas_1_->Predicate(2, 0));
+  EXPECT_EQ(std::string("at"), sas_1_->Predicate(2, 1));
+  EXPECT_EQ(std::string("<none of those>"), sas_1_->Predicate(2, 2));
+  EXPECT_EQ(std::string("low"), sas_1_->Predicate(3, 0));
+  EXPECT_EQ(std::string("high"), sas_1_->Predicate(3, 1));
 }
 
 TEST_F(SASPlusTest, IsMutexWorks) {
-  EXPECT_FALSE(sas_1_.IsMutex(3, 5));
-  EXPECT_FALSE(sas_1_.IsMutex(1, 6));
-  EXPECT_FALSE(sas_1_.IsMutex(0, 4));
-  EXPECT_TRUE(sas_1_.IsMutex(4, 5));
-  EXPECT_TRUE(sas_1_.IsMutex(2, 5));
-  EXPECT_TRUE(sas_1_.IsMutex(2, 4));
+  EXPECT_FALSE(sas_1_->IsMutex(3, 5));
+  EXPECT_FALSE(sas_1_->IsMutex(1, 6));
+  EXPECT_FALSE(sas_1_->IsMutex(0, 4));
+  EXPECT_TRUE(sas_1_->IsMutex(4, 5));
+  EXPECT_TRUE(sas_1_->IsMutex(2, 5));
+  EXPECT_TRUE(sas_1_->IsMutex(2, 4));
 
-  EXPECT_FALSE(sas_1_.IsMutex(2, 0, 3, 0));
-  EXPECT_FALSE(sas_1_.IsMutex(1, 0, 1, 1));
-  EXPECT_FALSE(sas_1_.IsMutex(0, 1, 2, 1));
-  EXPECT_TRUE(sas_1_.IsMutex(2, 0, 2, 1));
-  EXPECT_TRUE(sas_1_.IsMutex(1, 0, 2, 0));
-  EXPECT_TRUE(sas_1_.IsMutex(1, 0, 2, 1));
+  EXPECT_FALSE(sas_1_->IsMutex(2, 0, 3, 0));
+  EXPECT_FALSE(sas_1_->IsMutex(1, 0, 1, 1));
+  EXPECT_FALSE(sas_1_->IsMutex(0, 1, 2, 1));
+  EXPECT_TRUE(sas_1_->IsMutex(2, 0, 2, 1));
+  EXPECT_TRUE(sas_1_->IsMutex(1, 0, 2, 0));
+  EXPECT_TRUE(sas_1_->IsMutex(1, 0, 2, 1));
 }
 
 TEST_F(SASPlusTest, IsGoalWorks) {
-  auto state = sas_1_.initial();
-  EXPECT_FALSE(sas_1_.IsGoal(state));
+  auto state = sas_1_->initial();
+  EXPECT_FALSE(sas_1_->IsGoal(state));
   state[2] = 1;
-  EXPECT_TRUE(sas_1_.IsGoal(state));
+  EXPECT_TRUE(sas_1_->IsGoal(state));
 }
 
 TEST_F(SASPlusTest, ActionCostWorks) {
-  EXPECT_EQ(1, sas_1_.ActionCost(0));
-  EXPECT_EQ(1, sas_1_.ActionCost(1));
-  EXPECT_EQ(1, sas_1_.ActionCost(2));
-  EXPECT_EQ(1, sas_1_.ActionCost(3));
-  EXPECT_EQ(1, sas_1_.ActionCost(4));
-  EXPECT_EQ(1, sas_1_.ActionCost(5));
-  EXPECT_EQ(1, sas_1_.ActionCost(6));
+  EXPECT_EQ(1, sas_1_->ActionCost(0));
+  EXPECT_EQ(1, sas_1_->ActionCost(1));
+  EXPECT_EQ(1, sas_1_->ActionCost(2));
+  EXPECT_EQ(1, sas_1_->ActionCost(3));
+  EXPECT_EQ(1, sas_1_->ActionCost(4));
+  EXPECT_EQ(1, sas_1_->ActionCost(5));
+  EXPECT_EQ(1, sas_1_->ActionCost(6));
 
   auto lines = ExampleSASPlusLines(false);
-  sas_0_.InitFromLines(lines);
-  EXPECT_EQ(10, sas_0_.ActionCost(0));
-  EXPECT_EQ(10, sas_0_.ActionCost(1));
-  EXPECT_EQ(10, sas_0_.ActionCost(2));
-  EXPECT_EQ(10, sas_0_.ActionCost(3));
-  EXPECT_EQ(10, sas_0_.ActionCost(4));
-  EXPECT_EQ(10, sas_0_.ActionCost(5));
-  EXPECT_EQ(10, sas_0_.ActionCost(6));
+  sas_0_->InitFromLines(lines);
+  EXPECT_EQ(10, sas_0_->ActionCost(0));
+  EXPECT_EQ(10, sas_0_->ActionCost(1));
+  EXPECT_EQ(10, sas_0_->ActionCost(2));
+  EXPECT_EQ(10, sas_0_->ActionCost(3));
+  EXPECT_EQ(10, sas_0_->ActionCost(4));
+  EXPECT_EQ(10, sas_0_->ActionCost(5));
+  EXPECT_EQ(10, sas_0_->ActionCost(6));
 }
 
 TEST_F(SASPlusTest, ActionNameWorks) {
-  EXPECT_EQ(std::string("drop ball1 rooma left"), sas_1_.ActionName(0));
-  EXPECT_EQ(std::string("drop ball1 roomb left"), sas_1_.ActionName(1));
-  EXPECT_EQ(std::string("move rooma roomb"), sas_1_.ActionName(2));
-  EXPECT_EQ(std::string("move roomb rooma"), sas_1_.ActionName(3));
-  EXPECT_EQ(std::string("pick ball1 rooma left"), sas_1_.ActionName(4));
-  EXPECT_EQ(std::string("pick ball1 roomb left"), sas_1_.ActionName(5));
+  EXPECT_EQ(std::string("drop ball1 rooma left"), sas_1_->ActionName(0));
+  EXPECT_EQ(std::string("drop ball1 roomb left"), sas_1_->ActionName(1));
+  EXPECT_EQ(std::string("move rooma roomb"), sas_1_->ActionName(2));
+  EXPECT_EQ(std::string("move roomb rooma"), sas_1_->ActionName(3));
+  EXPECT_EQ(std::string("pick ball1 rooma left"), sas_1_->ActionName(4));
+  EXPECT_EQ(std::string("pick ball1 roomb left"), sas_1_->ActionName(5));
   EXPECT_EQ(std::string("pick_conditional ball1 roomb left"),
-            sas_1_.ActionName(6));
+            sas_1_->ActionName(6));
 }
 
 TEST_F(SASPlusTest, CopyPreconditionWorks) {
   std::vector<std::pair<int, int> > precondition;
 
-  sas_1_.CopyPrecondition(0, precondition);
+  sas_1_->CopyPrecondition(0, precondition);
   std::sort(precondition.begin(), precondition.end());
   ASSERT_EQ(2, precondition.size());
   EXPECT_EQ(0, precondition[0].first);
@@ -179,7 +176,7 @@ TEST_F(SASPlusTest, CopyPreconditionWorks) {
   EXPECT_EQ(1, precondition[1].first);
   EXPECT_EQ(0, precondition[1].second);
 
-  sas_1_.CopyPrecondition(1, precondition);
+  sas_1_->CopyPrecondition(1, precondition);
   std::sort(precondition.begin(), precondition.end());
   ASSERT_EQ(2, precondition.size());
   EXPECT_EQ(0, precondition[0].first);
@@ -187,19 +184,19 @@ TEST_F(SASPlusTest, CopyPreconditionWorks) {
   EXPECT_EQ(1, precondition[1].first);
   EXPECT_EQ(0, precondition[1].second);
 
-  sas_1_.CopyPrecondition(2, precondition);
+  sas_1_->CopyPrecondition(2, precondition);
   std::sort(precondition.begin(), precondition.end());
   ASSERT_EQ(1, precondition.size());
   EXPECT_EQ(0, precondition[0].first);
   EXPECT_EQ(0, precondition[0].second);
 
-  sas_1_.CopyPrecondition(3, precondition);
+  sas_1_->CopyPrecondition(3, precondition);
   std::sort(precondition.begin(), precondition.end());
   ASSERT_EQ(1, precondition.size());
   EXPECT_EQ(0, precondition[0].first);
   EXPECT_EQ(1, precondition[0].second);
 
-  sas_1_.CopyPrecondition(4, precondition);
+  sas_1_->CopyPrecondition(4, precondition);
   std::sort(precondition.begin(), precondition.end());
   ASSERT_EQ(3, precondition.size());
   EXPECT_EQ(0, precondition[0].first);
@@ -209,7 +206,7 @@ TEST_F(SASPlusTest, CopyPreconditionWorks) {
   EXPECT_EQ(2, precondition[2].first);
   EXPECT_EQ(0, precondition[2].second);
 
-  sas_1_.CopyPrecondition(5, precondition);
+  sas_1_->CopyPrecondition(5, precondition);
   std::sort(precondition.begin(), precondition.end());
   ASSERT_EQ(3, precondition.size());
   EXPECT_EQ(0, precondition[0].first);
@@ -221,34 +218,33 @@ TEST_F(SASPlusTest, CopyPreconditionWorks) {
 }
 
 TEST_F(SASPlusTest, ApplyEffectWorks) {
-  auto state = sas_1_.initial();
-  auto tmp = sas_1_.initial();
-  sas_1_.ApplyEffect(4, state, tmp);
+  auto state = sas_1_->initial();
+  auto tmp = sas_1_->initial();
+  sas_1_->ApplyEffect(4, state, tmp);
   state = tmp;
   EXPECT_EQ(0, state[1]);
-  sas_1_.ApplyEffect(2, state, tmp);
+  sas_1_->ApplyEffect(2, state, tmp);
   state = tmp;
   EXPECT_EQ(1, state[0]);
-  sas_1_.ApplyEffect(1, state, tmp);
+  sas_1_->ApplyEffect(1, state, tmp);
   state = tmp;
   EXPECT_EQ(1, state[2]);
 
   state = std::vector<int>{1, 1, 1, 0};
   auto expected = std::vector<int>{1, 0, 2, 0};
-  sas_1_.ApplyEffect(6, state, tmp);
+  sas_1_->ApplyEffect(6, state, tmp);
   state = tmp;
   EXPECT_EQ(expected, state);
   state = std::vector<int>{1, 1, 1, 1};
   expected = std::vector<int>{0, 0, 2, 1};
-  sas_1_.ApplyEffect(6, state, tmp);
+  sas_1_->ApplyEffect(6, state, tmp);
   state = tmp;
   EXPECT_EQ(expected, state);
 }
 
-
 TEST_F(SASPlusTest, StateToFactVectorWorks) {
   std::vector<int> v;
-  auto state = sas_1_.initial();
+  auto state = sas_1_->initial();
   StateToFactVector(sas_1_, state, v);
   ASSERT_TRUE(state.size() == v.size());
   EXPECT_EQ(0, v[0]);
@@ -266,9 +262,9 @@ TEST_F(SASPlusTest, StateToFactVectorWorks) {
 
 TEST_F(SASPlusTest, StateToFactSetWorks) {
   std::vector<bool> s;
-  auto state = sas_1_.initial();
+  auto state = sas_1_->initial();
   StateToFactSet(sas_1_, state, s);
-  ASSERT_TRUE(sas_1_.n_facts() == static_cast<int>(s.size()));
+  ASSERT_TRUE(sas_1_->n_facts() == static_cast<int>(s.size()));
   EXPECT_TRUE(s[0]);
   EXPECT_FALSE(s[1]);
   EXPECT_FALSE(s[2]);
@@ -279,7 +275,7 @@ TEST_F(SASPlusTest, StateToFactSetWorks) {
   EXPECT_FALSE(s[8]);
   state[0] = 1;
   StateToFactSet(sas_1_, state, s);
-  ASSERT_TRUE(sas_1_.n_facts() == static_cast<int>(s.size()));
+  ASSERT_TRUE(sas_1_->n_facts() == static_cast<int>(s.size()));
   EXPECT_FALSE(s[0]);
   EXPECT_TRUE(s[1]);
   EXPECT_FALSE(s[2]);
@@ -415,4 +411,4 @@ std::queue<std::string> ExampleSASPlusLines(bool unit_cost) {
   return q;
 }
 
-} // namespace pplanner
+}  // namespace pplanner
