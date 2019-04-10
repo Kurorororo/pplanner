@@ -22,15 +22,15 @@ add_library(search_graph STATIC
 add_library(evaluators STATIC
   evaluator.cc
   evaluator_factory.cc
-  random_walk_evaluator.cc
-  random_walk_evaluator_factory.cc
   ./heuristics/blind.cc
   ./heuristics/new_operator.cc
   ./heuristics/width.cc)
 
 add_library(search STATIC
+  closed_list.cc
   search.cc
   search_factory.cc
+  search_node.cc
   ./search/kgbfs.cc
   ./search/gbfs.cc
   ./search/dehc.cc
@@ -43,9 +43,7 @@ add_library(search STATIC
   ./search/simhdgbfs1.cc
   ./symmetry/symmetry.cc
   ./utils/lexical_order.cc
-  ./multithread_search/abstract_graph.cc
-  ./multithread_search/search_node.cc
-  ./multithread_search/closed_list.cc
+  ./sas_plus/abstract_graph.cc
   ./multithread_search/lock_free_closed_list.cc
   ./multithread_search/gbfs_portfolio.cc
   ./multithread_search/multi_gbfs.cc

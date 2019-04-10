@@ -135,7 +135,7 @@ int LandmarkCountBase::Evaluate(const vector<int> &state,
       }
     }
 
-    StateToFactVector(*problem_, state, facts);
+    StateToFactVector(problem_, state, facts);
 
     if (disjunctive_goals.empty())
       rpg_->PlanCost(facts, preferred);

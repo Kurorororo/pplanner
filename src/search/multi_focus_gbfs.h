@@ -13,7 +13,6 @@
 
 #include "evaluator.h"
 #include "open_list.h"
-#include "random_walk_evaluator.h"
 #include "sas_plus.h"
 #include "search.h"
 #include "search_graph.h"
@@ -24,36 +23,38 @@ namespace pplanner {
 class MultiFocusMrwGBFS : public Search {
  public:
   MultiFocusMrwGBFS(std::shared_ptr<const SASPlus> problem,
-                 const boost::property_tree::ptree &pt)
-    : uniform_(false),
-      use_preferred_(false),
-      generated_(0),
-      expanded_(0),
-      evaluated_(0),
-      dead_ends_(0),
-      rw_evaluated_(0),
-      tg_(1000),
-      n_restarts_(0),
-      best_h_(-1),
-      rw_initial_h_(-1),
-      rw_best_h_(-1),
-      eps_(0.1),
-      e1_(exp(0.1)),
-      ew_(exp(0.1)),
-      v_w_(0.0),
-      rls_({0.1, 0.01, 0.001}),
-      ls_({10, 100, 1000}),
-      value_rls_(3, 0),
-      cost_rls_(3, 0),
-      q1_(problem->n_actions(), 1.0),
-      qw_(problem->n_actions(), 1.0),
-      dist_(0.0, 1.0),
-      problem_(problem),
-      generator_(std::unique_ptr<SuccessorGenerator>(
+                    const boost::property_tree::ptree &pt)
+      : uniform_(false),
+        use_preferred_(false),
+        generated_(0),
+        expanded_(0),
+        evaluated_(0),
+        dead_ends_(0),
+        rw_evaluated_(0),
+        tg_(1000),
+        n_restarts_(0),
+        best_h_(-1),
+        rw_initial_h_(-1),
+        rw_best_h_(-1),
+        eps_(0.1),
+        e1_(exp(0.1)),
+        ew_(exp(0.1)),
+        v_w_(0.0),
+        rls_({0.1, 0.01, 0.001}),
+        ls_({10, 100, 1000}),
+        value_rls_(3, 0),
+        cost_rls_(3, 0),
+        q1_(problem->n_actions(), 1.0),
+        qw_(problem->n_actions(), 1.0),
+        dist_(0.0, 1.0),
+        problem_(problem),
+        generator_(std::unique_ptr<SuccessorGenerator>(
             new SuccessorGenerator(problem))),
-      rw_evaluator_(nullptr),
-      graph_(nullptr),
-      preferring_(nullptr) { Init(pt); }
+        rw_evaluator_(nullptr),
+        graph_(nullptr),
+        preferring_(nullptr) {
+    Init(pt);
+  }
 
   ~MultiFocusMrwGBFS() {}
 
@@ -132,7 +133,7 @@ class MultiFocusMrwGBFS : public Search {
   std::uniform_real_distribution<> dist_;
   std::shared_ptr<const SASPlus> problem_;
   std::unique_ptr<SuccessorGenerator> generator_;
-  std::shared_ptr<RandomWalkEvaluator> rw_evaluator_;
+  std::shared_ptr<Evaluator> rw_evaluator_;
   std::unordered_map<int, std::vector<int> > rw_plan_to_node_;
   std::shared_ptr<SearchGraph> graph_;
   std::vector<std::shared_ptr<Evaluator> > evaluators_;
@@ -141,6 +142,6 @@ class MultiFocusMrwGBFS : public Search {
   std::vector<std::shared_ptr<OpenList<int> > > open_lists_;
 };
 
-} // namespace pplanner
+}  // namespace pplanner
 
-#endif // MULTI_FOCUS_MRW_GBFS_H_
+#endif  // MULTI_FOCUS_MRW_GBFS_H_

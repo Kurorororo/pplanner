@@ -305,7 +305,7 @@ void IdentifyLandmarks(shared_ptr<const SASPlus> problem,
                        shared_ptr<LandmarkGraph> graph, bool use_rpg_table) {
   auto initial = problem->initial();
   vector<int> initial_facts;
-  StateToFactVector(*problem, initial, initial_facts);
+  StateToFactVector(problem, initial, initial_facts);
   queue<int> q;
 
   vector<pair<int, int> > goal;

@@ -6,10 +6,10 @@
 
 #include <boost/foreach.hpp>
 
-#include "evaluator_factory.h"
-#include "open_list_factory.h"
 #include "distributed_search_graph_factory.h"
+#include "evaluator_factory.h"
 #include "hash/distribution_hash_factory.h"
+#include "open_list_factory.h"
 
 namespace pplanner {
 
@@ -33,7 +33,7 @@ void HDGBFS1::Init(const boost::property_tree::ptree &pt) {
 
   vector<boost::property_tree::ptree> evaluator_names;
 
-  BOOST_FOREACH (const boost::property_tree::ptree::value_type& child,
+  BOOST_FOREACH (const boost::property_tree::ptree::value_type &child,
                  pt.get_child("evaluators")) {
     evaluator_names.push_back(child.second);
     ++n_evaluators_;
@@ -48,14 +48,14 @@ void HDGBFS1::Init(const boost::property_tree::ptree &pt) {
   bool dump_nodes = false;
   if (auto opt = pt.get_optional<int>("dump_nodes")) dump_nodes = true;
 
-  graph_ = DistributedSearchGraphFactory(problem_, closed_exponent,
-                                         n_evaluators_, rank_, keep_cost,
-                                         use_landmark, dump_nodes);
+  graph_ =
+      DistributedSearchGraphFactory(problem_, closed_exponent, n_evaluators_,
+                                    rank_, keep_cost, use_landmark, dump_nodes);
 
   std::shared_ptr<Evaluator> friend_evaluator = nullptr;
 
   for (auto e : evaluator_names) {
-    auto evaluator = EvaluatorFactory(problem_, graph_, friend_evaluator,  e);
+    auto evaluator = EvaluatorFactory(problem_, e, friend_evaluator, graph_);
     evaluators_.push_back(evaluator);
     friend_evaluator = evaluator;
   }
@@ -67,8 +67,8 @@ void HDGBFS1::Init(const boost::property_tree::ptree &pt) {
       if (name.get() == "same") {
         preferring_ = evaluators_[0];
       } else {
-        preferring_ = EvaluatorFactory(
-            problem_, graph_, nullptr, preferring.get());
+        preferring_ =
+            EvaluatorFactory(problem_, preferring.get(), nullptr, graph_);
       }
     }
   }
@@ -76,21 +76,18 @@ void HDGBFS1::Init(const boost::property_tree::ptree &pt) {
   auto open_list_option = pt.get_child("open_list");
   open_list_ = OpenListFactory(open_list_option);
 
-  if (auto opt = pt.get_optional<int>("take"))
-    take_= opt.get();
+  if (auto opt = pt.get_optional<int>("take")) take_ = opt.get();
 
   if (auto opt = pt.get_optional<int>("local_open")) {
     use_local_open_ = true;
     local_open_list_ = OpenListFactory(open_list_option);
   }
 
-  if (auto opt = pt.get_optional<int>("reset_best"))
-    reset_best_ = true;
+  if (auto opt = pt.get_optional<int>("reset_best")) reset_best_ = true;
 
   size_t ram = 5000000000;
 
-  if (auto opt = pt.get_optional<size_t>("ram"))
-    ram = opt.get();
+  if (auto opt = pt.get_optional<size_t>("ram")) ram = opt.get();
 
   if (auto opt = pt.get_optional<int>("dominance")) {
     use_dominance_ = true;
@@ -102,8 +99,8 @@ void HDGBFS1::Init(const boost::property_tree::ptree &pt) {
 
   if (auto opt = pt.get_child_optional("sss")) {
     use_sss_ = true;
-    sss_aproximater_ = std::unique_ptr<SSSApproximater>(
-        new SSSApproximater(problem_));
+    sss_aproximater_ =
+        std::unique_ptr<SSSApproximater>(new SSSApproximater(problem_));
 
     if (auto n_disable = opt.get().get_optional<int>("n_pruning_disable"))
       n_pruning_disable_ = n_disable.get();
@@ -123,7 +120,7 @@ void HDGBFS1::Init(const boost::property_tree::ptree &pt) {
 
   unsigned int buffer_size = 1000000000;
   mpi_buffer_ = new unsigned char[buffer_size];
-  MPI_Buffer_attach((void*)mpi_buffer_, buffer_size);
+  MPI_Buffer_attach((void *)mpi_buffer_, buffer_size);
 
   outgoing_buffers_.resize(world_size_);
 }
@@ -194,15 +191,15 @@ int HDGBFS1::Expand(int node, vector<int> &state) {
   if (problem_->IsGoal(state)) return node;
 
   if (use_sss_ && !sss_checked_ && expanded_ > n_pruning_disable_) {
-    double ratio = static_cast<double>(n_pruned_)
-      / static_cast<double>(n_branching_);
+    double ratio =
+        static_cast<double>(n_pruned_) / static_cast<double>(n_branching_);
 
     std::cout << "#pruned=" << n_pruned_ << std::endl;
     std::cout << "#branching=" << n_branching_ << std::endl;
     std::cout << "ratio=" << ratio << std::endl;
 
     if (n_pruned_ == 0) use_sss_ = false;
-    //if (ratio < min_pruning_ratio_) use_sss_ = false;
+    // if (ratio < min_pruning_ratio_) use_sss_ = false;
 
     sss_checked_ = true;
   }
@@ -214,14 +211,12 @@ int HDGBFS1::Expand(int node, vector<int> &state) {
     return -1;
   }
 
-  if (use_preferred_)
-    preferring_->Evaluate(state, node, applicable, preferred);
+  if (use_preferred_) preferring_->Evaluate(state, node, applicable, preferred);
 
   ++n_preferred_evaluated_;
   n_branching_ += applicable.size();
 
-  if (use_sss_)
-    sss_aproximater_->ApproximateSSS(state, applicable, sss);
+  if (use_sss_) sss_aproximater_->ApproximateSSS(state, applicable, sss);
 
   state_array.resize(applicable.size());
   packed_array.resize(applicable.size());
@@ -241,8 +236,8 @@ int HDGBFS1::Expand(int node, vector<int> &state) {
     auto &child = state_array[index];
     problem_->ApplyEffect(o, state, child);
 
-    if (use_dominance_ && (lds_->Dominance(child, state)
-          || lds_->Dominance(child, problem_->initial()))) {
+    if (use_dominance_ && (lds_->Dominance(child, state) ||
+                           lds_->Dominance(child, problem_->initial()))) {
       ++n_d_pruned_;
       continue;
     }
@@ -264,8 +259,7 @@ int HDGBFS1::Expand(int node, vector<int> &state) {
       continue;
     }
 
-    if (arg_min == -1 || values < value_array[arg_min])
-      arg_min = index;
+    if (arg_min == -1 || values < value_array[arg_min]) arg_min = index;
 
     actione_array[index] = o;
     index++;
@@ -278,18 +272,15 @@ int HDGBFS1::Expand(int node, vector<int> &state) {
   if (take_ == 0 && (NoNode() || value_array[arg_min] < MinimumValues()))
     node_to_keep = arg_min;
 
-  if (take_ == 1 && value_array[arg_min] < best_values_)
-    node_to_keep = arg_min;
+  if (take_ == 1 && value_array[arg_min] < best_values_) node_to_keep = arg_min;
 
-  if (take_ == 1
-      && use_local_open_
-      && reset_best_
-      && (NoNode() || value_array[arg_min] < MinimumValues())) {
+  if (take_ == 1 && use_local_open_ && reset_best_ &&
+      (NoNode() || value_array[arg_min] < MinimumValues())) {
     best_values_ = value_array[arg_min];
     node_to_keep = arg_min;
   }
 
-  for (int i=0; i<index; ++i) {
+  for (int i = 0; i < index; ++i) {
     ++n_sent_or_generated_;
 
     auto &child = state_array[i];
@@ -307,9 +298,9 @@ int HDGBFS1::Expand(int node, vector<int> &state) {
       unsigned char *buffer = ExtendOutgoingBuffer(
           to_rank, values.size() * sizeof(int) + node_size());
       memcpy(buffer, values.data(), values.size() * sizeof(int));
-      graph_->BufferEvaluatedNode(
-          i, action, node, hash_array[i], packed_array[i].data(),
-          buffer + values.size() * sizeof(int));
+      graph_->BufferEvaluatedNode(i, action, node, hash_array[i],
+                                  packed_array[i].data(),
+                                  buffer + values.size() * sizeof(int));
       ++n_sent_;
     }
 
@@ -346,7 +337,6 @@ int HDGBFS1::Evaluate(const vector<int> &state, int node, int parent,
   return values[0];
 }
 
-
 void HDGBFS1::Push(std::vector<int> &values, int node, bool is_local) {
   int h = values[0];
 
@@ -357,8 +347,8 @@ void HDGBFS1::Push(std::vector<int> &values, int node, bool is_local) {
 
   graph_->SetH(node, values[0]);
 
-  if (best_values_.empty()
-      || ((!use_local_open_ || is_local) && values < best_values_))
+  if (best_values_.empty() ||
+      ((!use_local_open_ || is_local) && values < best_values_))
     best_values_ = values;
 
   if (best_h() == -1 || h < best_h()) {
@@ -366,8 +356,8 @@ void HDGBFS1::Push(std::vector<int> &values, int node, bool is_local) {
 
     if (rank_ == initial_rank_) {
       std::cout << "New best heuristic value: " << best_h() << std::endl;
-      std::cout << "[" << evaluated_ << " evaluated, "
-                << expanded_ << " expanded]" << std::endl;
+      std::cout << "[" << evaluated_ << " evaluated, " << expanded_
+                << " expanded]" << std::endl;
     }
 
     if (use_preferred_) open_list_->Boost();
@@ -375,7 +365,7 @@ void HDGBFS1::Push(std::vector<int> &values, int node, bool is_local) {
 }
 
 void HDGBFS1::SendNodes(int tag) {
-  for (int i=0; i<world_size_; ++i) {
+  for (int i = 0; i < world_size_; ++i) {
     if (i == rank_ || outgoing_buffers_[i].empty()) continue;
 
     unsigned char *d = outgoing_buffers_[i].data();
@@ -405,7 +395,7 @@ void HDGBFS1::ReceiveNodes() {
     auto buffer = IncomingBuffer();
     size_t n_nodes = d_size / unit_size;
 
-    for (size_t i=0; i<n_nodes; ++i) {
+    for (size_t i = 0; i < n_nodes; ++i) {
       memcpy(values.data(), buffer, values.size() * sizeof(int));
       buffer += values.size() * sizeof(int);
       int node = graph_->GenerateNodeIfNotClosedFromBytes(buffer);
@@ -419,15 +409,15 @@ void HDGBFS1::ReceiveNodes() {
     }
 
     has_received = 0;
-    MPI_Iprobe(
-        MPI_ANY_SOURCE, kNodeTag, MPI_COMM_WORLD, &has_received, &status);
+    MPI_Iprobe(MPI_ANY_SOURCE, kNodeTag, MPI_COMM_WORLD, &has_received,
+               &status);
   }
 }
 
 void HDGBFS1::SendTermination() {
-  for (int i=0; i<world_size_; ++i) {
+  for (int i = 0; i < world_size_; ++i) {
     if (i == rank_) continue;
-    MPI_Bsend(NULL, 0, MPI_BYTE, i,kTerminationTag, MPI_COMM_WORLD);
+    MPI_Bsend(NULL, 0, MPI_BYTE, i, kTerminationTag, MPI_COMM_WORLD);
   }
 }
 
@@ -441,12 +431,12 @@ bool HDGBFS1::ReceiveTermination() {
 
 vector<int> HDGBFS1::ExtractPath(int node) {
   vector<int> rec_buffer(world_size_);
-  MPI_Gather(
-      &node, 1, MPI_INT, rec_buffer.data(), 1, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Gather(&node, 1, MPI_INT, rec_buffer.data(), 1, MPI_INT, 0,
+             MPI_COMM_WORLD);
   int goal_process = -1;
 
   if (rank_ == 0) {
-    for (int i=0; i<world_size_; ++i) {
+    for (int i = 0; i < world_size_; ++i) {
       if (rec_buffer[i] != -1) {
         goal_process = i;
         break;
@@ -459,14 +449,14 @@ vector<int> HDGBFS1::ExtractPath(int node) {
   if (goal_process == -1) return vector<int>{-1};
 
   if (goal_process == rank_) {
-    //std::cout << "rank " << rank_ << " has goal node" << std::endl;
+    // std::cout << "rank " << rank_ << " has goal node" << std::endl;
 
     int p[2];
     p[0] = graph_->Parent(node);
     p[1] = graph_->Action(node);
     int p_rank = graph_->ParentRank(node);
 
-    //std::cout << "parent rank " << p_rank << std::endl;
+    // std::cout << "parent rank " << p_rank << std::endl;
     MPI_Bsend(p, 2, MPI_INT, p_rank, kPlanTag, MPI_COMM_WORLD);
   }
 
@@ -475,25 +465,25 @@ vector<int> HDGBFS1::ExtractPath(int node) {
 
   while (true) {
     int has_received = 0;
-    MPI_Iprobe(
-        MPI_ANY_SOURCE, kPlanTag, MPI_COMM_WORLD, &has_received, &status);
+    MPI_Iprobe(MPI_ANY_SOURCE, kPlanTag, MPI_COMM_WORLD, &has_received,
+               &status);
     int size;
 
     if (has_received) {
-      //std::cout <<  "rank=" << rank_ << std::endl;
+      // std::cout <<  "rank=" << rank_ << std::endl;
       MPI_Get_count(&status, MPI_INT, &size);
-      //std::cout <<  "size=" << size << std::endl;
+      // std::cout <<  "size=" << size << std::endl;
       int source = status.MPI_SOURCE;
       vector<int> plan(size + 1);
       MPI_Recv(plan.data() + 1, size, MPI_INT, source, kPlanTag, MPI_COMM_WORLD,
                MPI_STATUS_IGNORE);
       int current_node = plan[1];
-      //std::cout << "node=" << current_node << std::endl;
+      // std::cout << "node=" << current_node << std::endl;
       int parent = graph_->Parent(current_node);
-      //std::cout << "parent " << parent << std::endl;
+      // std::cout << "parent " << parent << std::endl;
 
       if (parent == -1) {
-        for (int i=0; i<world_size_; ++i) {
+        for (int i = 0; i < world_size_; ++i) {
           if (i == rank_) continue;
           MPI_Bsend(NULL, 0, MPI_BYTE, i, kPlanTerminationTag, MPI_COMM_WORLD);
         }
@@ -506,11 +496,11 @@ vector<int> HDGBFS1::ExtractPath(int node) {
       plan[0] = parent;
       plan[1] = graph_->Action(current_node);
       int parent_rank = graph_->ParentRank(current_node);
-      //std::cout << "parent rank: " << parent_rank << std::endl;
+      // std::cout << "parent rank: " << parent_rank << std::endl;
 
       MPI_Bsend(plan.data(), size + 1, MPI_INT, parent_rank, kPlanTag,
                 MPI_COMM_WORLD);
-      //std::cout << std::endl;
+      // std::cout << std::endl;
     }
 
     has_received = 0;
@@ -566,21 +556,19 @@ void HDGBFS1::DumpStatistics() const {
   MPI_Allreduce(&evaluated_, &evaluated, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
   MPI_Allreduce(&generated_, &generated, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
   MPI_Allreduce(&dead_ends_, &dead_ends, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-  MPI_Allreduce(
-      &expanded_local_, &expanded_local, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-  MPI_Allreduce(
-      &n_preferreds_, &n_preferreds, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(&expanded_local_, &expanded_local, 1, MPI_INT, MPI_SUM,
+                MPI_COMM_WORLD);
+  MPI_Allreduce(&n_preferreds_, &n_preferreds, 1, MPI_INT, MPI_SUM,
+                MPI_COMM_WORLD);
   MPI_Allreduce(&n_preferred_evaluated_, &n_preferred_evaluated, 1, MPI_INT,
                 MPI_SUM, MPI_COMM_WORLD);
-  MPI_Allreduce(
-      &n_branching_, &n_branching, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(&n_branching_, &n_branching, 1, MPI_INT, MPI_SUM,
+                MPI_COMM_WORLD);
   MPI_Allreduce(&n_sent_, &n_sent, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
   MPI_Allreduce(&n_sent_or_generated_, &n_sent_or_generated, 1, MPI_INT,
                 MPI_SUM, MPI_COMM_WORLD);
-  MPI_Allreduce(
-      &n_received_, &n_received, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-  MPI_Allreduce(
-      &n_d_pruned_, &n_d_pruned, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(&n_received_, &n_received, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(&n_d_pruned_, &n_d_pruned, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 
   int expanded_array[world_size_];
   MPI_Gather(&expanded_, 1, MPI_INT, expanded_array, 1, MPI_INT, initial_rank_,
@@ -591,26 +579,26 @@ void HDGBFS1::DumpStatistics() const {
     std::cout << "Evaluated " << evaluated << " state(s)" << std::endl;
     std::cout << "Generated " << generated << " state(s)" << std::endl;
     std::cout << "Dead ends " << dead_ends << " state(s)" << std::endl;
-    std::cout << "Expanded from local " << expanded_local
-              << " state(s)" << std::endl;
+    std::cout << "Expanded from local " << expanded_local << " state(s)"
+              << std::endl;
 
-    double local_ratio = static_cast<double>(expanded_local)
-      / static_cast<double>(expanded);
+    double local_ratio =
+        static_cast<double>(expanded_local) / static_cast<double>(expanded);
     std::cout << "Expand from local ratio " << local_ratio << std::endl;
 
     std::cout << "Preferred evaluated " << n_preferred_evaluated_ << " state(s)"
               << std::endl;
     std::cout << "Preferred successors " << n_preferreds_ << " state(s)"
               << std::endl;
-    double p_p_e = static_cast<double>(n_preferreds)
-      / static_cast<double>(n_preferred_evaluated);
+    double p_p_e = static_cast<double>(n_preferreds) /
+                   static_cast<double>(n_preferred_evaluated);
     std::cout << "Preferreds per state " << p_p_e << std::endl;
-    double b_f = static_cast<double>(n_branching)
-      / static_cast<double>(n_preferred_evaluated);
+    double b_f = static_cast<double>(n_branching) /
+                 static_cast<double>(n_preferred_evaluated);
     std::cout << "Average branching factor " << b_f << std::endl;
-    double p_p_b = static_cast<double>(n_preferreds)
-      / static_cast<double>(n_branching);
-    std::cout << "Preferred ratio " << p_p_b  << std::endl;
+    double p_p_b =
+        static_cast<double>(n_preferreds) / static_cast<double>(n_branching);
+    std::cout << "Preferred ratio " << p_p_b << std::endl;
 
     double delay = 1.0;
 
@@ -619,21 +607,21 @@ void HDGBFS1::DumpStatistics() const {
 
     std::cout << "Delay " << delay << std::endl;
 
-    double co = static_cast<double>(n_sent)
-      / static_cast<double>(n_sent_or_generated);
+    double co =
+        static_cast<double>(n_sent) / static_cast<double>(n_sent_or_generated);
 
     std::cout << "CO " << co << std::endl;
 
     double mean = 0.0;
 
-    for (int i=0; i<world_size_; ++i)
+    for (int i = 0; i < world_size_; ++i)
       mean += static_cast<double>(expanded_array[i]);
 
     mean /= static_cast<double>(world_size_);
 
     double var = 0.0;
 
-    for (int i=0; i<world_size_; ++i) {
+    for (int i = 0; i < world_size_; ++i) {
       double diff = static_cast<double>(expanded_array[i]) - mean;
       var += diff * diff;
     }
@@ -650,4 +638,4 @@ void HDGBFS1::DumpStatistics() const {
   graph_->Dump();
 }
 
-} // namespace pplanner
+}  // namespace pplanner

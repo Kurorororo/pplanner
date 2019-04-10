@@ -14,11 +14,10 @@ namespace pplanner {
 
 std::shared_ptr<Evaluator> EvaluatorFactory(
     std::shared_ptr<const SASPlus> problem,
-    std::shared_ptr<SearchGraph> graph,
-    std::shared_ptr<Evaluator> friend_evaluator,
-    const boost::property_tree::ptree &pt);
+    const boost::property_tree::ptree &pt,
+    std::shared_ptr<Evaluator> friend_evaluator = nullptr,
+    std::shared_ptr<SearchGraph> graph = nullptr);
 
+}  // namespace pplanner
 
-} // namespace pplanner
-
-#endif // EVALUATOR_FACTORY_H_
+#endif  // EVALUATOR_FACTORY_H_

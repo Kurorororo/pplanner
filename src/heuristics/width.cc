@@ -6,7 +6,7 @@ using std::unordered_set;
 using std::vector;
 
 int Width::Evaluate(const vector<int> &state, int node) {
-  StateToFactVector(*problem_, state, tmp_facts_);
+  StateToFactVector(problem_, state, tmp_facts_);
   bool width_1 = false;
   bool width_2 = false;
 
@@ -42,7 +42,7 @@ int Width::Evaluate(const vector<int> &state, int node,
 
   for (auto o : applicable) {
     problem_->ApplyEffect(o, state, tmp_state_);
-    StateToFactVector(*problem_, tmp_state_, tmp_facts_);
+    StateToFactVector(problem_, tmp_state_, tmp_facts_);
 
     for (auto f : tmp_facts_) {
       if (is_new_1_[f]) {
@@ -69,4 +69,4 @@ int Width::Evaluate(const vector<int> &state, int node,
   return w;
 }
 
-} // namespace pplanner
+}  // namespace pplanner

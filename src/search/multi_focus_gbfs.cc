@@ -9,7 +9,6 @@
 #include "evaluator_factory.h"
 #include "mrw13.h"
 #include "open_list_factory.h"
-#include "random_walk_evaluator_factory.h"
 #include "search_graph_factory.h"
 
 namespace pplanner {
@@ -22,7 +21,7 @@ using std::vector;
 void MultiFocusMrwGBFS::Init(const boost::property_tree::ptree &pt) {
   std::random_device seed_gen;
   engine_ = std::mt19937(seed_gen());
-  //engine_ = std::mt19937(3694943095);
+  // engine_ = std::mt19937(3694943095);
 
   if (auto uniform = pt.get_optional<int>("uniform"))
     uniform_ = uniform.get() == 1;
@@ -41,23 +40,23 @@ void MultiFocusMrwGBFS::Init(const boost::property_tree::ptree &pt) {
   bool dump_nodes = false;
   if (auto opt = pt.get_optional<int>("dump_nodes")) dump_nodes = true;
 
-  graph_ = SearchGraphFactory(
-      problem_, closed_exponent, keep_cost, use_landmark, dump_nodes);
+  graph_ = SearchGraphFactory(problem_, closed_exponent, keep_cost,
+                              use_landmark, dump_nodes);
 
   std::shared_ptr<Evaluator> friend_evaluator = nullptr;
 
   bool first = true;
 
-  BOOST_FOREACH (const boost::property_tree::ptree::value_type& child,
+  BOOST_FOREACH (const boost::property_tree::ptree::value_type &child,
                  pt.get_child("evaluators")) {
     auto e = child.second;
 
     if (first) {
-      rw_evaluator_ = RandomWalkEvaluatorFactory(problem_, e);
+      rw_evaluator_ = EvaluatorFactory(problem_, e);
       first = false;
     }
 
-    auto evaluator = EvaluatorFactory(problem_, graph_, friend_evaluator, e);
+    auto evaluator = EvaluatorFactory(problem_, e, friend_evaluator, graph_);
     evaluators_.push_back(evaluator);
     friend_evaluator = evaluator;
   }
@@ -69,14 +68,13 @@ void MultiFocusMrwGBFS::Init(const boost::property_tree::ptree &pt) {
 
   size_t ram = 5000000000;
 
-  if (auto opt = pt.get_optional<size_t>("ram"))
-    ram = opt.get();
+  if (auto opt = pt.get_optional<size_t>("ram")) ram = opt.get();
 
   graph_->ReserveByRAMSize(ram);
 }
 
 void MultiFocusMrwGBFS::UpdateQ(const vector<int> &applicable,
-                             const unordered_set<int> &preferred) {
+                                const unordered_set<int> &preferred) {
   qw_max_ = 1.0;
 
   for (auto a : preferred) {
@@ -88,8 +86,8 @@ void MultiFocusMrwGBFS::UpdateQ(const vector<int> &applicable,
 }
 
 int MultiFocusMrwGBFS::RWEvaluate(const vector<int> &state,
-                               const vector<int> &applicable,
-                               unordered_set<int> &preferred) {
+                                  const vector<int> &applicable,
+                                  unordered_set<int> &preferred) {
   if (uniform_) return rw_evaluator_->Evaluate(state);
 
   int h = rw_evaluator_->Evaluate(state, applicable, preferred);
@@ -101,8 +99,8 @@ int MultiFocusMrwGBFS::RWEvaluate(const vector<int> &state,
 void MultiFocusMrwGBFS::RWInitialEvaluate() {
   rw_best_state_ = problem_->initial();
   generator_->Generate(rw_best_state_, rw_best_applicable_);
-  rw_best_h_ = RWEvaluate(rw_best_state_, rw_best_applicable_,
-                          rw_best_preferred_);
+  rw_best_h_ =
+      RWEvaluate(rw_best_state_, rw_best_applicable_, rw_best_preferred_);
   rw_evaluator_->UpdateBest();
   ++generated_;
   ++rw_evaluated_;
@@ -114,7 +112,7 @@ void MultiFocusMrwGBFS::RWInitialEvaluate() {
 }
 
 int MultiFocusMrwGBFS::MHA(const vector<int> &applicable,
-                        unordered_set<int> &preferred) {
+                           unordered_set<int> &preferred) {
   assert(!applicable.empty());
   double cumsum = 0.0;
   int best = applicable[0];
@@ -142,7 +140,7 @@ int MultiFocusMrwGBFS::MHA(const vector<int> &applicable,
 }
 
 void MultiFocusMrwGBFS::AddNewFocus(int h, const vector<int> &state,
-                                 const vector<int> &sequence) {
+                                    const vector<int> &sequence) {
   thread_local vector<int> values;
 
   int node = graph_->GenerateNode(-1, -1, state);
@@ -157,15 +155,16 @@ void MultiFocusMrwGBFS::AddNewFocus(int h, const vector<int> &state,
 }
 
 void MultiFocusMrwGBFS::UpdateBest(int h, const std::vector<int> &state,
-                                const std::vector<int> &applicable,
-                                const std::unordered_set<int> &preferred,
-                                const std::vector<int> &sequence) {
+                                   const std::vector<int> &applicable,
+                                   const std::unordered_set<int> &preferred,
+                                   const std::vector<int> &sequence) {
   rw_best_h_ = h;
   rw_best_state_ = state;
   rw_best_applicable_ = applicable;
   rw_best_preferred_ = preferred;
   rw_plan_.insert(rw_plan_.end(), sequence.begin(), sequence.end());
-  //std::cout << "New best heuristic value for MRW: " << rw_best_h_ << std::endl;
+  // std::cout << "New best heuristic value for MRW: " << rw_best_h_ <<
+  // std::endl;
 
   if (h < best_h_) {
     AddNewFocus(h, state, rw_plan_);
@@ -188,15 +187,15 @@ void MultiFocusMrwGBFS::GlobalRestart(int li) {
   rw_best_preferred_ = rw_initial_preferred_;
 
   rw_evaluator_->GlobalRestart();
-  rw_best_h_ = RWEvaluate(rw_best_state_, rw_best_applicable_,
-                          rw_best_preferred_);
+  rw_best_h_ =
+      RWEvaluate(rw_best_state_, rw_best_applicable_, rw_best_preferred_);
   ++rw_evaluated_;
   ++evaluated_;
   rw_plan_.clear();
   std::fill(q1_.begin(), q1_.end(), 1.0);
   std::fill(qw_.begin(), qw_.end(), 1.0);
 
-  //std::cout << "restart new tg=" << tg_ << std::endl;
+  // std::cout << "restart new tg=" << tg_ << std::endl;
 }
 
 bool MultiFocusMrwGBFS::Walk(int *w, int *li) {
@@ -276,7 +275,7 @@ bool MultiFocusMrwGBFS::Walk(int *w, int *li) {
 }
 
 int MultiFocusMrwGBFS::Evaluate(const vector<int> &state, int node,
-                             vector<int> &values) {
+                                vector<int> &values) {
   values.clear();
 
   for (auto e : evaluators_) {
@@ -303,9 +302,9 @@ void MultiFocusMrwGBFS::InitialEvaluate() {
 std::shared_ptr<OpenList<int> > MultiFocusMrwGBFS::GreedyOpen() {
   thread_local std::vector<int> minimum_values;
 
-  auto iter = std::remove_if(open_lists_.begin(), open_lists_.end(),
-                             [](std::shared_ptr<OpenList<int> > p)->bool
-                             { return p->IsEmpty(); });
+  auto iter = std::remove_if(
+      open_lists_.begin(), open_lists_.end(),
+      [](std::shared_ptr<OpenList<int> > p) -> bool { return p->IsEmpty(); });
   open_lists_.erase(iter, open_lists_.end());
   std::shared_ptr<OpenList<int> > result = nullptr;
 
@@ -346,8 +345,7 @@ int MultiFocusMrwGBFS::Expand() {
     return -1;
   }
 
-  if (use_preferred_)
-    preferring_->Evaluate(state, node, applicable, preferred);
+  if (use_preferred_) preferring_->Evaluate(state, node, applicable, preferred);
 
   for (auto o : applicable) {
     problem_->ApplyEffect(o, state, child);
@@ -370,10 +368,10 @@ int MultiFocusMrwGBFS::Expand() {
 
     if (h < best_h_) {
       best_h_ = h;
-      std::cout << "New best heuristic value for MrwGBFS: "
-                << best_h_ << std::endl;
-      std::cout << "[" << evaluated_ << " evaluated, "
-                << expanded_ << " expanded]" << std::endl;
+      std::cout << "New best heuristic value for MrwGBFS: " << best_h_
+                << std::endl;
+      std::cout << "[" << evaluated_ << " evaluated, " << expanded_
+                << " expanded]" << std::endl;
 
       if (use_preferred_) open->Boost();
     }
@@ -404,8 +402,8 @@ std::vector<int> MultiFocusMrwGBFS::ExtractPlan(int node) {
 
   vector<int> result;
 
-  while (graph_->Parent(node) != -1
-         || rw_plan_to_node_.find(node) != rw_plan_to_node_.end()) {
+  while (graph_->Parent(node) != -1 ||
+         rw_plan_to_node_.find(node) != rw_plan_to_node_.end()) {
     if (graph_->Parent(node) == -1) {
       std::cout << "MrwGBFS searched a state found by MRW" << std::endl;
       result.insert(result.begin(), rw_plan_to_node_[node].begin(),
@@ -428,4 +426,4 @@ void MultiFocusMrwGBFS::DumpStatistics() const {
   std::cout << "Dead ends " << dead_ends_ << " state(s)" << std::endl;
 }
 
-} // namespace pplanner
+}  // namespace pplanner

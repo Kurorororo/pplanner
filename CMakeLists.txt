@@ -201,7 +201,7 @@ add_executable(sas_abstract_graph
                ./src/dtg.cc
                ./src/utils/file_utils.cc
                ./src/utils/lexical_order.cc
-               ./src/multithread_search/abstract_graph.cc)
+               ./src/sas_plus/abstract_graph.cc)
 target_link_libraries(sas_abstract_graph sas_plus)
 
 # test codes

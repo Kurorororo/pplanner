@@ -6,16 +6,16 @@
 
 #include <boost/foreach.hpp>
 
-#include "evaluator_factory.h"
-#include "open_list_factory.h"
 #include "distributed_search_graph_factory.h"
+#include "evaluator_factory.h"
 #include "hash/distribution_hash_factory.h"
+#include "open_list_factory.h"
 
 namespace pplanner {
 
 using std::make_shared;
-using std::unordered_set;
 using std::size_t;
+using std::unordered_set;
 using std::vector;
 
 void SIMHDGBFS1::Init(const boost::property_tree::ptree &pt) {
@@ -33,7 +33,7 @@ void SIMHDGBFS1::Init(const boost::property_tree::ptree &pt) {
 
   vector<boost::property_tree::ptree> evaluator_names;
 
-  BOOST_FOREACH (const boost::property_tree::ptree::value_type& child,
+  BOOST_FOREACH (const boost::property_tree::ptree::value_type &child,
                  pt.get_child("evaluators")) {
     evaluator_names.push_back(child.second);
     ++n_evaluators_;
@@ -47,8 +47,7 @@ void SIMHDGBFS1::Init(const boost::property_tree::ptree &pt) {
 
   size_t ram = 5000000000 / world_size_;
 
-  if (auto opt = pt.get_optional<size_t>("ram"))
-    ram = opt.get() / world_size_;
+  if (auto opt = pt.get_optional<size_t>("ram")) ram = opt.get() / world_size_;
 
   auto open_list_option = pt.get_child("open_list");
 
@@ -58,26 +57,25 @@ void SIMHDGBFS1::Init(const boost::property_tree::ptree &pt) {
   graphs_.resize(world_size_, nullptr);
   evaluators_.resize(world_size_);
 
-  for (int i=0; i<world_size_; ++i) {
+  for (int i = 0; i < world_size_; ++i) {
     rank_ = i;
     graphs_[rank_] = DistributedSearchGraphFactory(
         problem_, closed_exponent, n_evaluators_, rank_, keep_cost,
         use_landmark, dump_nodes);
   }
 
-  auto null_evaluator = EvaluatorFactory(
-      problem_, graphs_[0], nullptr, evaluator_names[0]);
+  auto null_evaluator =
+      EvaluatorFactory(problem_, evaluator_names[0], nullptr, graphs_[0]);
 
-  if (auto opt = pt.get_optional<int>("local_open"))
-    use_local_open_ = true;
+  if (auto opt = pt.get_optional<int>("local_open")) use_local_open_ = true;
 
-  for (int i=0; i<world_size_; ++i) {
+  for (int i = 0; i < world_size_; ++i) {
     rank_ = i;
     std::shared_ptr<Evaluator> friend_evaluator = nullptr;
 
     for (auto e : evaluator_names) {
-      auto evaluator = EvaluatorFactory(
-          problem_, graphs_[rank_], friend_evaluator, e);
+      auto evaluator =
+          EvaluatorFactory(problem_, e, friend_evaluator, graphs_[rank_]);
       evaluators_[rank_].push_back(evaluator);
       friend_evaluator = evaluator;
     }
@@ -90,8 +88,7 @@ void SIMHDGBFS1::Init(const boost::property_tree::ptree &pt) {
     graphs_[rank_]->ReserveByRAMSize(ram);
   }
 
-  if (auto opt = pt.get_optional<int>("take"))
-    take_ = opt.get();
+  if (auto opt = pt.get_optional<int>("take")) take_ = opt.get();
 
   std::string abstraction = "none";
 
@@ -102,30 +99,27 @@ void SIMHDGBFS1::Init(const boost::property_tree::ptree &pt) {
 
   best_values_.resize(world_size_);
 
-  if (auto opt = pt.get_optional<int>("delay"))
-    delay_ = opt.get();
+  if (auto opt = pt.get_optional<int>("delay")) delay_ = opt.get();
 
   outgoing_buffers_.resize(world_size_,
                            vector<vector<unsigned char> >(world_size_));
-  incoming_buffers_.resize(world_size_,
-                           vector<vector<unsigned char> >(delay_));
+  incoming_buffers_.resize(world_size_, vector<vector<unsigned char> >(delay_));
 }
 
 int SIMHDGBFS1::Search() {
   auto state = InitialEvaluate();
 
   while (true) {
-    for (int i=0; i<world_size_; ++i) {
+    for (int i = 0; i < world_size_; ++i) {
       rank_ = i;
       CommunicateNodes();
     }
 
     ++delay_index_;
 
-    if (delay_index_ == delay_)
-      delay_index_ = 0;
+    if (delay_index_ == delay_) delay_index_ = 0;
 
-    for (int i=0; i<world_size_; ++i) {
+    for (int i = 0; i < world_size_; ++i) {
       rank_ = i;
       int node = -1;
 
@@ -215,8 +209,8 @@ int SIMHDGBFS1::Expand(int node, vector<int> &state) {
     std::fill(packed.begin(), packed.end(), 0);
     auto &hash = hash_array[index];
 
-    int closed = graphs_[rank_]->GetClosed(
-        o, node, state, child, packed.data(), &hash);
+    int closed =
+        graphs_[rank_]->GetClosed(o, node, state, child, packed.data(), &hash);
 
     if (closed != -1) continue;
 
@@ -228,8 +222,7 @@ int SIMHDGBFS1::Expand(int node, vector<int> &state) {
       continue;
     }
 
-    if (arg_min == -1 || values < value_array[arg_min])
-      arg_min = index;
+    if (arg_min == -1 || values < value_array[arg_min]) arg_min = index;
 
     actione_array[index] = o;
     index++;
@@ -247,7 +240,7 @@ int SIMHDGBFS1::Expand(int node, vector<int> &state) {
 
   bool no_node = NoNode();
 
-  for (int i=0; i<index; ++i) {
+  for (int i = 0; i < index; ++i) {
     ++n_sent_or_generated_;
 
     auto &child = state_array[i];
@@ -262,15 +255,14 @@ int SIMHDGBFS1::Expand(int node, vector<int> &state) {
     }
 
     if (to_rank != -1 && to_rank != rank_) {
-      if (i == arg_min && (no_node || values < MinimumValues()))
-        ++n_sent_next_;
+      if (i == arg_min && (no_node || values < MinimumValues())) ++n_sent_next_;
 
       unsigned char *buffer = ExtendOutgoingBuffer(
           to_rank, values.size() * sizeof(int) + node_size());
       memcpy(buffer, values.data(), values.size() * sizeof(int));
-      graphs_[rank_]->BufferEvaluatedNode(
-          i, action, node, hash_array[i], packed_array[i].data(),
-          buffer + values.size() * sizeof(int));
+      graphs_[rank_]->BufferEvaluatedNode(i, action, node, hash_array[i],
+                                          packed_array[i].data(),
+                                          buffer + values.size() * sizeof(int));
       ++n_sent_;
     }
 
@@ -311,7 +303,6 @@ int SIMHDGBFS1::EvaluateWithParent(const vector<int> &state, int node,
   return values[0];
 }
 
-
 void SIMHDGBFS1::Push(std::vector<int> &values, int node, bool is_local) {
   int h = values[0];
 
@@ -322,16 +313,16 @@ void SIMHDGBFS1::Push(std::vector<int> &values, int node, bool is_local) {
 
   graphs_[rank_]->SetH(node, values[0]);
 
-  if (best_values_[rank_].empty()
-      || ((!use_local_open_ || is_local) && values < best_values_[rank_]))
+  if (best_values_[rank_].empty() ||
+      ((!use_local_open_ || is_local) && values < best_values_[rank_]))
     best_values_[rank_] = values;
 
   if (best_h() == -1 || h < best_h()) {
     set_best_h(h);
 
-   std::cout << "New best heuristic value: " << best_h() << std::endl;
-   std::cout << "[" << evaluated_ << " evaluated, "
-             << expanded_ << " expanded]" << std::endl;
+    std::cout << "New best heuristic value: " << best_h() << std::endl;
+    std::cout << "[" << evaluated_ << " evaluated, " << expanded_
+              << " expanded]" << std::endl;
   }
 }
 
@@ -340,7 +331,7 @@ void SIMHDGBFS1::CommunicateNodes() {
 
   size_t d_size = 0;
 
-  for (int i=0; i<world_size_; ++i) {
+  for (int i = 0; i < world_size_; ++i) {
     if (i == rank_ || outgoing_buffers_[i][rank_].empty()) continue;
     d_size += outgoing_buffers_[i][rank_].size();
   }
@@ -348,7 +339,7 @@ void SIMHDGBFS1::CommunicateNodes() {
   incoming_buffers_[rank_][delay_index_].resize(d_size);
   size_t size_sum = 0;
 
-  for (int i=0; i<world_size_; ++i) {
+  for (int i = 0; i < world_size_; ++i) {
     if (i == rank_ || outgoing_buffers_[i][rank_].empty()) continue;
 
     size_t size = outgoing_buffers_[i][rank_].size();
@@ -363,7 +354,7 @@ void SIMHDGBFS1::CommunicateNodes() {
   n_nodes /= unit_size;
   auto buffer = incoming_buffers_[rank_][delay_ - delay_index_ - 1].data();
 
-  for (size_t i=0; i<n_nodes; ++i) {
+  for (size_t i = 0; i < n_nodes; ++i) {
     memcpy(values.data(), buffer, values.size() * sizeof(int));
     buffer += values.size() * sizeof(int);
     int node = graphs_[rank_]->GenerateNodeIfNotClosedFromBytes(buffer);
@@ -400,24 +391,23 @@ void SIMHDGBFS1::DumpStatistics() const {
   std::cout << "Generated " << generated_ << " state(s)" << std::endl;
   std::cout << "Dead ends " << dead_ends_ << " state(s)" << std::endl;
 
-  double co = static_cast<double>(n_sent_)
-    / static_cast<double>(n_sent_or_generated_);
+  double co =
+      static_cast<double>(n_sent_) / static_cast<double>(n_sent_or_generated_);
 
   std::cout << "CO " << co << std::endl;
 
   std::cout << "Local node to expand " << n_pushed_next_ << std::endl;
   std::cout << "Remote node to expand " << n_sent_next_ << std::endl;
 
-  double pnpe = static_cast<double>(n_pushed_next_)
-    / static_cast<double>(n_pushed_next_ + n_sent_next_);
-  double snpe = static_cast<double>(n_sent_next_)
-    / static_cast<double>(n_pushed_next_ + n_sent_next_);
+  double pnpe = static_cast<double>(n_pushed_next_) /
+                static_cast<double>(n_pushed_next_ + n_sent_next_);
+  double snpe = static_cast<double>(n_sent_next_) /
+                static_cast<double>(n_pushed_next_ + n_sent_next_);
 
   std::cout << "Local node to expand ratio " << pnpe << std::endl;
   std::cout << "Remote node to expand ratio " << snpe << std::endl;
 
-  for (int i=0; i<world_size_; ++i)
-    graphs_[i]->Dump();
+  for (int i = 0; i < world_size_; ++i) graphs_[i]->Dump();
 }
 
-} // namespace pplanner
+}  // namespace pplanner

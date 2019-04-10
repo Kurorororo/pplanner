@@ -5,8 +5,8 @@
 
 #include <boost/foreach.hpp>
 
+#include "evaluator_factory.h"
 #include "open_list_factory.h"
-#include "multithread_search/heuristic_factory.h"
 
 namespace pplanner {
 
@@ -21,7 +21,7 @@ void MultiGBFS::InitHeuristics(int i, const boost::property_tree::ptree pt) {
   BOOST_FOREACH (const boost::property_tree::ptree::value_type& child,
                  pt.get_child("evaluators")) {
     auto e = child.second;
-    auto evaluator = HeuristicFactory<SearchNode*>(problem_, e);
+    auto evaluator = EvaluatorFactory(problem_, e);
     evaluators_[i].push_back(evaluator);
   }
 
@@ -32,13 +32,12 @@ void MultiGBFS::InitHeuristics(int i, const boost::property_tree::ptree pt) {
       if (name.get() == "same")
         preferring_[i] = evaluators_[i][0];
       else
-        preferring_[i] = HeuristicFactory<SearchNode*>(problem_,
-                                                       preferring.get());
+        preferring_[i] = EvaluatorFactory(problem_, preferring.get());
     }
   }
 }
 
-void MultiGBFS::Init(const boost::property_tree::ptree &pt) {
+void MultiGBFS::Init(const boost::property_tree::ptree& pt) {
   goal_.store(nullptr);
   int closed_exponent = 26;
 
@@ -60,8 +59,7 @@ void MultiGBFS::Init(const boost::property_tree::ptree &pt) {
   for (int i = 0; i < n_threads_; ++i)
     ts.push_back(std::thread([this, i, pt] { this->InitHeuristics(i, pt); }));
 
-  for (int i = 0; i < n_threads_; ++i)
-    ts[i].join();
+  for (int i = 0; i < n_threads_; ++i) ts[i].join();
 }
 
 void MultiGBFS::InitialEvaluate() {
@@ -82,8 +80,7 @@ void MultiGBFS::InitialEvaluate() {
 }
 
 void MultiGBFS::DeleteAllNodes(int i) {
-  for (int j = 0, n = node_pool_[i].size(); j < n; ++j)
-    delete node_pool_[i][j];
+  for (int j = 0, n = node_pool_[i].size(); j < n; ++j) delete node_pool_[i][j];
 }
 
 MultiGBFS::~MultiGBFS() {
@@ -92,12 +89,11 @@ MultiGBFS::~MultiGBFS() {
   for (int i = 0; i < n_threads_; ++i)
     ts.push_back(std::thread([this, i] { this->DeleteAllNodes(i); }));
 
-  for (int i = 0; i < n_threads_; ++i)
-    ts[i].join();
+  for (int i = 0; i < n_threads_; ++i) ts[i].join();
 }
 
-int MultiGBFS::Evaluate(int i, const vector<int> &state,
-                        SearchNodeWithNext* node, vector<int> &values) {
+int MultiGBFS::Evaluate(int i, const vector<int>& state,
+                        SearchNodeWithNext* node, vector<int>& values) {
   values.clear();
 
   for (auto e : evaluators_[i]) {
@@ -148,7 +144,7 @@ void MultiGBFS::Expand(int i) {
     }
 
     if (use_preferred_)
-      preferring_[i]->Evaluate(state, applicable, preferred, node);
+      preferring_[i]->Evaluate(state, node, applicable, preferred);
 
     for (auto o : applicable) {
       problem_->ApplyEffect(o, state, child);
@@ -182,8 +178,8 @@ void MultiGBFS::Expand(int i) {
       if ((best_h == -1 || h < best_h) && i == 0) {
         best_h = h;
         std::cout << "New best heuristic value: " << best_h << std::endl;
-        std::cout << "[" << generated << " generated, "
-                  << expanded << " expanded]"  << std::endl;
+        std::cout << "[" << generated << " generated, " << expanded
+                  << " expanded]" << std::endl;
       }
 
       bool is_pref = use_preferred_ && preferred.find(o) != preferred.end();
@@ -202,8 +198,7 @@ SearchNodeWithNext* MultiGBFS::Search() {
   for (int i = 0; i < n_threads_; ++i)
     ts.push_back(std::thread([this, i] { this->Expand(i); }));
 
-  for (int i = 0; i < n_threads_; ++i)
-    ts[i].join();
+  for (int i = 0; i < n_threads_; ++i) ts[i].join();
 
   return goal_.load();
 }
@@ -215,4 +210,4 @@ void MultiGBFS::DumpStatistics() const {
   std::cout << "Dead ends " << dead_ends_ << " state(s)" << std::endl;
 }
 
-} // namespace pplanner
+}  // namespace pplanner

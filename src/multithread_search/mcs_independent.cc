@@ -5,7 +5,7 @@
 
 #include <boost/foreach.hpp>
 
-#include "multithread_search/heuristic_factory.h"
+#include "evaluator_factory.h"
 
 namespace pplanner {
 
@@ -18,10 +18,10 @@ void MCSIndependent::InitHeuristics(int i,
                                     const boost::property_tree::ptree pt) {
   node_pool_[i].reserve(1 << 22);
 
-  BOOST_FOREACH (const boost::property_tree::ptree::value_type& child,
+  BOOST_FOREACH (const boost::property_tree::ptree::value_type &child,
                  pt.get_child("evaluators")) {
     auto e = child.second;
-    auto evaluator = HeuristicFactory<SearchNode*>(problem_, e);
+    auto evaluator = EvaluatorFactory(problem_, e);
     evaluators_[i].push_back(evaluator);
   }
 
@@ -32,8 +32,7 @@ void MCSIndependent::InitHeuristics(int i,
       if (name.get() == "same")
         preferring_[i] = evaluators_[i][0];
       else
-        preferring_[i] = HeuristicFactory<SearchNode*>(
-            problem_, preferring.get());
+        preferring_[i] = EvaluatorFactory(problem_, preferring.get());
     }
   }
 }
@@ -43,7 +42,7 @@ void MCSIndependent::Init(const boost::property_tree::ptree &pt) {
 
   open_list_option_ = pt.get_child("open_list");
   foci_ = std::make_unique<FIFOOpenListImpl<
-    std::shared_ptr<IndependentContext<SearchNodeWithNext*> > > >();
+      std::shared_ptr<IndependentContext<SearchNodeWithNext *> > > >();
 
   if (auto opt = pt.get_optional<int>("n_threads")) n_threads_ = opt.get();
 
@@ -67,8 +66,7 @@ void MCSIndependent::Init(const boost::property_tree::ptree &pt) {
   for (int i = 0; i < n_threads_; ++i)
     ts.push_back(std::thread([this, i, pt] { this->InitHeuristics(i, pt); }));
 
-  for (int i = 0; i < n_threads_; ++i)
-    ts[i].join();
+  for (int i = 0; i < n_threads_; ++i) ts[i].join();
 }
 
 void MCSIndependent::InitialEvaluate() {
@@ -92,8 +90,7 @@ void MCSIndependent::InitialEvaluate() {
 }
 
 void MCSIndependent::DeleteAllNodes(int i) {
-  for (int j = 0, n = node_pool_[i].size(); j < n; ++j)
-    delete node_pool_[i][j];
+  for (int j = 0, n = node_pool_[i].size(); j < n; ++j) delete node_pool_[i][j];
 }
 
 MCSIndependent::~MCSIndependent() {
@@ -102,8 +99,7 @@ MCSIndependent::~MCSIndependent() {
   for (int i = 0; i < n_threads_; ++i)
     ts.push_back(std::thread([this, i] { this->DeleteAllNodes(i); }));
 
-  for (int i = 0; i < n_threads_; ++i)
-    ts[i].join();
+  for (int i = 0; i < n_threads_; ++i) ts[i].join();
 }
 
 int MCSIndependent::Evaluate(int i, const vector<int> &state,
@@ -123,7 +119,8 @@ int MCSIndependent::Evaluate(int i, const vector<int> &state,
 int MCSIndependent::IncrementNFoci() {
   int expected = n_foci_.load();
 
-  while (!n_foci_.compare_exchange_weak(expected, expected + 1));
+  while (!n_foci_.compare_exchange_weak(expected, expected + 1))
+    ;
 
   return expected + 1;
 }
@@ -131,7 +128,8 @@ int MCSIndependent::IncrementNFoci() {
 int MCSIndependent::DecrementNFoci() {
   int expected = n_foci_.load();
 
-  while (!n_foci_.compare_exchange_weak(expected, expected - 1));
+  while (!n_foci_.compare_exchange_weak(expected, expected - 1))
+    ;
 
   return expected - 1;
 }
@@ -143,14 +141,14 @@ void MCSIndependent::Expand(int i) {
   unordered_set<int> preferred;
   vector<uint32_t> packed(packer_->block_size(), 0);
   vector<vector<int> > values;
-  vector<SearchNodeWithNext*> nodes;
+  vector<SearchNodeWithNext *> nodes;
   vector<bool> is_pref;
 
   int expanded = 0;
   int evaluated = 0;
   int generated = 0;
   int dead_ends = 0;
-  std::shared_ptr<IndependentContext<SearchNodeWithNext*> > focus = nullptr;
+  std::shared_ptr<IndependentContext<SearchNodeWithNext *> > focus = nullptr;
 
   while (goal_.load() == nullptr) {
     if (focus == nullptr) {
@@ -188,7 +186,7 @@ void MCSIndependent::Expand(int i) {
       }
 
       if (use_preferred_)
-        preferring_[i]->Evaluate(state, applicable, preferred, node);
+        preferring_[i]->Evaluate(state, node, applicable, preferred);
 
       int arg_best = -1;
       int c = 0;
@@ -237,7 +235,7 @@ void MCSIndependent::Expand(int i) {
           if (i == 0) {
             std::cout << "New best heuristic value: " << h << std::endl;
             std::cout << "[" << generated << " generated, " << expanded
-                      << " expanded]"  << std::endl;
+                      << " expanded]" << std::endl;
           }
         }
 
@@ -246,8 +244,7 @@ void MCSIndependent::Expand(int i) {
 
       focus->IncrementNPlateau();
 
-      if (arg_best != -1)
-        focus->ClearNPlateau();
+      if (arg_best != -1) focus->ClearNPlateau();
 
       bool cond = arg_best != -1 && n_foci_.load() < n_foci_max_;
 
@@ -278,15 +275,14 @@ void MCSIndependent::Expand(int i) {
   WriteStat(expanded, evaluated, generated, dead_ends);
 }
 
-SearchNodeWithNext* MCSIndependent::Search() {
+SearchNodeWithNext *MCSIndependent::Search() {
   InitialEvaluate();
   vector<std::thread> ts;
 
   for (int i = 0; i < n_threads_; ++i)
     ts.push_back(std::thread([this, i] { this->Expand(i); }));
 
-  for (int i = 0; i < n_threads_; ++i)
-    ts[i].join();
+  for (int i = 0; i < n_threads_; ++i) ts[i].join();
 
   return goal_.load();
 }
@@ -298,4 +294,4 @@ void MCSIndependent::DumpStatistics() const {
   std::cout << "Dead ends " << dead_ends_ << " state(s)" << std::endl;
 }
 
-} // namespace pplanner
+}  // namespace pplanner

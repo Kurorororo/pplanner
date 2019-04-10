@@ -7,27 +7,30 @@
 #include "evaluator.h"
 #include "random_walk_evaluator.h"
 #include "sas_plus.h"
+#include "search_graph.h"
+#include "search_node.h"
 
 namespace pplanner {
 
-class NewOperator: public Evaluator {
+class NewOperator : public Evaluator {
  public:
   NewOperator() {}
 
   NewOperator(std::shared_ptr<const SASPlus> problem)
-    : is_new_(problem->n_actions(), true) {}
+      : is_new_(problem->n_actions(), true) {}
 
   ~NewOperator() {}
 
   int Evaluate(const std::vector<int> &state, int node) override { return 1; }
 
-  int Evaluate(const std::vector<int> &state, int node, int parent) override {
-    return Evaluate(state, node);
-  }
-
   int Evaluate(const std::vector<int> &state, int node,
                const std::vector<int> &applicable,
                std::unordered_set<int> &preferred) override;
+
+  // for MPI
+  int Evaluate(const std::vector<int> &state, int node, int parent) override {
+    return Evaluate(state, node);
+  }
 
   int Evaluate(const std::vector<int> &state, int node, int parent,
                const std::vector<int> &applicable,
@@ -35,31 +38,26 @@ class NewOperator: public Evaluator {
     return Evaluate(state, node, applicable, preferred);
   }
 
- private:
-  std::vector<bool> is_new_;
-};
-
-class RWNewOperator : public RandomWalkEvaluator {
- public:
-  RWNewOperator() : new_operator_(nullptr) {
-    new_operator_ = std::unique_ptr<NewOperator>(new NewOperator());
+  // for multithread
+  int Evaluate(const std::vector<int> &state, SearchNode *node) override {
+    return Evaluate(state, -1);
   }
 
-  RWNewOperator(std::shared_ptr<const SASPlus> problem)
-    : new_operator_(nullptr) {
-    new_operator_ = std::unique_ptr<NewOperator>(new NewOperator(problem));
+  int Evaluate(const std::vector<int> &state, SearchNode *node,
+               const std::vector<int> &applicable,
+               std::unordered_set<int> &preferred) override {
+    return Evaluate(state, -1, applicable, preferred);
   }
 
-  ~RWNewOperator() {}
-
+  // for random walk
   int Evaluate(const std::vector<int> &state) override {
-    return new_operator_->Evaluate(state, -1);
+    return Evaluate(state, -1);
   }
 
   int Evaluate(const std::vector<int> &state,
                const std::vector<int> &applicable,
                std::unordered_set<int> &preferred) override {
-    return new_operator_->Evaluate(state, -1, applicable, preferred);
+    return Evaluate(state, -1, applicable, preferred);
   }
 
   void UpdateBest() override {}
@@ -71,10 +69,9 @@ class RWNewOperator : public RandomWalkEvaluator {
   void CopyBestToSearchGraph(int node,
                              std::shared_ptr<SearchGraph> graph) override {}
 
- private:
-  std::unique_ptr<NewOperator> new_operator_;
+  std::vector<bool> is_new_;
 };
 
-} // namespace pplanner
+}  // namespace pplanner
 
-#endif // NEW_OPERATOR_H_
+#endif  // NEW_OPERATOR_H_

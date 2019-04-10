@@ -10,6 +10,8 @@
 #include "heuristics/rpg_table.h"
 #include "random_walk_evaluator.h"
 #include "sas_plus.h"
+#include "search_graph.h"
+#include "search_node.h"
 
 namespace pplanner {
 
@@ -29,18 +31,19 @@ class Hmax : public Evaluator {
   ~Hmax() {}
 
   int Evaluate(const std::vector<int> &state, int node) override {
-    StateToFactVector(*problem_, state, facts_);
+    StateToFactVector(problem_, state, facts_);
 
     return rpg_->HmaxCost(facts_);
-  }
-
-  int Evaluate(const std::vector<int> &state, int node, int parent) override {
-    return Evaluate(state, node);
   }
 
   int Evaluate(const std::vector<int> &state, int node,
                const std::vector<int> &applicable,
                std::unordered_set<int> &preferred) override {
+    return Evaluate(state, node);
+  }
+
+  // for MPI
+  int Evaluate(const std::vector<int> &state, int node, int parent) override {
     return Evaluate(state, node);
   }
 
@@ -50,33 +53,26 @@ class Hmax : public Evaluator {
     return Evaluate(state, node, applicable, preferred);
   }
 
- private:
-  std::vector<int> facts_;
-  std::shared_ptr<const SASPlus> problem_;
-  std::shared_ptr<RelaxedSASPlus> r_problem_;
-  std::unique_ptr<RPGTable> rpg_;
-};
-
-class RWHmax : public RandomWalkEvaluator {
- public:
-  RWHmax() : hmax_(nullptr) { hmax_ = std::unique_ptr<Hmax>(new Hmax()); }
-
-  RWHmax(std::shared_ptr<const SASPlus> problem, bool simplify = true,
-         bool unit_cost = false)
-      : hmax_(nullptr) {
-    hmax_ = std::unique_ptr<Hmax>(new Hmax(problem, simplify, unit_cost));
+  // for multithread
+  int Evaluate(const std::vector<int> &state, SearchNode *node) override {
+    return Evaluate(state, -1);
   }
 
-  ~RWHmax() {}
+  int Evaluate(const std::vector<int> &state, SearchNode *node,
+               const std::vector<int> &applicable,
+               std::unordered_set<int> &preferred) override {
+    return Evaluate(state, -1, applicable, preferred);
+  }
 
+  // for random walk
   int Evaluate(const std::vector<int> &state) override {
-    return hmax_->Evaluate(state, -1);
+    return Evaluate(state, -1);
   }
 
   int Evaluate(const std::vector<int> &state,
                const std::vector<int> &applicable,
                std::unordered_set<int> &preferred) override {
-    return hmax_->Evaluate(state, -1, applicable, preferred);
+    return Evaluate(state, -1, applicable, preferred);
   }
 
   void UpdateBest() override {}
@@ -90,6 +86,10 @@ class RWHmax : public RandomWalkEvaluator {
 
  private:
   std::unique_ptr<Hmax> hmax_;
+  std::vector<int> facts_;
+  std::shared_ptr<const SASPlus> problem_;
+  std::shared_ptr<RelaxedSASPlus> r_problem_;
+  std::unique_ptr<RPGTable> rpg_;
 };
 
 }  // namespace pplanner

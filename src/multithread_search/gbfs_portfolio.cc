@@ -5,8 +5,8 @@
 
 #include <boost/foreach.hpp>
 
+#include "evaluator_factory.h"
 #include "open_list_factory.h"
-#include "multithread_search/heuristic_factory.h"
 
 namespace pplanner {
 
@@ -22,7 +22,7 @@ void GBFSPortfolio::InitHeuristics(int i,
   BOOST_FOREACH (const boost::property_tree::ptree::value_type& child,
                  pt.get_child("evaluators")) {
     auto e = child.second;
-    auto evaluator = HeuristicFactory<SearchNode*>(problem_, e);
+    auto evaluator = EvaluatorFactory(problem_, e);
     evaluators_[i].push_back(evaluator);
   }
 
@@ -33,26 +33,25 @@ void GBFSPortfolio::InitHeuristics(int i,
       if (name.get() == "same")
         preferring_[i] = evaluators_[i][0];
       else
-        preferring_[i] = HeuristicFactory<SearchNode*>(problem_,
-                                                       preferring.get());
+        preferring_[i] = EvaluatorFactory(problem_, preferring.get());
     }
   }
 
   if (all_fifo_ || i == 0) {
-    open_lists_[i] = std::make_shared<SingleOpenList<SearchNodeWithNext*> >(
-        "fifo");
+    open_lists_[i] =
+        std::make_shared<SingleOpenList<SearchNodeWithNext*> >("fifo");
   } else if (i == 1) {
-    open_lists_[i] = std::make_shared<SingleOpenList<SearchNodeWithNext*> >(
-        "lifo");
+    open_lists_[i] =
+        std::make_shared<SingleOpenList<SearchNodeWithNext*> >("lifo");
   } else {
-    open_lists_[i] = std::make_shared<SingleOpenList<SearchNodeWithNext*> >(
-        "ro");
+    open_lists_[i] =
+        std::make_shared<SingleOpenList<SearchNodeWithNext*> >("ro");
   }
 
   if (!share_closed_) closed_lists_[i] = std::make_shared<ClosedList>(22);
 }
 
-void GBFSPortfolio::Init(const boost::property_tree::ptree &pt) {
+void GBFSPortfolio::Init(const boost::property_tree::ptree& pt) {
   goal_.store(nullptr);
 
   if (auto opt = pt.get_optional<int>("n_threads")) n_threads_ = opt.get();
@@ -77,16 +76,14 @@ void GBFSPortfolio::Init(const boost::property_tree::ptree &pt) {
 
   open_lists_.resize(n_threads_, nullptr);
 
-  if (auto opt = pt.get_optional<int>("all_fifo"))
-    all_fifo_ = true;
+  if (auto opt = pt.get_optional<int>("all_fifo")) all_fifo_ = true;
 
   vector<std::thread> ts;
 
   for (int i = 0; i < n_threads_; ++i)
     ts.push_back(std::thread([this, i, pt] { this->InitHeuristics(i, pt); }));
 
-  for (int i = 0; i < n_threads_; ++i)
-    ts[i].join();
+  for (int i = 0; i < n_threads_; ++i) ts[i].join();
 }
 
 void GBFSPortfolio::InitialEvaluate(int i) {
@@ -143,7 +140,7 @@ void GBFSPortfolio::Distribute() {
     }
 
     if (use_preferred_)
-      preferring_[0]->Evaluate(state, applicable, preferred, node);
+      preferring_[0]->Evaluate(state, node, applicable, preferred);
 
     for (auto o : applicable) {
       problem_->ApplyEffect(o, state, child);
@@ -181,8 +178,8 @@ void GBFSPortfolio::Distribute() {
       if (best_h == -1 || h < best_h) {
         best_h = h;
         std::cout << "New best heuristic value: " << best_h << std::endl;
-        std::cout << "[" << generated_ << " generated, "
-                  << expanded_ << " expanded]"  << std::endl;
+        std::cout << "[" << generated_ << " generated, " << expanded_
+                  << " expanded]" << std::endl;
       }
 
       bool is_pref = use_preferred_ && preferred.find(o) != preferred.end();
@@ -200,8 +197,7 @@ void GBFSPortfolio::Distribute() {
 }
 
 void GBFSPortfolio::DeleteAllNodes(int i) {
-  for (int j = 0, n = node_pool_[i].size(); j < n; ++j)
-    delete node_pool_[i][j];
+  for (int j = 0, n = node_pool_[i].size(); j < n; ++j) delete node_pool_[i][j];
 }
 
 GBFSPortfolio::~GBFSPortfolio() {
@@ -210,12 +206,11 @@ GBFSPortfolio::~GBFSPortfolio() {
   for (int i = 0; i < n_threads_; ++i)
     ts.push_back(std::thread([this, i] { this->DeleteAllNodes(i); }));
 
-  for (int i = 0; i < n_threads_; ++i)
-    ts[i].join();
+  for (int i = 0; i < n_threads_; ++i) ts[i].join();
 }
 
-int GBFSPortfolio::Evaluate(int i, const vector<int> &state,
-                        SearchNodeWithNext* node, vector<int> &values) {
+int GBFSPortfolio::Evaluate(int i, const vector<int>& state,
+                            SearchNodeWithNext* node, vector<int>& values) {
   values.clear();
 
   for (auto e : evaluators_[i]) {
@@ -272,7 +267,7 @@ void GBFSPortfolio::ThreadSearch(int i) {
     }
 
     if (use_preferred_)
-      preferring_[i]->Evaluate(state, applicable, preferred, node);
+      preferring_[i]->Evaluate(state, node, applicable, preferred);
 
     for (auto o : applicable) {
       problem_->ApplyEffect(o, state, child);
@@ -310,8 +305,8 @@ void GBFSPortfolio::ThreadSearch(int i) {
       if ((best_h == -1 || h < best_h) && i == 0) {
         best_h = h;
         std::cout << "New best heuristic value: " << best_h << std::endl;
-        std::cout << "[" << generated << " generated, "
-                  << expanded << " expanded]"  << std::endl;
+        std::cout << "[" << generated << " generated, " << expanded
+                  << " expanded]" << std::endl;
       }
 
       bool is_pref = use_preferred_ && preferred.find(o) != preferred.end();
@@ -330,8 +325,7 @@ SearchNodeWithNext* GBFSPortfolio::Search() {
   for (int i = 0; i < n_threads_; ++i)
     ts.push_back(std::thread([this, i] { this->ThreadSearch(i); }));
 
-  for (int i = 0; i < n_threads_; ++i)
-    ts[i].join();
+  for (int i = 0; i < n_threads_; ++i) ts[i].join();
 
   return goal_.load();
 }
@@ -343,4 +337,4 @@ void GBFSPortfolio::DumpStatistics() const {
   std::cout << "Dead ends " << dead_ends_ << " state(s)" << std::endl;
 }
 
-} // namespace pplanner
+}  // namespace pplanner

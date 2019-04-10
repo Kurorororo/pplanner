@@ -6,7 +6,7 @@
 #include <iostream>
 #include <utility>
 
-#include "random_walk_evaluator_factory.h"
+#include "evaluator_factory.h"
 
 namespace pplanner {
 
@@ -55,14 +55,14 @@ void Mrw13::Init(const boost::property_tree::ptree &pt) {
 
   auto heuristic = pt.get_child_optional("heuristic");
   if (!heuristic) throw std::runtime_error("No heuristic is specified.");
-  evaluator_ = RandomWalkEvaluatorFactory(problem_, heuristic.get());
+  evaluator_ = EvaluatorFactory(problem_, heuristic.get());
 
   auto preferring = pt.get_child_optional("preferring");
 
   if (!preferring)
     same_ = true;
   else
-    preferring_ = RandomWalkEvaluatorFactory(problem_, preferring.get());
+    preferring_ = EvaluatorFactory(problem_, preferring.get());
 
   if (auto uniform = pt.get_optional<int>("uniform"))
     uniform_ = uniform.get() == 1;

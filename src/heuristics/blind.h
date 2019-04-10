@@ -6,8 +6,9 @@
 #include <vector>
 
 #include "evaluator.h"
-#include "random_walk_evaluator.h"
 #include "sas_plus.h"
+#include "search_graph.h"
+#include "search_node.h"
 
 namespace pplanner {
 
@@ -15,8 +16,7 @@ class Blind : public Evaluator {
  public:
   Blind() : problem_(nullptr) {}
 
-  Blind(std::shared_ptr<const SASPlus> problem)
-      : problem_(problem) { Init(); }
+  Blind(std::shared_ptr<const SASPlus> problem) : problem_(problem) { Init(); }
 
   ~Blind() {}
 
@@ -26,13 +26,14 @@ class Blind : public Evaluator {
     return cheapest_;
   }
 
-  int Evaluate(const std::vector<int> &state, int node, int parent) override {
-    return Evaluate(state, node);
-  }
-
   int Evaluate(const std::vector<int> &state, int node,
                const std::vector<int> &applicable,
                std::unordered_set<int> &preferred) override {
+    return Evaluate(state, node);
+  }
+
+  // for MPI
+  int Evaluate(const std::vector<int> &state, int node, int parent) override {
     return Evaluate(state, node);
   }
 
@@ -42,33 +43,26 @@ class Blind : public Evaluator {
     return Evaluate(state, node);
   }
 
- private:
-  void Init();
-
-  int cheapest_;
-  std::shared_ptr<const SASPlus> problem_;
-};
-
-class RWBlind : public RandomWalkEvaluator {
- public:
-  RWBlind() : blind_(nullptr) {
-    blind_ = std::unique_ptr<Blind>(new Blind());
+  // for multithread
+  int Evaluate(const std::vector<int> &state, SearchNode *node) override {
+    return Evaluate(state, -1);
   }
 
-  RWBlind(std::shared_ptr<const SASPlus> problem) : blind_(nullptr) {
-    blind_ = std::unique_ptr<Blind>(new Blind(problem));
+  int Evaluate(const std::vector<int> &state, SearchNode *node,
+               const std::vector<int> &applicable,
+               std::unordered_set<int> &preferred) override {
+    return Evaluate(state, -1, applicable, preferred);
   }
 
-  ~RWBlind() {}
-
+  // for random walk
   int Evaluate(const std::vector<int> &state) override {
-    return blind_->Evaluate(state, -1);
+    return Evaluate(state, -1);
   }
 
   int Evaluate(const std::vector<int> &state,
                const std::vector<int> &applicable,
                std::unordered_set<int> &preferred) override {
-    return blind_->Evaluate(state, -1, applicable, preferred);
+    return Evaluate(state, -1, applicable, preferred);
   }
 
   void UpdateBest() override {}
@@ -81,9 +75,12 @@ class RWBlind : public RandomWalkEvaluator {
                              std::shared_ptr<SearchGraph> graph) override {}
 
  private:
-  std::unique_ptr<Blind> blind_;
+  void Init();
+
+  int cheapest_;
+  std::shared_ptr<const SASPlus> problem_;
 };
 
-} // namespace pplanner
+}  // namespace pplanner
 
-#endif // BLIND_H_
+#endif  // BLIND_H_

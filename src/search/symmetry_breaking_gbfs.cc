@@ -12,8 +12,8 @@
 namespace pplanner {
 
 using std::make_shared;
-using std::unordered_set;
 using std::size_t;
+using std::unordered_set;
 using std::vector;
 
 void SBGBFS::Init(const boost::property_tree::ptree &pt) {
@@ -38,15 +38,15 @@ void SBGBFS::Init(const boost::property_tree::ptree &pt) {
   bool dump_nodes = false;
   if (auto opt = pt.get_optional<int>("dump_nodes")) dump_nodes = true;
 
-  graph_ = SearchGraphFactory(
-      problem_, closed_exponent, keep_cost, use_landmark, dump_nodes);
+  graph_ = SearchGraphFactory(problem_, closed_exponent, keep_cost,
+                              use_landmark, dump_nodes);
 
   std::shared_ptr<Evaluator> friend_evaluator = nullptr;
 
-  BOOST_FOREACH (const boost::property_tree::ptree::value_type& child,
+  BOOST_FOREACH (const boost::property_tree::ptree::value_type &child,
                  pt.get_child("evaluators")) {
     auto e = child.second;
-    auto evaluator = EvaluatorFactory(problem_, graph_, friend_evaluator, e);
+    auto evaluator = EvaluatorFactory(problem_, e, friend_evaluator, graph_);
     evaluators_.push_back(evaluator);
     friend_evaluator = evaluator;
   }
@@ -58,8 +58,8 @@ void SBGBFS::Init(const boost::property_tree::ptree &pt) {
       if (name.get() == "same") {
         preferring_ = evaluators_[0];
       } else {
-        preferring_ = EvaluatorFactory(problem_, graph_, nullptr,
-                                       preferring.get());
+        preferring_ =
+            EvaluatorFactory(problem_, preferring.get(), nullptr, graph_);
       }
     }
   }
@@ -73,12 +73,12 @@ void SBGBFS::Init(const boost::property_tree::ptree &pt) {
     graph_->ReserveByRAMSize(3000000000);
 
   states_.reserve(graph_->capacity() * graph_->block_size());
-  //manager_->Dump();
+  // manager_->Dump();
 
   if (auto opt = pt.get_optional<int>("sss")) {
     use_sss_ = true;
-    sss_aproximater_ = std::unique_ptr<SSSApproximater>(
-        new SSSApproximater(problem_));
+    sss_aproximater_ =
+        std::unique_ptr<SSSApproximater>(new SSSApproximater(problem_));
   }
 }
 
@@ -118,7 +118,7 @@ vector<int> SBGBFS::InitialExpand() {
 }
 
 int SBGBFS::Expand(int node, vector<int> &state, vector<int> &child,
-                 vector<int> &applicable, unordered_set<int> &preferred) {
+                   vector<int> &applicable, unordered_set<int> &preferred) {
   static std::vector<int> canonical(state);
   static std::vector<int> values;
   static vector<bool> sss;
@@ -137,14 +137,12 @@ int SBGBFS::Expand(int node, vector<int> &state, vector<int> &child,
     return -1;
   }
 
-  if (use_preferred_)
-    preferring_->Evaluate(state, node, applicable, preferred);
+  if (use_preferred_) preferring_->Evaluate(state, node, applicable, preferred);
 
   ++n_preferred_evaluated_;
   n_branching_ += applicable.size();
 
-  if (use_sss_)
-    sss_aproximater_->ApproximateSSS(state, applicable, sss);
+  if (use_sss_) sss_aproximater_->ApproximateSSS(state, applicable, sss);
 
   for (auto o : applicable) {
     if (use_sss_ && !sss[o]) continue;
@@ -174,8 +172,8 @@ int SBGBFS::Expand(int node, vector<int> &state, vector<int> &child,
     if (h < best_h_) {
       best_h_ = h;
       std::cout << "New best heuristic value: " << best_h_ << std::endl;
-      std::cout << "[" << evaluated_ << " evaluated, "
-                << expanded_ << " expanded]" << std::endl;
+      std::cout << "[" << evaluated_ << " evaluated, " << expanded_
+                << " expanded]" << std::endl;
 
       if (use_preferred_) open_list_->Boost();
     }
@@ -206,7 +204,6 @@ int SBGBFS::Search() {
   return last_goal;
 }
 
-
 void SBGBFS::DumpStatistics() const {
   std::cout << "Expanded " << expanded_ << " state(s)" << std::endl;
   std::cout << "Evaluated " << evaluated_ << " state(s)" << std::endl;
@@ -216,17 +213,17 @@ void SBGBFS::DumpStatistics() const {
             << std::endl;
   std::cout << "Preferred successors " << n_preferreds_ << " state(s)"
             << std::endl;
-  double p_p_e = static_cast<double>(n_preferreds_)
-    / static_cast<double>(n_preferred_evaluated_);
+  double p_p_e = static_cast<double>(n_preferreds_) /
+                 static_cast<double>(n_preferred_evaluated_);
   std::cout << "Preferreds per state " << p_p_e << std::endl;
-  double b_f = static_cast<double>(n_branching_)
-    / static_cast<double>(n_preferred_evaluated_);
+  double b_f = static_cast<double>(n_branching_) /
+               static_cast<double>(n_preferred_evaluated_);
   std::cout << "Average branching factor " << b_f << std::endl;
-  double p_p_b = static_cast<double>(n_preferreds_)
-    / static_cast<double>(n_branching_);
-  std::cout << "Preferred ratio " << p_p_b  << std::endl;
+  double p_p_b =
+      static_cast<double>(n_preferreds_) / static_cast<double>(n_branching_);
+  std::cout << "Preferred ratio " << p_p_b << std::endl;
 
   graph_->Dump();
 }
 
-} // namespace pplanner
+}  // namespace pplanner

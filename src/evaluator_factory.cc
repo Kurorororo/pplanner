@@ -15,9 +15,10 @@
 namespace pplanner {
 
 std::shared_ptr<Evaluator> EvaluatorFactory(
-    std::shared_ptr<const SASPlus> problem, std::shared_ptr<SearchGraph> graph,
+    std::shared_ptr<const SASPlus> problem,
+    const boost::property_tree::ptree &pt,
     std::shared_ptr<Evaluator> friend_evaluator,
-    const boost::property_tree::ptree &pt) {
+    std::shared_ptr<SearchGraph> graph) {
   auto name = pt.get_optional<std::string>("name");
 
   if (!name) throw std::runtime_error("Heuristic name is needed.");

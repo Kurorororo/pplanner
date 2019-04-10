@@ -19,12 +19,13 @@ namespace pplanner {
 
 class SASPlus {
  public:
-  SASPlus() : metric_(0),
-              facts_(nullptr),
-              mutex_groups_(nullptr),
-              goal_(nullptr),
-              preconditions_(nullptr),
-              effects_(nullptr) {}
+  SASPlus()
+      : metric_(0),
+        facts_(nullptr),
+        mutex_groups_(nullptr),
+        goal_(nullptr),
+        preconditions_(nullptr),
+        effects_(nullptr) {}
 
   void InitFromLines(std::queue<std::string> &lines);
 
@@ -48,7 +49,7 @@ class SASPlus {
 
   bool use_conditional() const { return effects_->use_conditional(); }
 
-  const std::vector<int>& initial() const { return initial_; }
+  const std::vector<int> &initial() const { return initial_; }
 
   int Fact(int var, int value) const { return facts_->Fact(var, value); }
 
@@ -60,7 +61,7 @@ class SASPlus {
 
   int VarRange(int var) const { return facts_->VarRange(var); }
 
-  const std::string& Predicate(int var, int value) const {
+  const std::string &Predicate(int var, int value) const {
     return facts_->Predicate(var, value);
   }
 
@@ -72,7 +73,6 @@ class SASPlus {
 
     return IsMutex(f, g);
   }
-
 
   void CopyGoal(std::vector<std::pair<int, int> > &goal) const {
     goal_->Copy(goal);
@@ -88,7 +88,7 @@ class SASPlus {
 
   int ActionCost(int i) const { return action_costs_[i]; }
 
-  const std::string& ActionName(int i) const { return action_names_[i]; }
+  const std::string &ActionName(int i) const { return action_names_[i]; }
 
   std::vector<int>::const_iterator PreconditionVarsBegin(int i) const {
     return preconditions_->VarsBegin(i);
@@ -106,8 +106,8 @@ class SASPlus {
     return preconditions_->ValuesEnd(i);
   }
 
-  void CopyPrecondition(int i, std::vector<std::pair<int, int> > &precondition)
-    const {
+  void CopyPrecondition(int i,
+                        std::vector<std::pair<int, int> > &precondition) const {
     preconditions_->Copy(i, precondition);
   }
 
@@ -170,8 +170,7 @@ class SASPlus {
   }
 
   void CopyConditionalEffects(
-      int i,
-      std::vector<std::pair<int, int> > &effects) const {
+      int i, std::vector<std::pair<int, int> > &effects) const {
     effects_->CopyConditionalEffects(i, effects);
   }
 
@@ -192,23 +191,23 @@ class SASPlus {
 
   std::shared_ptr<const EffectVector> effects() const { return effects_; }
 
-  const int* var_offsets_data() const { return facts_->offsets_data(); }
+  const int *var_offsets_data() const { return facts_->offsets_data(); }
 
-  const int* goal_vars_data() const { return goal_->vars_data(); }
+  const int *goal_vars_data() const { return goal_->vars_data(); }
 
-  const int* goal_values_data() const { return goal_->values_data(); }
+  const int *goal_values_data() const { return goal_->values_data(); }
 
-  const int* action_costs_data() const { return action_costs_.data(); }
+  const int *action_costs_data() const { return action_costs_.data(); }
 
-  const int* effect_offsets_data() const { return effects_->offsets_data(); }
+  const int *effect_offsets_data() const { return effects_->offsets_data(); }
 
   std::size_t effects_size() const { return effects_->n_units(); }
 
-  const int* effect_vars_data() const { return effects_->vars_data(); }
+  const int *effect_vars_data() const { return effects_->vars_data(); }
 
-  const int* effect_values_data() const { return effects_->values_data(); }
+  const int *effect_values_data() const { return effects_->values_data(); }
 
-  const int* effect_condition_offsets_1_data() const {
+  const int *effect_condition_offsets_1_data() const {
     return effects_->effect_condition_offsets_1_data();
   }
 
@@ -216,7 +215,7 @@ class SASPlus {
     return effects_->effect_condition_offsets_2_size();
   }
 
-  const int* effect_condition_offsets_2_data() const {
+  const int *effect_condition_offsets_2_data() const {
     return effects_->effect_condition_offsets_2_data();
   }
 
@@ -224,11 +223,11 @@ class SASPlus {
     return effects_->effect_conditions_size();
   }
 
-  const int* effect_condition_vars_data() const {
+  const int *effect_condition_vars_data() const {
     return effects_->effect_condition_vars_data();
   }
 
-  const int* effect_condition_values_data() const {
+  const int *effect_condition_values_data() const {
     return effects_->effect_condition_values_data();
   }
 
@@ -236,11 +235,11 @@ class SASPlus {
     return effects_->conditional_effects_size();
   }
 
-  const int* conditional_effect_vars_data() const {
+  const int *conditional_effect_vars_data() const {
     return effects_->conditional_effect_vars_data();
   }
 
-  const int* conditional_effect_values_data() const {
+  const int *conditional_effect_values_data() const {
     return effects_->conditional_effect_values_data();
   }
 
@@ -248,8 +247,7 @@ class SASPlus {
   void CreateActions(int n);
 
   int AddAction(
-      int cost,
-      const std::string &name,
+      int cost, const std::string &name,
       const std::vector<std::pair<int, int> > &precondition,
       const std::vector<std::pair<int, int> > &effect,
       const std::vector<std::vector<std::pair<int, int> > > &effect_conditions,
@@ -266,12 +264,12 @@ class SASPlus {
   std::shared_ptr<EffectVector> effects_;
 };
 
-void StateToFactVector(const SASPlus &problem, const std::vector<int> &state,
-                       std::vector<int> &v);
+void StateToFactVector(std::shared_ptr<const SASPlus> problem,
+                       const std::vector<int> &state, std::vector<int> &v);
 
-void StateToFactSet(const SASPlus &problem, const std::vector<int> &state,
-                    std::vector<bool> &s);
+void StateToFactSet(std::shared_ptr<const SASPlus> problem,
+                    const std::vector<int> &state, std::vector<bool> &s);
 
-} // namespace pplanner
+}  // namespace pplanner
 
-#endif // SAS_PLUS_H_
+#endif  // SAS_PLUS_H_

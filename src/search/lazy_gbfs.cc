@@ -34,7 +34,7 @@ void LazyGBFS::Init(const boost::property_tree::ptree &pt) {
   BOOST_FOREACH (const boost::property_tree::ptree::value_type &child,
                  pt.get_child("evaluators")) {
     auto e = child.second;
-    auto evaluator = EvaluatorFactory(problem_, graph_, friend_evaluator, e);
+    auto evaluator = EvaluatorFactory(problem_, e, friend_evaluator, graph_);
     evaluators_.push_back(evaluator);
     friend_evaluator = evaluator;
   }
@@ -47,7 +47,7 @@ void LazyGBFS::Init(const boost::property_tree::ptree &pt) {
         same_ = true;
       } else {
         preferring_ =
-            EvaluatorFactory(problem_, graph_, nullptr, preferring.get());
+            EvaluatorFactory(problem_, preferring.get(), nullptr, graph_);
       }
     }
   }

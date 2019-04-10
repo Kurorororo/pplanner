@@ -16,24 +16,26 @@ class Width : public Evaluator {
   Width() : is_ge_1_(false), problem_(nullptr) {}
 
   Width(std::shared_ptr<const SASPlus> problem, bool is_ge_1)
-    : is_ge_1_(is_ge_1),
-      tmp_state_(problem->n_variables()),
-      tmp_facts_(problem->n_facts()),
-      is_new_1_(problem->n_facts(), true),
-      is_new_2_(problem->n_facts(), std::vector<bool>(problem->n_facts(), true)),
-      problem_(problem) {}
+      : is_ge_1_(is_ge_1),
+        tmp_state_(problem->n_variables()),
+        tmp_facts_(problem->n_facts()),
+        is_new_1_(problem->n_facts(), true),
+        is_new_2_(problem->n_facts(),
+                  std::vector<bool>(problem->n_facts(), true)),
+        problem_(problem) {}
 
   ~Width() {}
 
   int Evaluate(const std::vector<int> &state, int node) override;
 
-  int Evaluate(const std::vector<int> &state, int node, int parent) override {
-    return Evaluate(state, node);
-  }
-
   int Evaluate(const std::vector<int> &state, int node,
                const std::vector<int> &applicable,
                std::unordered_set<int> &preferred) override;
+
+  // for MPI
+  int Evaluate(const std::vector<int> &state, int node, int parent) override {
+    return Evaluate(state, node);
+  }
 
   int Evaluate(const std::vector<int> &state, int node, int parent,
                const std::vector<int> &applicable,
@@ -41,36 +43,26 @@ class Width : public Evaluator {
     return Evaluate(state, node, applicable, preferred);
   }
 
- private:
-  bool is_ge_1_;
-  std::vector<int> tmp_state_;
-  std::vector<int> tmp_facts_;
-  std::vector<bool> is_new_1_;
-  std::vector<std::vector<bool> > is_new_2_;
-  std::shared_ptr<const SASPlus> problem_;
-};
-
-class RWWidth : public RandomWalkEvaluator {
- public:
-  RWWidth() : width_(nullptr) {
-    width_ = std::unique_ptr<Width>(new Width());
+  // for multithread
+  int Evaluate(const std::vector<int> &state, SearchNode *node) override {
+    return Evaluate(state, -1);
   }
 
-  RWWidth(std::shared_ptr<const SASPlus> problem, bool is_ge_1)
-    : width_(nullptr) {
-    width_ = std::unique_ptr<Width>(new Width(problem, is_ge_1));
+  int Evaluate(const std::vector<int> &state, SearchNode *node,
+               const std::vector<int> &applicable,
+               std::unordered_set<int> &preferred) override {
+    return Evaluate(state, -1, applicable, preferred);
   }
 
-  ~RWWidth() {}
-
+  // for random walk
   int Evaluate(const std::vector<int> &state) override {
-    return width_->Evaluate(state, -1);
+    return Evaluate(state, -1);
   }
 
   int Evaluate(const std::vector<int> &state,
                const std::vector<int> &applicable,
                std::unordered_set<int> &preferred) override {
-    return width_->Evaluate(state, -1, applicable, preferred);
+    return Evaluate(state, -1, applicable, preferred);
   }
 
   void UpdateBest() override {}
@@ -83,9 +75,14 @@ class RWWidth : public RandomWalkEvaluator {
                              std::shared_ptr<SearchGraph> graph) override {}
 
  private:
-  std::unique_ptr<Width> width_;
+  bool is_ge_1_;
+  std::vector<int> tmp_state_;
+  std::vector<int> tmp_facts_;
+  std::vector<bool> is_new_1_;
+  std::vector<std::vector<bool> > is_new_2_;
+  std::shared_ptr<const SASPlus> problem_;
 };
 
-} // namespace pplanner
+}  // namespace pplanner
 
-#endif // WIDTH_H_
+#endif  // WIDTH_H_

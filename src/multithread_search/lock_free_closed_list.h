@@ -5,7 +5,7 @@
 #include <unordered_set>
 #include <vector>
 
-#include "multithread_search/search_node.h"
+#include "search_node.h"
 
 namespace pplanner {
 
@@ -15,12 +15,12 @@ struct SearchNodeWithNext : public SearchNode {
 
 class LockFreeClosedList {
  public:
-  LockFreeClosedList(int exponent=26)
-    : mask_((1u << exponent) - 1), closed_(1 << exponent) {
+  LockFreeClosedList(int exponent = 26)
+      : mask_((1u << exponent) - 1), closed_(1 << exponent) {
     Init();
   }
 
-  bool IsClosed(uint32_t hash, const std::vector<uint32_t> &packed_state) const;
+  bool IsClosed(uint32_t hash, const std::vector<uint32_t>& packed_state) const;
 
   void Close(SearchNodeWithNext* node);
 
@@ -31,7 +31,6 @@ class LockFreeClosedList {
   std::vector<std::atomic<SearchNodeWithNext*> > closed_;
 };
 
+}  // namespace pplanner
 
-} // namespace pplanner
-
-#endif // LOCK_FREE_CLOSED_LIST_H_
+#endif  // LOCK_FREE_CLOSED_LIST_H_

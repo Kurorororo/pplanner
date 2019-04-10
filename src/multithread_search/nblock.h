@@ -4,10 +4,10 @@
 #include <iostream>
 #include <memory>
 
-#include "multithread_search/closed_list.h"
-#include "multithread_search/search_node.h"
+#include "closed_list.h"
 #include "open_list.h"
 #include "open_list_factory.h"
+#include "search_node.h"
 
 #include <boost/property_tree/ptree.hpp>
 
@@ -15,17 +15,17 @@ namespace pplanner {
 
 class NBlock {
  public:
-  NBlock(const boost::property_tree::ptree &open_list_option,
-         int abstract_node_id, int closd_exponent=16)
-    : abstract_node_id_(abstract_node_id),
-      sigma_(0),
-      sigma_h_(0),
-      heap_idx_(-1),
-      minimum_(-1),
-      hot_(false),
-      inuse_(false),
-      open_list_(OpenListFactory<SearchNode*>(open_list_option)),
-      closed_list_(std::make_unique<ClosedList>(closd_exponent)) {}
+  NBlock(const boost::property_tree::ptree& open_list_option,
+         int abstract_node_id, int closd_exponent = 16)
+      : abstract_node_id_(abstract_node_id),
+        sigma_(0),
+        sigma_h_(0),
+        heap_idx_(-1),
+        minimum_(-1),
+        hot_(false),
+        inuse_(false),
+        open_list_(OpenListFactory<SearchNode*>(open_list_option)),
+        closed_list_(std::make_unique<ClosedList>(closd_exponent)) {}
 
   int abstract_node_id() const { return abstract_node_id_; }
 
@@ -63,9 +63,8 @@ class NBlock {
 
   bool IsEmpty() const { return open_list_->IsEmpty(); }
 
-  void Push(const std::vector<int> &values, SearchNode* node, bool is_pref) {
-    if (minimum_ == -1 || values[0] < minimum_)
-      minimum_ = values[0];
+  void Push(const std::vector<int>& values, SearchNode* node, bool is_pref) {
+    if (minimum_ == -1 || values[0] < minimum_) minimum_ = values[0];
 
     open_list_->Push(values, node, is_pref);
   }
@@ -83,29 +82,26 @@ class NBlock {
     return open_list_->MinimumValues();
   }
 
-  bool IsClosed(uint32_t hash, const std::vector<uint32_t> &packed_state)
-    const {
+  bool IsClosed(uint32_t hash,
+                const std::vector<uint32_t>& packed_state) const {
     return closed_list_->IsClosed(hash, packed_state);
   }
 
   std::size_t GetIndex(uint32_t hash,
-                       const std::vector<uint32_t> &packed_state) const {
+                       const std::vector<uint32_t>& packed_state) const {
     return closed_list_->GetIndex(hash, packed_state);
   }
 
   SearchNode* GetItem(std::size_t i) const { return closed_list_->GetItem(i); }
 
-  void Close(std::size_t i, SearchNode *node) { closed_list_->Close(i, node); }
+  void Close(std::size_t i, SearchNode* node) { closed_list_->Close(i, node); }
 
   bool Close(SearchNode* node) { return closed_list_->Close(node); }
 
   void Dump() const {
-    std::cout << "id: " << abstract_node_id_
-              << " sigma=" << sigma_
-              << " sigma_h=" << sigma_h_
-              << " hot=" << hot_
-              << " inuse=" << inuse_
-              << " heap index=" << heap_idx_;
+    std::cout << "id: " << abstract_node_id_ << " sigma=" << sigma_
+              << " sigma_h=" << sigma_h_ << " hot=" << hot_
+              << " inuse=" << inuse_ << " heap index=" << heap_idx_;
 
     if (open_list_->IsEmpty())
       std::cout << " empty" << std::endl;
@@ -125,6 +121,6 @@ class NBlock {
   std::unique_ptr<ClosedList> closed_list_;
 };
 
-} // namespace pplanner
+}  // namespace pplanner
 
-#endif // NBLOCK_H_
+#endif  // NBLOCK_H_

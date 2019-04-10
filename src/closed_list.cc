@@ -1,4 +1,4 @@
-#include "multithread_search/closed_list.h"
+#include "closed_list.h"
 
 #include <iostream>
 
@@ -17,9 +17,8 @@ bool ClosedList::IsClosed(uint32_t hash,
   return false;
 }
 
-std::size_t ClosedList::GetIndex(uint32_t hash,
-                                 const std::vector<uint32_t> &packed_state)
-  const {
+std::size_t ClosedList::GetIndex(
+    uint32_t hash, const std::vector<uint32_t> &packed_state) const {
   std::size_t i = hash & closed_mask_;
 
   while (closed_[i] != nullptr) {
@@ -38,7 +37,7 @@ void ClosedList::Close(std::size_t i, SearchNode *node) {
   if (2 * n_closed_ > closed_.size()) Resize();
 }
 
-bool ClosedList::Close(SearchNode* node) {
+bool ClosedList::Close(SearchNode *node) {
   std::size_t i = node->hash & closed_mask_;
 
   while (closed_[i] != nullptr) {
@@ -63,11 +62,10 @@ void ClosedList::Clear() {
 void ClosedList::Resize() {
   int closed_exponent = 1;
 
-  while ((1u << closed_exponent) < 3 * n_closed_)
-    ++closed_exponent;
+  while ((1u << closed_exponent) < 3 * n_closed_) ++closed_exponent;
 
   uint32_t closed_mask = (1u << closed_exponent) - 1;
-  std::vector<SearchNode*> new_closed(1 << closed_exponent, nullptr);
+  std::vector<SearchNode *> new_closed(1 << closed_exponent, nullptr);
 
   for (int k = 0, m = closed_.size(); k < m; ++k) {
     auto node = closed_[k];
@@ -86,4 +84,4 @@ void ClosedList::Resize() {
   closed_.swap(new_closed);
 }
 
-} // namespace pplanner
+}  // namespace pplanner

@@ -23,9 +23,7 @@ void SASPlus::CreateActions(int n) {
 }
 
 int SASPlus::AddAction(
-    int cost,
-    const string &name,
-    const vector<pair<int, int> > &precondition,
+    int cost, const string &name, const vector<pair<int, int> > &precondition,
     const vector<pair<int, int> > &effect,
     const vector<vector<pair<int, int> > > &effect_conditions,
     const vector<pair<int, int> > &conditional_effects) {
@@ -53,14 +51,13 @@ void SASPlus::InitFromLines(queue<string> &lines) {
   facts_ = make_shared<Facts>();
   facts_->Reserve(n);
 
-  for (int i=0; i<n; ++i)
-    facts_->AddVariable(ParseVariable(lines));
+  for (int i = 0; i < n; ++i) facts_->AddVariable(ParseVariable(lines));
 
   n = ParseN(lines);
   mutex_groups_ = make_shared<MutexGroups>();
   mutex_groups_->Reserve(n);
 
-  for (int i=0; i<n; ++i)
+  for (int i = 0; i < n; ++i)
     mutex_groups_->AddGroup(ParseMutexGroup(*facts_, lines));
 
   initial_ = ParseInitial(*facts_, lines);
@@ -77,7 +74,7 @@ void SASPlus::InitFromLines(queue<string> &lines) {
   vector<vector<pair<int, int> > > effect_conditions;
   vector<pair<int, int> > conditional_effects;
 
-  for (int i=0; i<n; ++i) {
+  for (int i = 0; i < n; ++i) {
     int cost = ParseOperator(lines, metric_, name, precondition, effect,
                              effect_conditions, conditional_effects);
     AddAction(cost, name, precondition, effect, effect_conditions,
@@ -86,8 +83,7 @@ void SASPlus::InitFromLines(queue<string> &lines) {
 
   n = ParseN(lines);
 
-  for (int i=0; i<n; ++i)
-    ParseAxiom(lines);
+  for (int i = 0; i < n; ++i) ParseAxiom(lines);
 }
 
 void SASPlus::Dump() const {
@@ -103,7 +99,7 @@ void SASPlus::Dump() const {
   std::cout << "Intiial state" << std::endl;
   auto initial_state = initial();
 
-  for (int i=0, n=initial_state.size(); i<n; ++i)
+  for (int i = 0, n = initial_state.size(); i < n; ++i)
     std::cout << "var" << i << "=" << initial_state[i] << std::endl;
 
   std::cout << std::endl;
@@ -118,7 +114,7 @@ void SASPlus::Dump() const {
   std::cout << n << " operators" << std::endl;
   std::cout << std::endl;
 
-  for (int i=0; i<n; ++i) {
+  for (int i = 0; i < n; ++i) {
     std::cout << "id=" << i << std::endl;
     std::cout << ActionName(i) << std::endl;
     std::cout << "cost = " << ActionCost(i) << std::endl;
@@ -130,31 +126,31 @@ void SASPlus::Dump() const {
   }
 }
 
-void StateToFactVector(const SASPlus &problem, const vector<int> &state,
-                       vector<int> &v) {
+void StateToFactVector(std::shared_ptr<const SASPlus> problem,
+                       const vector<int> &state, vector<int> &v) {
   v.clear();
 
   int i = 0;
 
   for (auto value : state) {
-    int f = problem.Fact(i, value);
+    int f = problem->Fact(i, value);
     v.push_back(f);
     ++i;
   }
 }
 
-void StateToFactSet(const SASPlus &problem, const vector<int> &state,
-                    vector<bool> &s) {
+void StateToFactSet(std::shared_ptr<const SASPlus> problem,
+                    const vector<int> &state, vector<bool> &s) {
   s.clear();
-  s.resize(problem.n_facts(), false);
+  s.resize(problem->n_facts(), false);
 
   int i = 0;
 
   for (auto value : state) {
-    int f = problem.Fact(i, value);
+    int f = problem->Fact(i, value);
     s[f] = true;
     ++i;
   }
 }
 
-} // namespace pplanner
+}  // namespace pplanner

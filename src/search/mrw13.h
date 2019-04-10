@@ -11,7 +11,7 @@
 
 #include <boost/property_tree/ptree.hpp>
 
-#include "random_walk_evaluator.h"
+#include "evaluator.h"
 #include "sas_plus.h"
 #include "search.h"
 #include "successor_generator.h"
@@ -21,38 +21,39 @@ namespace pplanner {
 class Mrw13 : public Search {
  public:
   Mrw13(std::shared_ptr<const SASPlus> problem,
-        const boost::property_tree::ptree &pt,
-        int max_expansion)
-    : uniform_(false),
-      fix_(false),
-      same_(false),
-      measure_(false),
-      action_elimination_(false),
-      solved_(false),
-      generated_(0),
-      expanded_(0),
-      evaluated_(0),
-      dead_ends_(0),
-      n_branching_(0),
-      n_preferreds_(0),
-      max_expansion_(max_expansion),
-      tg_(1000),
-      n_restarts_(0),
-      eps_(0.1),
-      e1_(exp(0.1)),
-      ew_(exp(0.1)),
-      rls_({0.1, 0.01, 0.001}),
-      ls_({10, 100, 1000}),
-      value_rls_(3, 0),
-      cost_rls_(3, 0),
-      q1_(problem->n_actions(), 1.0),
-      qw_(problem->n_actions(), 1.0),
-      dist_(0.0, 1.0),
-      problem_(problem),
-      generator_(std::unique_ptr<SuccessorGenerator>(
+        const boost::property_tree::ptree &pt, int max_expansion)
+      : uniform_(false),
+        fix_(false),
+        same_(false),
+        measure_(false),
+        action_elimination_(false),
+        solved_(false),
+        generated_(0),
+        expanded_(0),
+        evaluated_(0),
+        dead_ends_(0),
+        n_branching_(0),
+        n_preferreds_(0),
+        max_expansion_(max_expansion),
+        tg_(1000),
+        n_restarts_(0),
+        eps_(0.1),
+        e1_(exp(0.1)),
+        ew_(exp(0.1)),
+        rls_({0.1, 0.01, 0.001}),
+        ls_({10, 100, 1000}),
+        value_rls_(3, 0),
+        cost_rls_(3, 0),
+        q1_(problem->n_actions(), 1.0),
+        qw_(problem->n_actions(), 1.0),
+        dist_(0.0, 1.0),
+        problem_(problem),
+        generator_(std::unique_ptr<SuccessorGenerator>(
             new SuccessorGenerator(problem))),
-      evaluator_(nullptr),
-      preferring_(nullptr) { Init(pt); }
+        evaluator_(nullptr),
+        preferring_(nullptr) {
+    Init(pt);
+  }
 
   ~Mrw13() {}
 
@@ -63,7 +64,8 @@ class Mrw13 : public Search {
  private:
   void Init(const boost::property_tree::ptree &pt);
 
-  int Evaluate(const std::vector<int> &state, const std::vector<int> &applicable,
+  int Evaluate(const std::vector<int> &state,
+               const std::vector<int> &applicable,
                std::unordered_set<int> &preferred);
 
   int MHA(const std::vector<int> &applicable,
@@ -77,7 +79,7 @@ class Mrw13 : public Search {
            std::unordered_set<int> &preferred);
 
   int Walk(int best_h, double rl, std::vector<int> &state,
-           std::vector<int> &sequence,  std::vector<int> &applicable,
+           std::vector<int> &sequence, std::vector<int> &applicable,
            std::unordered_set<int> &preferred);
 
   void ActionElimination();
@@ -114,8 +116,8 @@ class Mrw13 : public Search {
   std::uniform_real_distribution<> dist_;
   std::shared_ptr<const SASPlus> problem_;
   std::unique_ptr<SuccessorGenerator> generator_;
-  std::shared_ptr<RandomWalkEvaluator> evaluator_;
-  std::shared_ptr<RandomWalkEvaluator> preferring_;
+  std::shared_ptr<Evaluator> evaluator_;
+  std::shared_ptr<Evaluator> preferring_;
   std::vector<bool> is_preferred_operator_;
   std::vector<bool> is_preferred_successor_;
   std::vector<bool> tmp_is_preferred_successor_;
@@ -133,11 +135,11 @@ int RandomRl(std::size_t size, std::mt19937 &engine);
 int ChoiceRl(double eps, const std::vector<int> &value_rls,
              const std::vector<int> &cost_rls, std::mt19937 &engine);
 
-template<typename T>
+template <typename T>
 T GetRl(int arg_rl, const std::vector<T> &rls) {
   return rls[arg_rl];
 }
 
-} // namespace pplanner
+}  // namespace pplanner
 
-#endif // MRW13_H_
+#endif  // MRW13_H_

@@ -15,8 +15,8 @@ class ZobristIPTiebreaking : public Evaluator {
   ZobristIPTiebreaking() {}
 
   ZobristIPTiebreaking(std::shared_ptr<const SASPlus> problem)
-    : hash_(std::unique_ptr<ZobristHash>(new ZobristHash(problem, 2968297125)))
-  {}
+      : hash_(std::unique_ptr<ZobristHash>(
+            new ZobristHash(problem, 2968297125))) {}
 
   ~ZobristIPTiebreaking() {}
 
@@ -26,13 +26,14 @@ class ZobristIPTiebreaking : public Evaluator {
     return static_cast<int>(r >> 1);
   }
 
-  int Evaluate(const std::vector<int> &state, int node, int parent) override {
-    return Evaluate(state, node);
-  }
-
   int Evaluate(const std::vector<int> &state, int node,
                const std::vector<int> &applicable,
                std::unordered_set<int> &preferred) override {
+    return Evaluate(state, node);
+  }
+
+  // for MPI
+  int Evaluate(const std::vector<int> &state, int node, int parent) override {
     return Evaluate(state, node);
   }
 
@@ -42,10 +43,40 @@ class ZobristIPTiebreaking : public Evaluator {
     return Evaluate(state, node, applicable, preferred);
   }
 
+  // for multithread
+  int Evaluate(const std::vector<int> &state, SearchNode *node) override {
+    return Evaluate(state, -1);
+  }
+
+  int Evaluate(const std::vector<int> &state, SearchNode *node,
+               const std::vector<int> &applicable,
+               std::unordered_set<int> &preferred) override {
+    return Evaluate(state, -1, applicable, preferred);
+  }
+  // for random walk
+  int Evaluate(const std::vector<int> &state) override {
+    return Evaluate(state, -1);
+  }
+
+  int Evaluate(const std::vector<int> &state,
+               const std::vector<int> &applicable,
+               std::unordered_set<int> &preferred) override {
+    return Evaluate(state, -1, applicable, preferred);
+  }
+
+  void UpdateBest() override {}
+
+  void LocalRestart() override {}
+
+  void GlobalRestart() override {}
+
+  void CopyBestToSearchGraph(int node,
+                             std::shared_ptr<SearchGraph> graph) override {}
+
  private:
   std::unique_ptr<ZobristHash> hash_;
 };
 
-} // namespace pplanner
+}  // namespace pplanner
 
-#endif // ZOBRIST_IP_TIEBREAKING_H_
+#endif  // ZOBRIST_IP_TIEBREAKING_H_

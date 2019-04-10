@@ -1,8 +1,8 @@
-#include "multithread_search/abstract_graph.h"
+#include "sas_plus/abstract_graph.h"
 
 #include <algorithm>
-#include <numeric>
 #include <iostream>
+#include <numeric>
 
 #include "dtg.h"
 #include "utils/lexical_order.h"
@@ -11,15 +11,13 @@ namespace pplanner {
 
 AbstractGraph::AbstractGraph(std::shared_ptr<const SASPlus> problem,
                              const std::vector<int> &vars)
-  : max_out_degree_(0), vars_(vars), ranges_(vars.size()) {
-
+    : max_out_degree_(0), vars_(vars), ranges_(vars.size()) {
   for (int i = 0, n = ranges_.size(); i < n; ++i)
     ranges_[i] = problem->VarRange(vars[i]);
 
   int n_nodes = 1;
 
-  for (int i = 0, n = ranges_.size(); i < n; ++i)
-    n_nodes *= ranges_[i];
+  for (int i = 0, n = ranges_.size(); i < n; ++i) n_nodes *= ranges_[i];
 
   n_nodes_ = n_nodes;
   matrix_.resize(n_nodes, std::vector<bool>(n_nodes, false));
@@ -56,8 +54,7 @@ void AbstractGraph::BuildInterferenceScope() {
 
 int AbstractGraph::StateToNode(const std::vector<int> &state,
                                std::vector<int> &values) const {
-  for (int i = 0, n = vars_.size(); i < n; ++i)
-    values[i] = state[vars_[i]];
+  for (int i = 0, n = vars_.size(); i < n; ++i) values[i] = state[vars_[i]];
 
   return LexicalOrder(values, ranges_);
 }
@@ -70,13 +67,11 @@ void AbstractGraph::Dump() const {
 
     std::cout << i << "(";
 
-    for (auto v : state)
-      std::cout << v << " ";
+    for (auto v : state) std::cout << v << " ";
 
     std::cout << ") -> ";
 
-    for (auto c : to_children_[i])
-      std::cout << c << " ";
+    for (auto c : to_children_[i]) std::cout << c << " ";
 
     std::cout << std::endl;
   }
@@ -88,21 +83,18 @@ void AbstractGraph::Dump() const {
 
     std::cout << i << "(";
 
-    for (auto v : state)
-      std::cout << v << " ";
+    for (auto v : state) std::cout << v << " ";
 
     std::cout << ") -> ";
 
-    for (auto c : interference_scope_[i])
-      std::cout << c << " ";
+    for (auto c : interference_scope_[i]) std::cout << c << " ";
 
     std::cout << std::endl;
   }
 
   std::cout << "vars:";
 
-  for (int i = 0, n = vars_.size(); i < n; ++i)
-    std::cout << " " << vars_[i];
+  for (int i = 0, n = vars_.size(); i < n; ++i) std::cout << " " << vars_[i];
 
   std::cout << std::endl;
   std::cout << "#nodes=" << n_nodes_ << std::endl;
@@ -141,8 +133,7 @@ void AbstractGraph::ApplyEffect(std::shared_ptr<const SASPlus> problem,
 
   while (iter != end) {
     for (int i = 0, n = vars_.size(); i < n; ++i)
-      if (vars_[i] == *iter)
-        child[i] = *value_iter;
+      if (vars_[i] == *iter) child[i] = *value_iter;
 
     ++iter;
     ++value_iter;
@@ -152,8 +143,7 @@ void AbstractGraph::ApplyEffect(std::shared_ptr<const SASPlus> problem,
     for (int i = 0; i < problem->NConditionalEffects(action); ++i) {
       int var = problem->ConditionalEffectVar(action, i);
 
-      if (std::find(vars_.begin(), vars_.end(), var) == vars_.end())
-        continue;
+      if (std::find(vars_.begin(), vars_.end(), var) == vars_.end()) continue;
 
       bool condition = true;
 
@@ -172,17 +162,14 @@ void AbstractGraph::ApplyEffect(std::shared_ptr<const SASPlus> problem,
         if (!condition) break;
       }
 
-      if (condition)
-        child[var] = problem->ConditionalEffectValue(action, i);
+      if (condition) child[var] = problem->ConditionalEffectValue(action, i);
     }
   }
 }
 
 void AbstractGraph::AddEdge(
-    std::shared_ptr<const SASPlus> problem,
-    int action,
-    const std::vector<std::vector<int> > &possible_values,
-    int index,
+    std::shared_ptr<const SASPlus> problem, int action,
+    const std::vector<std::vector<int> > &possible_values, int index,
     std::vector<int> &state) {
   if (index == vars_.size()) {
     auto child = state;
@@ -216,8 +203,7 @@ void AbstractGraph::ConstructGraph(std::shared_ptr<const SASPlus> problem) {
   for (int i = 0, n = problem->n_actions(); i < n; ++i) {
     if (!IsActionRelevant(problem, i)) continue;
 
-    for (auto &v : possible_values)
-      v.clear();
+    for (auto &v : possible_values) v.clear();
 
     auto var_iter = problem->PreconditionVarsBegin(i);
     auto var_end = problem->PreconditionVarsEnd(i);
@@ -225,8 +211,7 @@ void AbstractGraph::ConstructGraph(std::shared_ptr<const SASPlus> problem) {
 
     while (var_iter != var_end) {
       for (int j = 0, m = vars_.size(); j < m; ++j)
-        if (vars_[j] == *var_iter)
-          possible_values[j].push_back(*value_iter);
+        if (vars_[j] == *var_iter) possible_values[j].push_back(*value_iter);
 
       ++var_iter;
       ++value_iter;
@@ -244,27 +229,23 @@ void AbstractGraph::ConstructGraph(std::shared_ptr<const SASPlus> problem) {
 }
 
 std::shared_ptr<AbstractGraph> GreedySelect(
-    std::shared_ptr<const SASPlus> problem,
-    const std::vector<int> &candidates,
-    const std::vector<int> &selected,
-    int max_n_nodes) {
+    std::shared_ptr<const SASPlus> problem, const std::vector<int> &candidates,
+    const std::vector<int> &selected, int max_n_nodes) {
   int base_size = 1;
 
-  for (auto v : selected)
-    base_size *= problem->VarRange(v);
+  for (auto v : selected) base_size *= problem->VarRange(v);
 
   std::shared_ptr<AbstractGraph> best_graph = nullptr;
   std::vector<int> tmp_vars;
 
   for (auto v : candidates) {
-    if (!selected.empty()
-        && std::find(selected.begin(), selected.end(), v) != selected.end())
+    if (!selected.empty() &&
+        std::find(selected.begin(), selected.end(), v) != selected.end())
       continue;
 
     int range = problem->VarRange(v);
 
-    if (range < 3 || base_size * range > max_n_nodes)
-      continue;
+    if (range < 3 || base_size * range > max_n_nodes) continue;
 
     tmp_vars = selected;
     tmp_vars.push_back(v);
@@ -277,11 +258,10 @@ std::shared_ptr<AbstractGraph> GreedySelect(
 
   if (best_graph == nullptr) {
     for (auto v : candidates) {
-      if (problem->VarRange(v) != 2 || base_size * 2 > max_n_nodes)
-        continue;
+      if (problem->VarRange(v) != 2 || base_size * 2 > max_n_nodes) continue;
 
-      if (!selected.empty()
-          && std::find(selected.begin(), selected.end(), v) != selected.end())
+      if (!selected.empty() &&
+          std::find(selected.begin(), selected.end(), v) != selected.end())
         continue;
 
       tmp_vars = selected;
@@ -297,8 +277,7 @@ std::shared_ptr<AbstractGraph> GreedySelect(
 }
 
 std::shared_ptr<AbstractGraph> ConstructByDTG(
-    std::shared_ptr<const SASPlus> problem,
-    int max_n_nodes) {
+    std::shared_ptr<const SASPlus> problem, int max_n_nodes) {
   auto dtgs = InitializeDTGs(problem);
   std::vector<int> vars;
   std::vector<bool> done(dtgs.size(), false);
@@ -311,8 +290,7 @@ std::shared_ptr<AbstractGraph> ConstructByDTG(
     for (int i = 0, n = dtgs.size(); i < n; ++i) {
       int range = problem->VarRange(i);
 
-      if (done[i] || (range < 3 || n_nodes * range > max_n_nodes))
-        continue;
+      if (done[i] || (range < 3 || n_nodes * range > max_n_nodes)) continue;
 
       int degree = dtgs[i]->OutDegreeMax();
 
@@ -326,8 +304,7 @@ std::shared_ptr<AbstractGraph> ConstructByDTG(
       for (int i = 0, n = dtgs.size(); i < n; ++i) {
         int range = problem->VarRange(i);
 
-        if (done[i] || (range != 2 || n_nodes * range > max_n_nodes))
-          continue;
+        if (done[i] || (range != 2 || n_nodes * range > max_n_nodes)) continue;
 
         int degree = dtgs[i]->OutDegreeMax();
 
@@ -351,4 +328,4 @@ std::shared_ptr<AbstractGraph> ConstructByDTG(
   return graph;
 }
 
-} // namespace pplanner
+}  // namespace pplanner

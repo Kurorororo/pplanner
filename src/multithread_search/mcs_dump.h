@@ -2,6 +2,7 @@
 #define MCS_DUMP_H_
 
 #include <atomic>
+#include <iostream>
 #include <memory>
 #include <mutex>
 #include <random>
@@ -11,21 +12,20 @@
 #include <unordered_set>
 #include <utility>
 #include <vector>
-#include <iostream>
 
 #include <boost/property_tree/ptree.hpp>
 
+#include "evaluator.h"
 #include "hash/zobrist_hash.h"
 #include "multithread_search/focus.h"
 #include "multithread_search/lock_free_closed_list.h"
-#include "multithread_search/heuristic.h"
-#include "multithread_search/search_node.h"
 #include "open_list.h"
 #include "open_list_factory.h"
 #include "sas_plus.h"
 #include "sas_plus/strong_stubborn_sets.h"
 #include "search.h"
 #include "search_graph/state_packer.h"
+#include "search_node.h"
 #include "successor_generator.h"
 
 namespace pplanner {
@@ -38,21 +38,21 @@ struct SearchNodeWithTimeStamp : public SearchNodeWithNext {
 class MCSDump : public Search {
  public:
   MCSDump(std::shared_ptr<const SASPlus> problem,
-                 const boost::property_tree::ptree &pt)
-    : use_preferred_(false),
-      n_threads_(1),
-      min_expansion_per_focus_(1000),
-      plateau_threshold_(10000),
-      expanded_(0),
-      evaluated_(0),
-      generated_(0),
-      dead_ends_(0),
-      id_(0),
-      problem_(problem),
-      generator_(std::make_unique<SuccessorGenerator>(problem)),
-      packer_(std::make_unique<StatePacker>(problem)),
-      hash_(std::make_unique<ZobristHash>(problem, 4166245435)),
-      start_(std::chrono::system_clock::now()) {
+          const boost::property_tree::ptree &pt)
+      : use_preferred_(false),
+        n_threads_(1),
+        min_expansion_per_focus_(1000),
+        plateau_threshold_(10000),
+        expanded_(0),
+        evaluated_(0),
+        generated_(0),
+        dead_ends_(0),
+        id_(0),
+        problem_(problem),
+        generator_(std::make_unique<SuccessorGenerator>(problem)),
+        packer_(std::make_unique<StatePacker>(problem)),
+        hash_(std::make_unique<ZobristHash>(problem, 4166245435)),
+        start_(std::chrono::system_clock::now()) {
     Init(pt);
   }
 
@@ -67,14 +67,14 @@ class MCSDump : public Search {
   void DumpStatistics() const override;
 
  private:
-  SearchNodeWithTimeStamp* Search();
+  SearchNodeWithTimeStamp *Search();
 
   void InitialEvaluate();
 
   void Expand(int i);
 
-  int Evaluate(int i, const std::vector<int> &state, SearchNodeWithTimeStamp *node,
-               std::vector<int> &values);
+  int Evaluate(int i, const std::vector<int> &state,
+               SearchNodeWithTimeStamp *node, std::vector<int> &values);
 
   int IncrementID();
 
@@ -82,8 +82,8 @@ class MCSDump : public Search {
 
   int DecrementNFoci();
 
-  std::shared_ptr<Focus<SearchNodeWithTimeStamp*> > TryPopFocus(
-      std::shared_ptr<Focus<SearchNodeWithTimeStamp*> > focus) {
+  std::shared_ptr<Focus<SearchNodeWithTimeStamp *> > TryPopFocus(
+      std::shared_ptr<Focus<SearchNodeWithTimeStamp *> > focus) {
     if (open_mtx_.try_lock()) {
       if (!foci_->IsEmpty() && foci_->MinimumValues() < focus->Priority()) {
         auto tmp_focus = foci_->Pop();
@@ -97,7 +97,7 @@ class MCSDump : public Search {
     return focus;
   }
 
-  std::shared_ptr<Focus<SearchNodeWithTimeStamp*> > LockedPopFocus() {
+  std::shared_ptr<Focus<SearchNodeWithTimeStamp *> > LockedPopFocus() {
     std::lock_guard<std::mutex> lock(open_mtx_);
 
     if (foci_->IsEmpty()) return nullptr;
@@ -105,7 +105,7 @@ class MCSDump : public Search {
     return foci_->Pop();
   }
 
-  std::shared_ptr<Focus<SearchNodeWithTimeStamp*> > LockedPopWorstFocus() {
+  std::shared_ptr<Focus<SearchNodeWithTimeStamp *> > LockedPopWorstFocus() {
     std::lock_guard<std::mutex> lock(open_mtx_);
 
     if (foci_->IsEmpty()) return nullptr;
@@ -113,21 +113,21 @@ class MCSDump : public Search {
     return foci_->PopWorst();
   }
 
-  void LockedPushFocus(std::shared_ptr<Focus<SearchNodeWithTimeStamp*> > focus) {
+  void LockedPushFocus(
+      std::shared_ptr<Focus<SearchNodeWithTimeStamp *> > focus) {
     std::lock_guard<std::mutex> lock(open_mtx_);
 
     foci_->Push(focus->Priority(), focus);
   }
 
-  std::shared_ptr<Focus<SearchNodeWithTimeStamp*> > CreateNewFocus(
-      const std::vector<int> &values,
-      SearchNodeWithTimeStamp *node,
+  std::shared_ptr<Focus<SearchNodeWithTimeStamp *> > CreateNewFocus(
+      const std::vector<int> &values, SearchNodeWithTimeStamp *node,
       bool is_pref) {
-    return std::make_shared<Focus<SearchNodeWithTimeStamp*> >(
+    return std::make_shared<Focus<SearchNodeWithTimeStamp *> >(
         open_list_option_, values, node, is_pref);
   }
 
-  void WriteGoal(SearchNodeWithTimeStamp* goal) {
+  void WriteGoal(SearchNodeWithTimeStamp *goal) {
     SearchNodeWithTimeStamp *expected = nullptr;
     goal_.compare_exchange_strong(expected, goal);
   }
@@ -160,24 +160,24 @@ class MCSDump : public Search {
   int dead_ends_;
   std::atomic<int> n_foci_;
   std::atomic<int> id_;
-  std::atomic<SearchNodeWithTimeStamp*> goal_;
+  std::atomic<SearchNodeWithTimeStamp *> goal_;
   std::shared_ptr<const SASPlus> problem_;
   std::unique_ptr<SuccessorGenerator> generator_;
   std::unique_ptr<StatePacker> packer_;
   std::unique_ptr<ZobristHash> hash_;
   std::unique_ptr<LockFreeClosedList> closed_;
-  std::vector<std::vector<SearchNodeWithTimeStamp*> > node_pool_;
-  std::vector<std::shared_ptr<Heuristic<SearchNode*> > > preferring_;
-  std::vector<std::vector<std::shared_ptr<
-    Heuristic<SearchNode*> > > > evaluators_;
+  std::vector<std::vector<SearchNodeWithTimeStamp *> > node_pool_;
+  std::vector<std::shared_ptr<Evaluator> > preferring_;
+  std::vector<std::vector<std::shared_ptr<Evaluator> > > evaluators_;
   boost::property_tree::ptree open_list_option_;
-  std::unique_ptr<FIFOOpenListImpl<
-    std::shared_ptr<Focus<SearchNodeWithTimeStamp*> > > > foci_;
+  std::unique_ptr<
+      FIFOOpenListImpl<std::shared_ptr<Focus<SearchNodeWithTimeStamp *> > > >
+      foci_;
   std::mutex open_mtx_;
   std::mutex stat_mtx_;
   std::chrono::system_clock::time_point start_;
 };
 
-} // namespace pplanner
+}  // namespace pplanner
 
-#endif // MCS_DUMP_H_
+#endif  // MCS_DUMP_H_

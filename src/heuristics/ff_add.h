@@ -9,8 +9,9 @@
 #include "evaluator.h"
 #include "heuristics/relaxed_sas_plus.h"
 #include "heuristics/rpg_table.h"
-#include "random_walk_evaluator.h"
 #include "sas_plus.h"
+#include "search_graph.h"
+#include "search_node.h"
 
 namespace pplanner {
 
@@ -30,21 +31,22 @@ class FFAdd : public Evaluator {
   ~FFAdd() {}
 
   int Evaluate(const std::vector<int> &state, int node) override {
-    StateToFactVector(*problem_, state, facts_);
+    StateToFactVector(problem_, state, facts_);
 
     return rpg_->PlanCost(facts_);
-  }
-
-  int Evaluate(const std::vector<int> &state, int node, int parent) override {
-    return Evaluate(state, node);
   }
 
   int Evaluate(const std::vector<int> &state, int node,
                const std::vector<int> &applicable,
                std::unordered_set<int> &preferred) override {
-    StateToFactVector(*problem_, state, facts_);
+    StateToFactVector(problem_, state, facts_);
 
     return rpg_->PlanCost(facts_, preferred);
+  }
+
+  // for MPI
+  int Evaluate(const std::vector<int> &state, int node, int parent) override {
+    return Evaluate(state, node);
   }
 
   int Evaluate(const std::vector<int> &state, int node, int parent,
@@ -53,33 +55,26 @@ class FFAdd : public Evaluator {
     return Evaluate(state, node, applicable, preferred);
   }
 
- private:
-  std::vector<int> facts_;
-  std::shared_ptr<const SASPlus> problem_;
-  std::shared_ptr<RelaxedSASPlus> r_problem_;
-  std::unique_ptr<RPGTable> rpg_;
-};
+  // for multithread
+  int Evaluate(const std::vector<int> &state, SearchNode *node) override {
+    return Evaluate(state, -1);
+  }
 
-class RWFFAdd : public RandomWalkEvaluator {
- public:
-  RWFFAdd() : ff_(nullptr) { ff_ = std::unique_ptr<FFAdd>(new FFAdd()); }
+  int Evaluate(const std::vector<int> &state, SearchNode *node,
+               const std::vector<int> &applicable,
+               std::unordered_set<int> &preferred) override {
+    return Evaluate(state, -1, applicable, preferred);
+  }
 
-  RWFFAdd(std::shared_ptr<const SASPlus> problem, bool simplify = false,
-          bool unit_cost = false, std::string tie_break = "cpp",
-          bool more_helpful = false)
-      : ff_(std::make_unique<FFAdd>(problem, simplify, unit_cost, tie_break,
-                                    more_helpful)) {}
-
-  ~RWFFAdd() {}
-
+  // for random walk
   int Evaluate(const std::vector<int> &state) override {
-    return ff_->Evaluate(state, -1);
+    return Evaluate(state, -1);
   }
 
   int Evaluate(const std::vector<int> &state,
                const std::vector<int> &applicable,
                std::unordered_set<int> &preferred) override {
-    return ff_->Evaluate(state, -1, applicable, preferred);
+    return Evaluate(state, -1, applicable, preferred);
   }
 
   void UpdateBest() override {}
@@ -92,7 +87,10 @@ class RWFFAdd : public RandomWalkEvaluator {
                              std::shared_ptr<SearchGraph> graph) override {}
 
  private:
-  std::unique_ptr<FFAdd> ff_;
+  std::vector<int> facts_;
+  std::shared_ptr<const SASPlus> problem_;
+  std::shared_ptr<RelaxedSASPlus> r_problem_;
+  std::unique_ptr<RPGTable> rpg_;
 };
 
 }  // namespace pplanner

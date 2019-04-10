@@ -1,4 +1,4 @@
-#include "multithread_search/search_node.h"
+#include "search_node.h"
 
 namespace pplanner {
 
@@ -15,4 +15,4 @@ std::vector<int> ExtractPath(const SearchNode *node) {
   return result;
 }
 
-} // namespace pplanner
+}  // namespace pplanner

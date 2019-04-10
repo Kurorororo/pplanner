@@ -6,10 +6,10 @@
 
 #include <boost/foreach.hpp>
 
-#include "evaluator_factory.h"
-#include "open_list_factory.h"
 #include "distributed_search_graph_factory.h"
+#include "evaluator_factory.h"
 #include "hash/distribution_hash_factory.h"
+#include "open_list_factory.h"
 
 namespace pplanner {
 
@@ -32,7 +32,7 @@ void SIMHDGBFS::Init(const boost::property_tree::ptree &pt) {
 
   vector<boost::property_tree::ptree> evaluator_names;
 
-  BOOST_FOREACH (const boost::property_tree::ptree::value_type& child,
+  BOOST_FOREACH (const boost::property_tree::ptree::value_type &child,
                  pt.get_child("evaluators")) {
     evaluator_names.push_back(child.second);
     ++n_evaluators_;
@@ -46,8 +46,7 @@ void SIMHDGBFS::Init(const boost::property_tree::ptree &pt) {
 
   size_t ram = 5000000000 / world_size_;
 
-  if (auto opt = pt.get_optional<size_t>("ram"))
-    ram = opt.get() / world_size_;
+  if (auto opt = pt.get_optional<size_t>("ram")) ram = opt.get() / world_size_;
 
   auto open_list_option = pt.get_child("open_list");
 
@@ -57,23 +56,23 @@ void SIMHDGBFS::Init(const boost::property_tree::ptree &pt) {
   graphs_.resize(world_size_, nullptr);
   evaluators_.resize(world_size_);
 
-  for (int i=0; i<world_size_; ++i) {
+  for (int i = 0; i < world_size_; ++i) {
     rank_ = i;
     graphs_[rank_] = DistributedSearchGraphFactory(
         problem_, closed_exponent, n_evaluators_, rank_, keep_cost,
         use_landmark, dump_nodes);
   }
 
-  auto null_evaluator = EvaluatorFactory(
-      problem_, graphs_[0], nullptr, evaluator_names[0]);
+  auto null_evaluator =
+      EvaluatorFactory(problem_, evaluator_names[0], nullptr, graphs_[0]);
 
-  for (int i=0; i<world_size_; ++i) {
+  for (int i = 0; i < world_size_; ++i) {
     rank_ = i;
     std::shared_ptr<Evaluator> friend_evaluator = nullptr;
 
     for (auto e : evaluator_names) {
-      auto evaluator = EvaluatorFactory(
-          problem_, graphs_[rank_], friend_evaluator, e);
+      auto evaluator =
+          EvaluatorFactory(problem_, e, friend_evaluator, graphs_[rank_]);
       evaluators_[rank_].push_back(evaluator);
       friend_evaluator = evaluator;
     }
@@ -90,30 +89,27 @@ void SIMHDGBFS::Init(const boost::property_tree::ptree &pt) {
 
   z_hash_ = DistributionHashFactory(problem_, 2886379259, abstraction);
 
-  if (auto opt = pt.get_optional<int>("delay"))
-    delay_ = opt.get();
+  if (auto opt = pt.get_optional<int>("delay")) delay_ = opt.get();
 
   outgoing_buffers_.resize(world_size_,
                            vector<vector<unsigned char> >(world_size_));
-  incoming_buffers_.resize(world_size_,
-                           vector<vector<unsigned char> >(delay_));
+  incoming_buffers_.resize(world_size_, vector<vector<unsigned char> >(delay_));
 }
 
 int SIMHDGBFS::Search() {
   auto state = InitialEvaluate();
 
   while (true) {
-    for (int i=0; i<world_size_; ++i) {
+    for (int i = 0; i < world_size_; ++i) {
       rank_ = i;
       CommunicateNodes();
     }
 
     ++delay_index_;
 
-    if (delay_index_ == delay_)
-      delay_index_ = 0;
+    if (delay_index_ == delay_) delay_index_ = 0;
 
-    for (int i=0; i<world_size_; ++i) {
+    for (int i = 0; i < world_size_; ++i) {
       rank_ = i;
       int node = -1;
 
@@ -187,8 +183,8 @@ int SIMHDGBFS::Expand(int node, vector<int> &state) {
     if (to_rank == rank_) {
       int child_node = -1;
 
-      child_node = graphs_[rank_]->GenerateNodeIfNotClosed(
-          o, node, state, child, rank_);
+      child_node =
+          graphs_[rank_]->GenerateNodeIfNotClosed(o, node, state, child, rank_);
 
       if (child_node == -1) continue;
       IncrementGenerated();
@@ -228,7 +224,6 @@ int SIMHDGBFS::Evaluate(const vector<int> &state, int node,
   return values[0];
 }
 
-
 void SIMHDGBFS::Push(std::vector<int> &values, int node) {
   int h = values[0];
   open_lists_[rank_]->Push(values, node, false);
@@ -236,16 +231,16 @@ void SIMHDGBFS::Push(std::vector<int> &values, int node) {
   if (best_h() == -1 || h < best_h()) {
     set_best_h(h);
 
-   std::cout << "New best heuristic value: " << best_h() << std::endl;
-   std::cout << "[" << evaluated_ << " evaluated, "
-             << expanded_ << " expanded]" << std::endl;
+    std::cout << "New best heuristic value: " << best_h() << std::endl;
+    std::cout << "[" << evaluated_ << " evaluated, " << expanded_
+              << " expanded]" << std::endl;
   }
 }
 
 void SIMHDGBFS::CommunicateNodes() {
   size_t d_size = 0;
 
-  for (int i=0; i<world_size_; ++i) {
+  for (int i = 0; i < world_size_; ++i) {
     if (i == rank_ || outgoing_buffers_[i][rank_].empty()) continue;
     d_size += outgoing_buffers_[i][rank_].size();
   }
@@ -253,7 +248,7 @@ void SIMHDGBFS::CommunicateNodes() {
   incoming_buffers_[rank_][delay_index_].resize(d_size);
   size_t size_sum = 0;
 
-  for (int i=0; i<world_size_; ++i) {
+  for (int i = 0; i < world_size_; ++i) {
     if (i == rank_ || outgoing_buffers_[i][rank_].empty()) continue;
 
     size_t size = outgoing_buffers_[i][rank_].size();
@@ -268,7 +263,7 @@ void SIMHDGBFS::CommunicateNodes() {
   n_nodes /= unit_size;
   auto buffer = incoming_buffers_[rank_][delay_ - delay_index_ - 1].data();
 
-  for (size_t i=0; i<n_nodes; ++i)
+  for (size_t i = 0; i < n_nodes; ++i)
     CallbackOnReceiveNode(buffer + i * unit_size);
 }
 
@@ -315,13 +310,12 @@ void SIMHDGBFS::DumpStatistics() const {
   std::cout << "Generated " << generated_ << " state(s)" << std::endl;
   std::cout << "Dead ends " << dead_ends_ << " state(s)" << std::endl;
 
-  double co = static_cast<double>(n_sent_)
-    / static_cast<double>(n_sent_or_generated_);
+  double co =
+      static_cast<double>(n_sent_) / static_cast<double>(n_sent_or_generated_);
 
   std::cout << "CO " << co << std::endl;
 
-  for (int i=0; i<world_size_; ++i)
-    graphs_[i]->Dump();
+  for (int i = 0; i < world_size_; ++i) graphs_[i]->Dump();
 }
 
-} // namespace pplanner
+}  // namespace pplanner

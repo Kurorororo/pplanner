@@ -6,7 +6,7 @@
 #include <memory>
 #include <vector>
 
-#include "multithread_search/search_node.h"
+#include "search_node.h"
 
 namespace pplanner {
 
