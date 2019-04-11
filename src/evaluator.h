@@ -28,9 +28,11 @@ class Evaluator {
                        std::unordered_set<int> &preferred) = 0;
 
   // For multithread
-  virtual int Evaluate(const std::vector<int> &state, SearchNode *node) = 0;
+  virtual int Evaluate(const std::vector<int> &state,
+                       std::shared_ptr<SearchNode> node) = 0;
 
-  virtual int Evaluate(const std::vector<int> &state, SearchNode *node,
+  virtual int Evaluate(const std::vector<int> &state,
+                       std::shared_ptr<SearchNode> node,
                        const std::vector<int> &applicable,
                        std::unordered_set<int> &preferred) = 0;
 

@@ -44,11 +44,12 @@ class ZobristIPTiebreaking : public Evaluator {
   }
 
   // for multithread
-  int Evaluate(const std::vector<int> &state, SearchNode *node) override {
+  int Evaluate(const std::vector<int> &state,
+               std::shared_ptr<SearchNode> node) override {
     return Evaluate(state, -1);
   }
 
-  int Evaluate(const std::vector<int> &state, SearchNode *node,
+  int Evaluate(const std::vector<int> &state, std::shared_ptr<SearchNode> node,
                const std::vector<int> &applicable,
                std::unordered_set<int> &preferred) override {
     return Evaluate(state, -1, applicable, preferred);

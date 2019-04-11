@@ -13,14 +13,13 @@ struct SearchNode {
   int h;
   int action;
   uint32_t hash;
-  SearchNode *parent;
+  std::shared_ptr<SearchNode> parent;
   std::vector<uint32_t> packed_state;
   std::vector<uint8_t> landmark;
 };
 
-std::vector<int> ExtractPath(const SearchNode *node);
+std::vector<int> ExtractPath(const std::shared_ptr<const SearchNode> node);
 
-} // namespace pplanner
+}  // namespace pplanner
 
-
-#endif // SEARCH_NODE_H_
+#endif  // SEARCH_NODE_H_

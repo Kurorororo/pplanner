@@ -1,21 +1,22 @@
 #include "search_factory.h"
 
+#include "multithread_search/gbfs_shared_closed.h"
 #include "search/dehc.h"
 #include "search/gbfs.h"
 #include "search/kgbfs.h"
 #include "search/lazy_gbfs.h"
 #include "search/mrw13.h"
+#include "search/multi_focus_gbfs.h"
 #include "search/orbit_gbfs.h"
-#include "search/symmetry_breaking_gbfs.h"
 #include "search/simhdgbfs.h"
 #include "search/simhdgbfs1.h"
-#include "search/multi_focus_gbfs.h"
-#include "multithread_search/gbfs_portfolio.h"
-#include "multithread_search/greedy_pbnf.h"
-#include "multithread_search/multi_gbfs.h"
-#include "multithread_search/multi_focus_gbfs.h"
-#include "multithread_search/mcs_dump.h"
-#include "multithread_search/mcs_independent.h"
+#include "search/symmetry_breaking_gbfs.h"
+//#include "multithread_search/gbfs_portfolio.h"
+//#include "multithread_search/greedy_pbnf.h"
+//#include "multithread_search/multi_gbfs.h"
+//#include "multithread_search/multi_focus_gbfs.h"
+//#include "multithread_search/mcs_dump.h"
+//#include "multithread_search/mcs_independent.h"
 
 namespace pplanner {
 
@@ -55,26 +56,28 @@ std::unique_ptr<Search> SearchFactory(std::shared_ptr<const SASPlus> problem,
   if (search.get() == "simhdgbfs1")
     return std::make_unique<SIMHDGBFS1>(problem, option.get());
 
-  if (search.get() == "gbfs_portfolio")
-    return std::make_unique<GBFSPortfolio>(problem, option.get());
+  if (search.get() == "gbfs_shared_closed")
+    return std::make_unique<GBFSSharedClosed>(problem, option.get());
 
-  if (search.get() == "multi_gbfs")
-    return std::make_unique<MultiGBFS>(problem, option.get());
+  // if (search.get() == "gbfs_portfolio")
+  //  return std::make_unique<GBFSPortfolio>(problem, option.get());
 
-  if (search.get() == "multi_focus_gbfs")
-    return std::make_unique<MultiFocusGBFS>(problem, option.get());
+  // if (search.get() == "multi_gbfs")
+  //  return std::make_unique<MultiGBFS>(problem, option.get());
 
-  if (search.get() == "greedy_pbnf")
-    return std::make_unique<GreedyPBNF>(problem, option.get());
+  // if (search.get() == "multi_focus_gbfs")
+  //  return std::make_unique<MultiFocusGBFS>(problem, option.get());
 
-  if (search.get() == "mcs_independent")
-    return std::make_unique<MCSIndependent>(problem, option.get());
+  // if (search.get() == "greedy_pbnf")
+  //  return std::make_unique<GreedyPBNF>(problem, option.get());
 
-  if (search.get() == "mcs_dump")
-    return std::make_unique<MCSDump>(problem, option.get());
+  // if (search.get() == "mcs_independent")
+  //  return std::make_unique<MCSIndependent>(problem, option.get());
+
+  // if (search.get() == "mcs_dump")
+  //  return std::make_unique<MCSDump>(problem, option.get());
 
   throw std::runtime_error("No such search algorithm.");
 }
 
-
-} // namespace pplanner
+}  // namespace pplanner

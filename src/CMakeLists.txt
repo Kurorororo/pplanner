@@ -45,13 +45,15 @@ add_library(search STATIC
   ./utils/lexical_order.cc
   ./sas_plus/abstract_graph.cc
   ./multithread_search/lock_free_closed_list.cc
-  ./multithread_search/gbfs_portfolio.cc
-  ./multithread_search/multi_gbfs.cc
-  ./multithread_search/multi_focus_gbfs.cc
-  ./multithread_search/independent_context.cc
-  ./multithread_search/mcs_independent.cc
-  ./multithread_search/mcs_dump.cc
-  ./multithread_search/greedy_pbnf.cc)
+  ./multithread_search/gbfs_shared_closed.cc
+  #./multithread_search/gbfs_portfolio.cc
+  #./multithread_search/multi_gbfs.cc
+  #./multithread_search/multi_focus_gbfs.cc
+  #./multithread_search/independent_context.cc
+  #./multithread_search/mcs_independent.cc
+  #./multithread_search/mcs_dump.cc
+  #./multithread_search/greedy_pbnf.cc
+)
 
 add_library(ff STATIC
   ./heuristics/rpg.cc

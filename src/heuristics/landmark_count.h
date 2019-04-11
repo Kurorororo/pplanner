@@ -76,7 +76,8 @@ class LandmarkCount : public Evaluator {
   }
 
   // for multithread
-  int Evaluate(const std::vector<int> &state, SearchNode *node) override {
+  int Evaluate(const std::vector<int> &state,
+               std::shared_ptr<SearchNode> node) override {
     node->landmark.resize(n_landmark_bytes_);
     uint8_t *accepted = node->landmark.data();
     uint8_t *parent_accepted = nullptr;
@@ -87,7 +88,7 @@ class LandmarkCount : public Evaluator {
     return lmcount_->Evaluate(state, parent_accepted, accepted);
   }
 
-  int Evaluate(const std::vector<int> &state, SearchNode *node,
+  int Evaluate(const std::vector<int> &state, std::shared_ptr<SearchNode> node,
                const std::vector<int> &applicable,
                std::unordered_set<int> &preferred) override {
     node->landmark.resize(n_landmark_bytes_);
