@@ -1,7 +1,5 @@
 #include "closed_list.h"
 
-#include <iostream>
-
 namespace pplanner {
 
 bool ClosedList::IsClosed(uint32_t hash,
@@ -30,14 +28,14 @@ std::size_t ClosedList::GetIndex(
   return i;
 }
 
-void ClosedList::Close(std::size_t i, SearchNode *node) {
+void ClosedList::Close(std::size_t i, std::shared_ptr<SearchNode> node) {
   closed_[i] = node;
   ++n_closed_;
 
   if (2 * n_closed_ > closed_.size()) Resize();
 }
 
-bool ClosedList::Close(SearchNode *node) {
+bool ClosedList::Close(std::shared_ptr<SearchNode> node) {
   std::size_t i = node->hash & closed_mask_;
 
   while (closed_[i] != nullptr) {
@@ -65,7 +63,8 @@ void ClosedList::Resize() {
   while ((1u << closed_exponent) < 3 * n_closed_) ++closed_exponent;
 
   uint32_t closed_mask = (1u << closed_exponent) - 1;
-  std::vector<SearchNode *> new_closed(1 << closed_exponent, nullptr);
+  std::vector<std::shared_ptr<SearchNode> > new_closed(1 << closed_exponent,
+                                                       nullptr);
 
   for (int k = 0, m = closed_.size(); k < m; ++k) {
     auto node = closed_[k];

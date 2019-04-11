@@ -1,5 +1,5 @@
-#ifndef MULTI_GBFS_H_
-#define MULTI_GBFS_H_
+#ifndef GBFS_SHARED_OPEN_H_
+#define GBFS_SHARED_OPEN_H_
 
 #include <memory>
 #include <mutex>
@@ -13,9 +13,9 @@
 
 #include <boost/property_tree/ptree.hpp>
 
+#include "closed_list.h"
 #include "evaluator.h"
 #include "hash/zobrist_hash.h"
-#include "multithread_search/lock_free_closed_list.h"
 #include "open_list.h"
 #include "sas_plus.h"
 #include "sas_plus/strong_stubborn_sets.h"
@@ -26,10 +26,10 @@
 
 namespace pplanner {
 
-class MultiGBFS : public Search {
+class GBFSSharedOpen : public Search {
  public:
-  MultiGBFS(std::shared_ptr<const SASPlus> problem,
-            const boost::property_tree::ptree &pt)
+  GBFSSharedOpen(std::shared_ptr<const SASPlus> problem,
+                 const boost::property_tree::ptree &pt)
       : use_preferred_(false),
         n_threads_(1),
         expanded_(0),
@@ -44,7 +44,7 @@ class MultiGBFS : public Search {
     Init(pt);
   }
 
-  ~MultiGBFS();
+  ~GBFSSharedOpen() {}
 
   std::vector<int> Plan() override {
     auto goal = Search();
@@ -54,16 +54,16 @@ class MultiGBFS : public Search {
 
   void DumpStatistics() const override;
 
-  SearchNodeWithNext *Search();
+  std::shared_ptr<SearchNode> Search();
 
   void InitialEvaluate();
 
   void Expand(int i);
 
-  int Evaluate(int i, const std::vector<int> &state, SearchNodeWithNext *node,
-               std::vector<int> &values);
+  int Evaluate(int i, const std::vector<int> &state,
+               std::shared_ptr<SearchNode> node, std::vector<int> &values);
 
-  SearchNodeWithNext *LockedPop() {
+  std::shared_ptr<SearchNode> LockedPop() {
     std::lock_guard<std::mutex> lock(open_mtx_);
 
     if (open_list_->IsEmpty()) return nullptr;
@@ -71,16 +71,16 @@ class MultiGBFS : public Search {
     return open_list_->Pop();
   }
 
-  void LockedPush(std::vector<int> &values, SearchNodeWithNext *node,
+  void LockedPush(std::vector<int> &values, std::shared_ptr<SearchNode> node,
                   bool is_preferred) {
     std::lock_guard<std::mutex> lock(open_mtx_);
 
     open_list_->Push(values, node, is_preferred);
   }
 
-  void WriteGoal(SearchNodeWithNext *goal) {
-    SearchNodeWithNext *expected = nullptr;
-    goal_.compare_exchange_strong(expected, goal);
+  void WriteGoal(std::shared_ptr<SearchNode> goal) {
+    std::shared_ptr<SearchNode> expected = nullptr;
+    std::atomic_compare_exchange_strong(&goal_, &expected, goal);
   }
 
   void WriteStat(int expanded, int evaluated, int generated, int dead_ends) {
@@ -97,28 +97,26 @@ class MultiGBFS : public Search {
 
   void Init(const boost::property_tree::ptree &pt);
 
-  void DeleteAllNodes(int i);
-
   bool use_preferred_;
   int n_threads_;
   int expanded_;
   int evaluated_;
   int generated_;
   int dead_ends_;
-  std::atomic<SearchNodeWithNext *> goal_;
+  std::shared_ptr<SearchNode> goal_;
   std::shared_ptr<const SASPlus> problem_;
   std::unique_ptr<SuccessorGenerator> generator_;
   std::unique_ptr<StatePacker> packer_;
   std::unique_ptr<ZobristHash> hash_;
-  std::vector<std::vector<SearchNode *> > node_pool_;
-  std::unique_ptr<LockFreeClosedList> closed_;
+  std::vector<std::shared_ptr<ClosedList> > closed_lists_;
   std::vector<std::shared_ptr<Evaluator> > preferring_;
   std::vector<std::vector<std::shared_ptr<Evaluator> > > evaluators_;
-  std::shared_ptr<OpenList<std::vector<int>, SearchNodeWithNext *> > open_list_;
+  std::shared_ptr<OpenList<std::vector<int>, std::shared_ptr<SearchNode> > >
+      open_list_;
   std::mutex open_mtx_;
   std::mutex stat_mtx_;
 };
 
 }  // namespace pplanner
 
-#endif  // MULTI_GBFS_H_
+#endif  // GBFS_SHARED_OPEN_H_

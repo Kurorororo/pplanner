@@ -10,6 +10,7 @@ add_library (sas_plus STATIC
 add_library(search_graph STATIC
   ./search_graph.cc
   ./search_graph_factory.cc
+  ./closed_list.cc
   ./distributed_search_graph_factory.cc
   ./search_graph/distributed_search_graph_with_landmarks.cc
   ./search_graph/distributed_search_graph.cc
@@ -46,8 +47,9 @@ add_library(search STATIC
   ./sas_plus/abstract_graph.cc
   ./multithread_search/lock_free_closed_list.cc
   ./multithread_search/gbfs_shared_closed.cc
+  ./multithread_search/gbfs_shared_open.cc
+  ./multithread_search/kpgbfs.cc
   #./multithread_search/gbfs_portfolio.cc
-  #./multithread_search/multi_gbfs.cc
   #./multithread_search/multi_focus_gbfs.cc
   #./multithread_search/independent_context.cc
   #./multithread_search/mcs_independent.cc

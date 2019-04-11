@@ -34,11 +34,12 @@ bool LockFreeClosedList::Close(std::shared_ptr<SearchNodeWithNext> node) {
 
     node->next = cur;
 
-    if (prev == nullptr &&
-        std::atomic_compare_exchange_weak(&closed_[i], &cur, node))
+    if (prev == nullptr) {
+      if (std::atomic_compare_exchange_weak(&closed_[i], &cur, node))
+        return true;
+    } else if (std::atomic_compare_exchange_weak(&prev->next, &cur, node)) {
       return true;
-    else if (std::atomic_compare_exchange_weak(&prev->next, &cur, node))
-      return true;
+    }
   }
 }
 

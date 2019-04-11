@@ -1,6 +1,8 @@
 #include "search_factory.h"
 
 #include "multithread_search/gbfs_shared_closed.h"
+#include "multithread_search/gbfs_shared_open.h"
+#include "multithread_search/kpgbfs.h"
 #include "search/dehc.h"
 #include "search/gbfs.h"
 #include "search/kgbfs.h"
@@ -13,7 +15,6 @@
 #include "search/symmetry_breaking_gbfs.h"
 //#include "multithread_search/gbfs_portfolio.h"
 //#include "multithread_search/greedy_pbnf.h"
-//#include "multithread_search/multi_gbfs.h"
 //#include "multithread_search/multi_focus_gbfs.h"
 //#include "multithread_search/mcs_dump.h"
 //#include "multithread_search/mcs_independent.h"
@@ -59,11 +60,14 @@ std::unique_ptr<Search> SearchFactory(std::shared_ptr<const SASPlus> problem,
   if (search.get() == "gbfs_shared_closed")
     return std::make_unique<GBFSSharedClosed>(problem, option.get());
 
+  if (search.get() == "gbfs_shared_open")
+    return std::make_unique<GBFSSharedOpen>(problem, option.get());
+
+  if (search.get() == "kpgbfs")
+    return std::make_unique<KPGBFS>(problem, option.get());
+
   // if (search.get() == "gbfs_portfolio")
   //  return std::make_unique<GBFSPortfolio>(problem, option.get());
-
-  // if (search.get() == "multi_gbfs")
-  //  return std::make_unique<MultiGBFS>(problem, option.get());
 
   // if (search.get() == "multi_focus_gbfs")
   //  return std::make_unique<MultiFocusGBFS>(problem, option.get());
