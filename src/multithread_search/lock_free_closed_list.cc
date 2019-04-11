@@ -52,10 +52,12 @@ LockFreeClosedList::Find(std::size_t head_index,
 
     if (prev == nullptr) return std::make_pair(nullptr, nullptr);
 
+    auto cur = prev->next;
+
+    if (closed_[head_index] != prev) continue;
+
     if (prev->packed_state >= packed_state)
       return std::make_pair(prev, nullptr);
-
-    auto cur = prev->next;
 
     while (true) {
       if (cur == nullptr) return std::make_pair(nullptr, prev);
