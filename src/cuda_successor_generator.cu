@@ -35,8 +35,8 @@ int Sample(const CudaSuccessorGenerator &generator, const CudaSASPlus &problem,
   int result = -1;
   unsigned int k = 1;
 
-  for (int i = 0, n = generator->no_preconditions_size; i < n; ++i) {
-    if (curand(rng) % k == 0) result = generator->no_preconditions[i];
+  for (int i = 0, n = generator.no_preconditions_size; i < n; ++i) {
+    if (curand(rng) % k == 0) result = generator.no_preconditions[i];
     ++k;
   }
 
@@ -64,7 +64,7 @@ void DFSCount(const CudaSuccessorGenerator &generator,
 __device__
 int Count(const CudaSuccessorGenerator &generator, const CudaSASPlus &problem,
           const int *state) {
-  int count = generator->no_preconditions_size;
+  int count = generator.no_preconditions_size;
   DFSCount(generator, problem, state, 0, 0, count);
 
   return count;
@@ -94,10 +94,10 @@ void DFS(const CudaSuccessorGenerator &generator,
 __device__
 void Generate(const CudaSuccessorGenerator &generator,
               const CudaSASPlus &problem, const int *state, int *result) {
-  for (int i = 0, n = generator->no_preconditions_size; i < n; ++i)
-    result[i] = generator->no_preconditions[i];
+  for (int i = 0, n = generator.no_preconditions_size; i < n; ++i)
+    result[i] = generator.no_preconditions[i];
 
-  int count = generator->no_preconditions_size;
+  int count = generator.no_preconditions_size;
   DFS(generator, problem, state, 0, 0, count, result);
 }
 
@@ -111,7 +111,7 @@ std::size_t InitCudaSuccessorGenerator(
                     generator->to_data_size() * sizeof(int));
   CudaMallocAndCopy((void**)&cuda_generator->data, generator->data(),
                     generator->data_size() * sizeof(int));
-  CudaMallocAndCopy((void**)&cuda_generator->no_preconditions_,
+  CudaMallocAndCopy((void**)&cuda_generator->no_preconditions,
                     generator->no_preconditions(),
                     generator->no_preconditions_size() * sizeof(int));
   cuda_generator->no_preconditions_size = generator->no_preconditions_size();
@@ -124,7 +124,7 @@ void FreeCudaSuccessorGenerator(CudaSuccessorGenerator *cuda_generator) {
   CUDA_CHECK(cudaFree(cuda_generator->to_child));
   CUDA_CHECK(cudaFree(cuda_generator->to_data));
   CUDA_CHECK(cudaFree(cuda_generator->data));
-  CUDA_CHECK(cudaFree(cuda_generator->no_preconditions_));
+  CUDA_CHECK(cudaFree(cuda_generator->no_preconditions));
 }
 
 } // namespace pplanner

@@ -14,8 +14,8 @@ struct CudaSuccessorGenerator {
   int *to_child;
   int *to_data;
   int *data;
-  int *no_preconditions_;
-  int no_preconditions_size_;
+  int *no_preconditions;
+  int no_preconditions_size;
 };
 
 extern __constant__ CudaSuccessorGenerator cuda_generator;
