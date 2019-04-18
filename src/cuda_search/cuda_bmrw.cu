@@ -96,7 +96,7 @@ void CudaBMRW::PopStates(vector<int> &parents) {
       h = m_.best_h[(i - offset) % offset];
       node = parents[(i - offset) % offset];
     } else {
-      h = open_list_->MinimumValue()[0];
+      h = open_list_->MinimumValue();
       node = open_list_->Pop();
     }
 
