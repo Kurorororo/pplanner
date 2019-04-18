@@ -251,7 +251,7 @@ int BMRW::PushStates(const Batch &batch) {
   std::iota(arg_h.begin(), arg_h.end(), 0);
 
   if (n_elite_ > 0 && n_elite_ < n_batch_) {
-    auto cond = [batch](int x, int y) { return batch.hs[x] < batch.hs[y]; };
+    auto cond = [&batch](int x, int y) { return batch.hs[x] < batch.hs[y]; };
     std::sort(arg_h.begin(), arg_h.end(), cond);
   }
 
