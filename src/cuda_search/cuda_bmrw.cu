@@ -37,14 +37,14 @@ void CudaBMRW::Init(const boost::property_tree::ptree &pt) {
       problem_, closed_exponent);
 
   lmcount_ = std::make_shared<LandmarkCountBase>(
-      problem_, false, false, false, false);
+      problem_, true, false, false, false);
 
   landmark_id_max_ = lmcount_->landmark_graph()->landmark_id_max();
   n_landmark_bytes_ = (landmark_id_max_ + 7) / 8;
   graph_->InitLandmarks(lmcount_->landmark_graph());
 
   auto open_list_option = pt.get_child("open_list");
-  open_list_ = OpenListFactory(open_list_option);
+  open_list_ = OpenListFactory<int, int>(open_list_option);
 
   size_t ram = 5000000000;
 
@@ -81,8 +81,7 @@ void CudaBMRW::InitialEvaluate() {
   std::cout << "Initial heuristic value: " << best_h_ << std::endl;
   ++evaluated_;
 
-  std::vector<int> values{best_h_};
-  GenerateChildren(node, values, state);
+  GenerateChildren(node, best_h_, state);
 }
 
 void CudaBMRW::PopStates(vector<int> &parents) {
@@ -97,7 +96,7 @@ void CudaBMRW::PopStates(vector<int> &parents) {
       h = m_.best_h[(i - offset) % offset];
       node = parents[(i - offset) % offset];
     } else {
-      h = open_list_->MinimumValue(0);
+      h = open_list_->MinimumValue()[0];
       node = open_list_->Pop();
     }
 
@@ -119,8 +118,7 @@ void CudaBMRW::PopStates(vector<int> &parents) {
   Upload(m_, n_threads_, problem_->n_variables(), n_landmark_bytes_, &cuda_m_);
 }
 
-void CudaBMRW::GenerateChildren(int parent, vector<int> &values,
-                                const vector<int> &state) {
+void CudaBMRW::GenerateChildren(int parent, int h, const vector<int> &state) {
   thread_local vector<int> child;
   thread_local vector<int> applicable;
 
@@ -136,12 +134,11 @@ void CudaBMRW::GenerateChildren(int parent, vector<int> &values,
     problem_->ApplyEffect(o, state, child);
     int node = graph_->GenerateNode(o, parent, state, child);
     ++generated_;
-    open_list_->Push(values, node, false);
+    open_list_->Push(h, node, false);
   }
 }
 
 int CudaBMRW::PushStates(const vector<int> &parents, vector<int> &arg_h) {
-  thread_local std::vector<int> values(1);
   thread_local std::vector<int> state(problem_->n_variables());
 
   Download(cuda_m_, n_threads_, problem_->n_variables(), n_landmark_bytes_,
@@ -183,13 +180,11 @@ int CudaBMRW::PushStates(const vector<int> &parents, vector<int> &arg_h) {
 
     if (h == 0) return node;
 
-    values[0] = h;
-
     if (counter < n_elite_) {
-      GenerateChildren(node, values, state);
+      GenerateChildren(node, h, state);
       ++counter;
     } else {
-      open_list_->Push(values, node, false);
+      open_list_->Push(h, node, false);
     }
   }
 

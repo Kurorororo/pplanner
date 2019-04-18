@@ -7,6 +7,7 @@
 #include "search/gbfs.h"
 #include "search/kgbfs.h"
 #include "search/lazy_gbfs.h"
+#include "search/bmrw.h"
 #include "search/mrw13.h"
 #include "search/multi_focus_gbfs.h"
 #include "search/orbit_gbfs.h"
@@ -32,6 +33,9 @@ std::unique_ptr<Search> SearchFactory(std::shared_ptr<const SASPlus> problem,
 
   if (search.get() == "mrw")
     return std::make_unique<Mrw13>(problem, option.get(), max_expansion);
+
+  if (search.get() == "bmrw")
+    return std::make_unique<BMRW>(problem, option.get());
 
   if (search.get() == "gbfs")
     return std::make_unique<GBFS>(problem, option.get());
