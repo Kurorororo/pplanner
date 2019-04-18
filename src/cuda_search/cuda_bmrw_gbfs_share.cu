@@ -95,7 +95,7 @@ bool CudaBMRWGBFSShare::PopStates(vector<int> &parents) {
       h = m_.best_h[(i - offset) % offset];
       node = parents[(i - offset) % offset];
     } else {
-      h = rw_open_->MinimumValue(0);
+      h = rw_open_->MinimumValue();
       node = rw_open_->Pop();
     }
 
@@ -122,7 +122,7 @@ bool CudaBMRWGBFSShare::PopStates(vector<int> &parents) {
   return true;
 }
 
-void CudaBMRWGBFSShare::GenerateChildren(int parent, vector<int> &values,
+void CudaBMRWGBFSShare::GenerateChildren(int parent, int h,
                                          const vector<int> &state) {
   thread_local vector<int> child;
   thread_local vector<int> applicable;
@@ -139,12 +139,11 @@ void CudaBMRWGBFSShare::GenerateChildren(int parent, vector<int> &values,
     problem_->ApplyEffect(o, state, child);
     int node = graph_->GenerateNode(o, parent, state, child);
     ++generated_;
-    rw_open_->Push(values, node, false);
+    rw_open_->Push(h , node, false);
   }
 }
 
 int CudaBMRWGBFSShare::PushStates(const vector<int> &parents, vector<int> &arg_h) {
-  thread_local std::vector<int> values(1);
   thread_local std::vector<int> state(problem_->n_variables());
 
   Download(cuda_m_, n_threads_, problem_->n_variables(), n_landmark_bytes_,
@@ -188,13 +187,11 @@ int CudaBMRWGBFSShare::PushStates(const vector<int> &parents, vector<int> &arg_h
 
     if (h == 0) return node;
 
-    values[0] = h;
-
     if (counter < n_elite_) {
-      GenerateChildren(node, values, state);
+      GenerateChildren(node, h, state);
       ++counter;
     } else {
-      rw_open_->Push(values, node, false);
+      rw_open_->Push(h, node, false);
     }
   }
 
@@ -218,16 +215,14 @@ void CudaBMRWGBFSShare::InitialEvaluate() {
   std::cout << "Initial heuristic value: " << best_h_ << std::endl;
   ++evaluated_;
 
-  std::vector<int> values{best_h_};
-  open_->Push(values, node, false);
-  GenerateChildren(node, values, state);
+  open_->Push(best_h_, node, false);
+  GenerateChildren(node, best_h_, state);
 }
 
 int CudaBMRWGBFSShare::CpuExpand() {
   thread_local vector<int> state(problem_->n_variables());
   thread_local vector<int> child(problem_->n_variables());
   thread_local vector<int> applicable;
-  thread_local vector<int> values(1);
 
   if (open_->IsEmpty()) return -1;
 
@@ -263,9 +258,8 @@ int CudaBMRWGBFSShare::CpuExpand() {
     }
 
     graph_->SetH(child_node, h);
-    values[0] = h;
-    open_->Push(values, child_node, false);
-    rw_open_->Push(values, child_node, false);
+    open_->Push(h, child_node, false);
+    rw_open_->Push(h, child_node, false);
     ++plateau_;
 
     if (h < best_h_) {

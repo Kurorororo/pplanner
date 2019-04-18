@@ -92,7 +92,7 @@ class CudaHetroGBFS : public Search {
   std::shared_ptr<LandmarkCountBase> lmcount_;
   std::shared_ptr<ZobristHash> d_hash_;
   std::shared_ptr<SearchGraphWithLandmarks> graph_;
-  std::unique_ptr<OpenList<int> > open_;
+  std::unique_ptr<OpenList<int, int> > open_;
   CudaSASPlus *cuda_problem_;
   CudaSuccessorGenerator *cuda_generator_;
   CudaLandmarkGraph *cuda_landmark_graph_;

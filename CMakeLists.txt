@@ -94,11 +94,8 @@ if (CUDA_FOUND)
     ./src/cuda_search/cuda_bmrw.cu
     ./src/cuda_search/cuda_bmrw_gbfs.cu
     ./src/cuda_search/cuda_bmrw_gbfs_share.cu
-    ./src/cuda_search/cuda_bmrw_gbfs_focus.cu
-    ./src/cuda_search/cuda_bmrw_gbfs_focus2.cu
     ./src/cuda_search/cuda_hetro_gbfs.cu
     ./src/cuda_search/cuda_hdgbfs.cu
-    ./src/cuda_search/cuda_rwagbfs.cu
     ./src/cuda_search/cuda_gbfs_kernel.cu
     ./src/cuda_search/cuda_random_walk.cu
     ./src/cuda_landmark/cuda_landmark_graph.cu

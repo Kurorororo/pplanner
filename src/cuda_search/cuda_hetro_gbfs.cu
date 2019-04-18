@@ -148,7 +148,6 @@ void CudaHetroGBFS::ClearGPU() {
                         cudaMemcpyDeviceToHost));
 
   std::vector<int> state(problem_->n_variables());
-  std::vector<int> values(1);
   int h_max = lmcount_->landmark_graph()->n_landmarks() + 1;
 
   for (int i = 0; i < n_threads_; ++i) {
@@ -162,14 +161,13 @@ void CudaHetroGBFS::ClearGPU() {
     if (node != -1) {
       graph_->SetH(node, h);
       graph_->SetLandmark(node, &m_.accepted[i * n_bytes]);
-      values[0] = h;
       int plan_start = i == 0 ? 0 : offsets[i - 1];
       sequences_[node] = std::vector<int>(steps[i]);
 
       for (int j = 0; j < steps[i]; ++j)
         sequences_[node][j] = plans[plan_start + j];
 
-      open_->Push(values, node, false);
+      open_->Push(h, node, false);
 
       if (h < best_h_) {
         best_h_ = h;
@@ -216,8 +214,7 @@ void CudaHetroGBFS::InitialEvaluateAndPush() {
   graph_->SetH(node, best_h_);
   std::cout << "Initial heuristic value: " << best_h_ << std::endl;
   best_node_ = node;
-  std::vector<int> values{best_h_};
-  open_->Push(values, node, false);
+  open_->Push(best_h_, node, false);
 
   InitialPushGPU(node, best_h_);
 }
@@ -226,7 +223,6 @@ int CudaHetroGBFS::CpuExpand() {
   thread_local vector<int> state(problem_->n_variables());
   thread_local vector<int> child(problem_->n_variables());
   thread_local vector<int> applicable;
-  thread_local vector<int> values(1);
 
   if (open_->IsEmpty()) return -1;
 
@@ -256,8 +252,7 @@ int CudaHetroGBFS::CpuExpand() {
     if (h == -1) continue;
 
     graph_->SetH(child_node, h);
-    values[0] = h;
-    open_->Push(values, child_node, false);
+    open_->Push(h, child_node, false);
     ++n_plateau_;
 
     if (h < best_h_) {

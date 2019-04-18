@@ -56,8 +56,7 @@ class CudaBMRWGBFS : public Search {
 
   void PopStates(std::vector<int> &parents);
 
-  void GenerateChildren(int parent, std::vector<int> &values,
-                        const std::vector<int> &state);
+  void GenerateChildren(int parent, int h, const std::vector<int> &state);
 
   int PushStates(const std::vector<int> &parents, std::vector<int> &arg_h);
 
@@ -90,8 +89,8 @@ class CudaBMRWGBFS : public Search {
   std::shared_ptr<SearchGraphWithLandmarks> graph_;
   std::shared_ptr<SearchGraphWithLandmarks> rw_graph_;
   std::shared_ptr<LandmarkCountBase> lmcount_;
-  std::unique_ptr<OpenList<int> > open_;
-  std::unique_ptr<OpenList<int> > rw_open_;
+  std::unique_ptr<OpenList<int, int> > open_;
+  std::unique_ptr<OpenList<int, int> > rw_open_;
   CudaSASPlus *cuda_problem_;
   CudaSuccessorGenerator *cuda_generator_;
   CudaLandmarkGraph *cuda_landmark_graph_;
