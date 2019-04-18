@@ -3,11 +3,11 @@
 #include "cuda_search/cuda_bmrw.cuh"
 #include "cuda_search/cuda_bmrw_gbfs.cuh"
 #include "cuda_search/cuda_bmrw_gbfs_share.cuh"
-#include "cuda_search/cuda_bmrw_gbfs_focus.cuh"
-#include "cuda_search/cuda_bmrw_gbfs_focus2.cuh"
+// #include "cuda_search/cuda_bmrw_gbfs_focus.cuh"
+// #include "cuda_search/cuda_bmrw_gbfs_focus2.cuh"
 #include "cuda_search/cuda_hetro_gbfs.cuh"
 #include "cuda_search/cuda_hdgbfs.cuh"
-#include "cuda_search/cuda_rwagbfs.cuh"
+// #include "cuda_search/cuda_rwagbfs.cuh"
 
 namespace pplanner {
 
