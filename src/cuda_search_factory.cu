@@ -31,13 +31,13 @@ std::unique_ptr<Search> CudaSearchFactory(
     return std::unique_ptr<CudaBMRWGBFSShare>(
         new CudaBMRWGBFSShare(problem, option.get()));
 
-  if (search.get() == "bmrw_gbfs_focus")
-    return std::unique_ptr<CudaBMRWGBFSFocus>(
-        new CudaBMRWGBFSFocus(problem, option.get()));
+  // if (search.get() == "bmrw_gbfs_focus")
+  //   return std::unique_ptr<CudaBMRWGBFSFocus>(
+  //       new CudaBMRWGBFSFocus(problem, option.get()));
 
-  if (search.get() == "bmrw_gbfs_focus2")
-    return std::unique_ptr<CudaBMRWGBFSFocus2>(
-        new CudaBMRWGBFSFocus2(problem, option.get()));
+  // if (search.get() == "bmrw_gbfs_focus2")
+  //   return std::unique_ptr<CudaBMRWGBFSFocus2>(
+  //       new CudaBMRWGBFSFocus2(problem, option.get()));
 
   if (search.get() == "hetro_gbfs")
     return std::unique_ptr<CudaHetroGBFS>(
@@ -46,8 +46,8 @@ std::unique_ptr<Search> CudaSearchFactory(
   if (search.get() == "hdgbfs")
     return std::unique_ptr<CudaHDGBFS>(new CudaHDGBFS(problem, option.get()));
 
-  if (search.get() == "rwagbfs")
-    return std::unique_ptr<CudaRWAGBFS>(new CudaRWAGBFS(problem, option.get()));
+  // if (search.get() == "rwagbfs")
+  //   return std::unique_ptr<CudaRWAGBFS>(new CudaRWAGBFS(problem, option.get()));
 
   throw std::runtime_error("No such search algorithm.");
 }
