@@ -35,8 +35,8 @@ std::unique_ptr<OpenList<T, U> > OpenListFactory(
       return std::make_unique<SingleOpenList<T, U> >(tie_breaking);
     case 1:
       return std::make_unique<PreferredOpenList<T, U> >(tie_breaking, n_boost);
-    //case 2:
-    //  return std::make_unique<PreferredPlusOpenList<T, U> >(tie_breaking);
+      // case 2:
+      //  return std::make_unique<PreferredPlusOpenList<T, U> >(tie_breaking);
   }
 
   return std::make_unique<SingleOpenList<T, U> >(tie_breaking);
@@ -63,8 +63,8 @@ std::shared_ptr<OpenList<T, U> > SharedOpenListFactory(
       return std::make_shared<SingleOpenList<T, U> >(tie_breaking);
     case 1:
       return std::make_shared<PreferredOpenList<T, U> >(tie_breaking, n_boost);
-    //case 2:
-    //  return std::make_shared<PreferredPlusOpenList<T, U> >(tie_breaking);
+      // case 2:
+      //  return std::make_shared<PreferredPlusOpenList<T, U> >(tie_breaking);
   }
 
   return std::make_shared<SingleOpenList<T, U> >(tie_breaking);

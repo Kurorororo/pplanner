@@ -4,27 +4,27 @@
 #include <cstdint>
 #include <cstring>
 
+#include <iostream>
 #include <memory>
 #include <random>
 #include <vector>
-#include <iostream>
 
-#include "landmark/landmark_graph.h"
 #include "hash/zobrist_hash.h"
+#include "landmark/landmark_graph.h"
 #include "search_graph/state_packer.h"
 
 namespace pplanner {
 
 class SearchGraph {
  public:
-  SearchGraph(std::shared_ptr<const SASPlus> problem, int closed_exponent=22)
-    : capacity_(0),
-      resize_factor_(1.2),
-      n_closed_(0),
-      closed_exponent_(closed_exponent),
-      closed_mask_((1u << closed_exponent) - 1),
-      closed_(1 << closed_exponent, -1),
-      packer_(std::make_shared<StatePacker>(problem)) {
+  SearchGraph(std::shared_ptr<const SASPlus> problem, int closed_exponent = 22)
+      : capacity_(0),
+        resize_factor_(1.2),
+        n_closed_(0),
+        closed_exponent_(closed_exponent),
+        closed_mask_((1u << closed_exponent) - 1),
+        closed_(1 << closed_exponent, -1),
+        packer_(std::make_shared<StatePacker>(problem)) {
     hash_ = std::make_shared<ZobristHash>(problem, 4166245435);
   }
 
@@ -62,9 +62,9 @@ class SearchGraph {
 
   virtual std::size_t n_landmarks_bytes() const { return 0; }
 
-  virtual uint8_t* Landmark(int i) { return nullptr; }
+  virtual uint8_t *Landmark(int i) { return nullptr; }
 
-  virtual uint8_t* ParentLandmark(int i) { return nullptr; }
+  virtual uint8_t *ParentLandmark(int i) { return nullptr; }
 
   virtual void Expand(int i, std::vector<int> &state) { State(i, state); }
 
@@ -73,8 +73,7 @@ class SearchGraph {
                                       const uint32_t *packed);
 
   virtual int GenerateAndCloseNode(int action, int parent_node,
-                                   uint32_t hash_value,
-                                   const uint32_t *packed);
+                                   uint32_t hash_value, const uint32_t *packed);
 
   virtual bool CloseIfNot(int node) { return CloseIfNotInner(node, false); }
 
@@ -125,7 +124,7 @@ class SearchGraph {
     Unpack(packed, state);
   }
 
-  const uint32_t* PackedState(int i) const {
+  const uint32_t *PackedState(int i) const {
     std::size_t block_size = packer_->block_size();
     return states_.data() + static_cast<std::size_t>(i) * block_size;
   }
@@ -144,8 +143,8 @@ class SearchGraph {
     actions_[node] = action;
     parents_[node] = parent;
     hash_values_[node] = hash;
-    memcpy(states_.data() + static_cast<std::size_t>(node) * block_size,
-           packed, block_size * sizeof(uint32_t));
+    memcpy(states_.data() + static_cast<std::size_t>(node) * block_size, packed,
+           block_size * sizeof(uint32_t));
   }
 
   int GenerateNode(int action, int parent_node, const std::vector<int> &state) {
@@ -181,52 +180,52 @@ class SearchGraph {
 
   int GenerateNodeIfNotClosed(int action, int parent_node,
                               const std::vector<int> &state) {
-    thread_local std::vector<uint32_t> tmp_packed(
-        state_size() / sizeof(uint32_t));
+    thread_local std::vector<uint32_t> tmp_packed(state_size() /
+                                                  sizeof(uint32_t));
 
     uint32_t hash_value = hash_->operator()(state);
     Pack(state, tmp_packed.data());
 
-    return GenerateNodeIfNotClosed(
-        action, parent_node, hash_value, tmp_packed.data());
+    return GenerateNodeIfNotClosed(action, parent_node, hash_value,
+                                   tmp_packed.data());
   }
 
   int GenerateNodeIfNotClosed(int action, int parent_node,
                               const std::vector<int> &parent,
                               const std::vector<int> &state) {
-    thread_local std::vector<uint32_t> tmp_packed(
-        state_size() / sizeof(uint32_t));
+    thread_local std::vector<uint32_t> tmp_packed(state_size() /
+                                                  sizeof(uint32_t));
 
     uint32_t hash_value = HashByDifference(action, parent_node, parent, state);
     Pack(state, tmp_packed.data());
 
-    return GenerateNodeIfNotClosed(
-        action, parent_node, hash_value, tmp_packed.data());
+    return GenerateNodeIfNotClosed(action, parent_node, hash_value,
+                                   tmp_packed.data());
   }
 
   int GenerateAndCloseNode(int action, int parent_node,
                            const std::vector<int> &state) {
-    thread_local std::vector<uint32_t> tmp_packed(
-        state_size() / sizeof(uint32_t));
+    thread_local std::vector<uint32_t> tmp_packed(state_size() /
+                                                  sizeof(uint32_t));
 
     uint32_t hash_value = hash_->operator()(state);
     Pack(state, tmp_packed.data());
 
-    return GenerateAndCloseNode(
-        action, parent_node, hash_value, tmp_packed.data());
+    return GenerateAndCloseNode(action, parent_node, hash_value,
+                                tmp_packed.data());
   }
 
   int GenerateAndCloseNode(int action, int parent_node,
                            const std::vector<int> &parent,
                            const std::vector<int> &state) {
-    thread_local std::vector<uint32_t> tmp_packed(
-        state_size() / sizeof(uint32_t));
+    thread_local std::vector<uint32_t> tmp_packed(state_size() /
+                                                  sizeof(uint32_t));
 
     uint32_t hash_value = HashByDifference(action, parent_node, parent, state);
     Pack(state, tmp_packed.data());
 
-    return GenerateAndCloseNode(
-        action, parent_node, hash_value, tmp_packed.data());
+    return GenerateAndCloseNode(action, parent_node, hash_value,
+                                tmp_packed.data());
   }
 
   int GetClosed(int i) const { return closed_[Find(i)]; }
@@ -262,7 +261,7 @@ class SearchGraph {
 
   uint32_t HashByDifference(int action, int parent_node,
                             const std::vector<int> &parent,
-                            const std::vector<int> &state) const{
+                            const std::vector<int> &state) const {
     auto seed = HashValue(parent_node);
 
     return hash_->HashByDifference(action, seed, parent, state);
@@ -306,8 +305,7 @@ class SearchGraph {
 
  private:
   void ReserveIfFull() {
-    if (actions_.size() == capacity_)
-      Reserve(capacity_ * resize_factor_);
+    if (actions_.size() == capacity_) Reserve(capacity_ * resize_factor_);
   }
 
   void AllocatePacked() {
@@ -347,6 +345,6 @@ class SearchGraph {
 std::vector<int> ExtractPath(std::shared_ptr<const SearchGraph> graph,
                              int goal);
 
-} // namespace pplanner
+}  // namespace pplanner
 
-#endif // SEARCH_GRAPH_H_
+#endif  // SEARCH_GRAPH_H_

@@ -20,15 +20,17 @@ struct Batch {
   std::vector<int> parents;
   std::vector<int> hs;
   std::vector<std::vector<int> > states;
+  std::vector<std::vector<int> > applicable;
   std::vector<std::vector<uint8_t> > landmarks;
   std::vector<std::vector<int> > sequences;
 
   Batch(std::size_t size, std::size_t n_variables, std::size_t n_landmark_bytes)
-    : parents(size),
-      hs(size),
-      states(size, std::vector<int>(n_variables)),
-      landmarks(size, std::vector<uint8_t>(n_landmark_bytes, 0)),
-      sequences(size) {}
+      : parents(size),
+        hs(size),
+        states(size, std::vector<int>(n_variables)),
+        applicable(size),
+        landmarks(size, std::vector<uint8_t>(n_landmark_bytes, 0)),
+        sequences(size) {}
 };
 
 class BMRW : public Search {
@@ -43,6 +45,11 @@ class BMRW : public Search {
         expanded_(0),
         evaluated_(0),
         dead_ends_(0),
+        e1_(exp(0.1)),
+        ew_(exp(0.1)),
+        q1_(problem->n_actions(), 1.0),
+        qw_(problem->n_actions(), 1.0),
+        dist_(0.0, 1.0),
         problem_(problem),
         generator_(std::make_shared<SuccessorGenerator>(problem)),
         graph_(nullptr),
@@ -64,13 +71,25 @@ class BMRW : public Search {
  private:
   void Init(const boost::property_tree::ptree &pt);
 
+  int Evaluate(const std::vector<int> &state,
+               const std::vector<int> &applicable,
+               const uint8_t *parent_landmark, uint8_t *landmark,
+               std::unordered_set<int> &preferred);
+
   void InitialEvaluate();
+
+  void UpdateQ(const std::vector<int> &applicable,
+               const std::unordered_set<int> &preferred);
+
+  int MHA(const std::vector<int> &applicable,
+          std::unordered_set<int> &preferred);
 
   void PopStates(Batch &batch);
 
   void RandomWalk(Batch &batch);
 
-  void GenerateChildren(int parent, int h, const std::vector<int> &state);
+  void GenerateChildren(int parent, int h, const std::vector<int> &state,
+                        const std::vector<int> &applcable);
 
   int PushStates(const Batch &batch);
 
@@ -89,6 +108,13 @@ class BMRW : public Search {
   int evaluated_;
   int dead_ends_;
   int best_h_;
+  double qw_max_;
+  double e1_;
+  double ew_;
+  std::vector<double> q1_;
+  std::vector<double> qw_;
+  std::mt19937 engine_;
+  std::uniform_real_distribution<> dist_;
   std::vector<std::vector<int> > sequences_;
   std::shared_ptr<const SASPlus> problem_;
   std::shared_ptr<SuccessorGenerator> generator_;

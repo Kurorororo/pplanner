@@ -5,12 +5,15 @@
 
 #include "open_list_factory.h"
 
-using std::vector;
 using std::size_t;
+using std::unordered_set;
+using std::vector;
 
 namespace pplanner {
 
 void BMRW::Init(const boost::property_tree::ptree &pt) {
+  engine_ = std::mt19937(3694943095);
+
   if (auto opt = pt.get_optional<int>("n_batch")) n_batch_ = opt.get();
 
   if (auto opt = pt.get_optional<int>("n_elite")) n_elite_ = opt.get();
@@ -30,8 +33,7 @@ void BMRW::Init(const boost::property_tree::ptree &pt) {
 
   graph_->InitLandmarks(lmcount_->landmark_graph());
 
-  bool use_preferred = false;
-  if (auto opt = pt.get_optional<int>("preferred")) use_preferred = true;
+  if (auto opt = pt.get_optional<int>("preferred")) use_preferred_ = true;
 
   auto open_list_option = pt.get_child("open_list");
   open_list_ = OpenListFactory<int, int>(open_list_option);
@@ -44,17 +46,77 @@ void BMRW::Init(const boost::property_tree::ptree &pt) {
   sequences_.reserve(size);
 }
 
+int BMRW::Evaluate(const vector<int> &state, const vector<int> &applicable,
+                   const uint8_t *parent_landmark, uint8_t *landmark,
+                   unordered_set<int> &preferred) {
+  ++evaluated_;
+
+  if (use_preferred_) {
+    int h = lmcount_->Evaluate(state, applicable, parent_landmark, landmark,
+                               preferred);
+    UpdateQ(applicable, preferred);
+
+    return h;
+  }
+
+  return lmcount_->Evaluate(state, parent_landmark, landmark);
+}
+
+int BMRW::MHA(const vector<int> &applicable, unordered_set<int> &preferred) {
+  if (applicable.empty()) return -1;
+
+  double cumsum = 0.0;
+  int best = applicable[0];
+
+  for (auto a : applicable) {
+    double score = 0.0;
+
+    if (!use_preferred_) {
+      score = e1_;
+    } else if (preferred.empty()) {
+      score = q1_[a];
+    } else if (preferred.find(a) != preferred.end()) {
+      score = (q1_[a] / qw_[a]) * qw_max_;
+    } else {
+      score = q1_[a] / qw_[a];
+    }
+
+    cumsum += score;
+    double p = dist_(engine_);
+
+    if (p < score / cumsum) best = a;
+  }
+
+  return best;
+}
+
+void BMRW::UpdateQ(const vector<int> &applicable,
+                   const unordered_set<int> &preferred) {
+  qw_max_ = 1.0;
+
+  for (auto a : preferred) {
+    q1_[a] = std::min(q1_[a] * e1_, 1.0e250);
+    qw_[a] = std::min(qw_[a] * ew_, 1.0e250);
+
+    if (qw_[a] > qw_max_) qw_max_ = qw_[a];
+  }
+}
+
 void BMRW::InitialEvaluate() {
   auto state = problem_->initial();
   int node = graph_->GenerateAndCloseNode(-1, -1, state);
   ++generated_;
 
-  best_h_ = lmcount_->Evaluate(state, nullptr, graph_->Landmark(node));
+  std::vector<int> applicable;
+  std::unordered_set<int> preferred;
+  generator_->Generate(state, applicable);
+  best_h_ =
+      Evaluate(state, applicable, nullptr, graph_->Landmark(node), preferred);
   graph_->SetH(node, best_h_);
   std::cout << "Initial heuristic value: " << best_h_ << std::endl;
   ++evaluated_;
 
-  GenerateChildren(node, best_h_, state);
+  GenerateChildren(node, best_h_, state, applicable);
 }
 
 void BMRW::PopStates(Batch &batch) {
@@ -80,6 +142,8 @@ void BMRW::PopStates(Batch &batch) {
 
 void BMRW::RandomWalk(Batch &batch) {
   thread_local std::array<std::vector<int>, 2> state;
+  thread_local std::vector<int> applicable;
+  thread_local std::unordered_set<int> preferred;
   thread_local std::array<std::vector<uint8_t>, 2> landmark;
 
   for (int id = 0; id < n_batch_; ++id) {
@@ -88,6 +152,11 @@ void BMRW::RandomWalk(Batch &batch) {
     graph_->State(node, batch.states[id]);
     state[0] = batch.states[id];
     state[1].resize(state[0].size());
+    int length = 0;
+    batch.sequences[id].clear();
+    generator_->Generate(state[0], applicable);
+    batch.applicable[id] = applicable;
+
     int index = 0;
 
     if (graph_->Action(node) != -1) {
@@ -97,9 +166,8 @@ void BMRW::RandomWalk(Batch &batch) {
       landmark[1].resize(landmark[0].size());
       std::fill(landmark[1].begin(), landmark[1].end(), 0);
 
-      batch.hs[id] =
-          lmcount_->Evaluate(state[0], landmark[0].data(), landmark[1].data());
-      ++evaluated_;
+      batch.hs[id] = Evaluate(state[0], applicable, landmark[0].data(),
+                              landmark[1].data(), preferred);
 
       if (batch.hs[id] == -1) continue;
 
@@ -112,12 +180,8 @@ void BMRW::RandomWalk(Batch &batch) {
       landmark[1].resize(landmark[0].size());
     }
 
-    int length = 0;
-    batch.sequences[id].clear();
-
     for (int i = 0; i < walk_length_; ++i) {
-      int a = generator_->Sample(state[index]);
-      ++expanded_;
+      int a = MHA(applicable, preferred);
 
       if (a == -1) {
         state[0] = batch.states[id];
@@ -128,11 +192,14 @@ void BMRW::RandomWalk(Batch &batch) {
         continue;
       }
 
+      ++expanded_;
       problem_->ApplyEffect(a, state[index], state[1 - index]);
+
+      generator_->Generate(state[1 - index], applicable);
+
       std::fill(landmark[1 - index].begin(), landmark[1 - index].end(), 0);
-      int h = lmcount_->Evaluate(state[1 - index], landmark[index].data(),
-                                 landmark[1 - index].data());
-      ++evaluated_;
+      int h = Evaluate(state[1 - index], applicable, landmark[index].data(),
+                       landmark[1 - index].data(), preferred);
 
       if (h == -1) {
         state[0] = batch.states[id];
@@ -148,6 +215,7 @@ void BMRW::RandomWalk(Batch &batch) {
       if (h < batch.hs[id]) {
         batch.hs[id] = h;
         batch.states[id] = state[1 - index];
+        batch.applicable[id] = applicable;
         batch.landmarks[id] = landmark[1 - index];
         length = batch.sequences[id].size();
       }
@@ -159,11 +227,9 @@ void BMRW::RandomWalk(Batch &batch) {
   }
 }
 
-void BMRW::GenerateChildren(int parent, int h, const vector<int> &state) {
+void BMRW::GenerateChildren(int parent, int h, const vector<int> &state,
+                            const std::vector<int> &applicable) {
   thread_local vector<int> child;
-  thread_local vector<int> applicable;
-
-  generator_->Generate(state, applicable);
 
   if (applicable.empty()) {
     ++dead_ends_;
@@ -214,7 +280,7 @@ int BMRW::PushStates(const Batch &batch) {
     if (h == 0) return node;
 
     if (counter < n_elite_) {
-      GenerateChildren(node, h, batch.states[i]);
+      GenerateChildren(node, h, batch.states[i], batch.applicable[i]);
       ++counter;
     } else {
       open_list_->Push(h, node, false);
@@ -228,6 +294,8 @@ void BMRW::Restart() {
   std::cout << "restart" << std::endl;
   graph_->Clear();
   sequences_.clear();
+  std::fill(q1_.begin(), q1_.end(), 1.0);
+  std::fill(qw_.begin(), qw_.end(), 1.0);
   InitialEvaluate();
 }
 
