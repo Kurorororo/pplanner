@@ -49,8 +49,8 @@ void CudaBMRWGBFS::Init(const boost::property_tree::ptree &pt) {
   rw_graph_->InitLandmarks(lmcount_->landmark_graph());
 
   auto open_option = pt.get_child("open_list");
-  open_ = OpenListFactory(open_option);
-  rw_open_ = OpenListFactory(open_option);
+  open_ = OpenListFactory<int, int>(open_option);
+  rw_open_ = OpenListFactory<int, int>(open_option);
 
   size_t ram = 5000000000;
 

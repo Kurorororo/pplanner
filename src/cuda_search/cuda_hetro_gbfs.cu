@@ -48,7 +48,7 @@ void CudaHetroGBFS::Init(const boost::property_tree::ptree &pt) {
   graph_->ReserveByRAMSize(ram);
 
   auto open_list_option = pt.get_child("open_list");
-  open_ = OpenListFactory(open_list_option);
+  open_ = OpenListFactory<int, int>(open_list_option);
 
   std::size_t gpu_ram = 8000000000;
 
