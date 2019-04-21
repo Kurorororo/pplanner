@@ -33,7 +33,10 @@ void BMRW::Init(const boost::property_tree::ptree &pt) {
 
   graph_->InitLandmarks(lmcount_->landmark_graph());
 
-  if (auto opt = pt.get_optional<int>("preferred")) use_preferred_ = true;
+  if (auto opt = pt.get_optional<int>("preferred")) {
+    if (opt.get() == 1) use_preferred_ = true;
+    if (opt.get() == 2) ff_preferred_ = true;
+  }
 
   auto open_list_option = pt.get_child("open_list");
   open_list_ = OpenListFactory<int, int>(open_list_option);
@@ -62,6 +65,14 @@ int BMRW::Evaluate(const vector<int> &state, const vector<int> &applicable,
   return lmcount_->Evaluate(state, parent_landmark, landmark);
 }
 
+int BMRW::FFPreferred(const vector<int> &state, const vector<int> &applicable,
+                      unordered_set<int> &preferred) {
+  int h = lmcount_->FFEvaluate(state, preferred);
+  UpdateQ(applicable, preferred);
+
+  return h;
+}
+
 int BMRW::MHA(const vector<int> &applicable, unordered_set<int> &preferred) {
   if (applicable.empty()) return -1;
 
@@ -71,7 +82,7 @@ int BMRW::MHA(const vector<int> &applicable, unordered_set<int> &preferred) {
   for (auto a : applicable) {
     double score = 0.0;
 
-    if (!use_preferred_) {
+    if (!use_preferred_ && !ff_preferred_) {
       score = e1_;
     } else if (preferred.empty()) {
       score = q1_[a];
@@ -115,6 +126,8 @@ void BMRW::InitialEvaluate() {
   graph_->SetH(node, best_h_);
   std::cout << "Initial heuristic value: " << best_h_ << std::endl;
   ++evaluated_;
+
+  if (ff_preferred_) FFPreferred(state, applicable, preferred);
 
   GenerateChildren(node, best_h_, state, applicable);
 }
@@ -247,6 +260,7 @@ void BMRW::GenerateChildren(int parent, int h, const vector<int> &state,
 
 int BMRW::PushStates(const Batch &batch) {
   thread_local std::vector<int> arg_h(n_batch_);
+  thread_local std::unordered_set<int> preferred;
 
   std::iota(arg_h.begin(), arg_h.end(), 0);
 
@@ -280,6 +294,9 @@ int BMRW::PushStates(const Batch &batch) {
     if (h == 0) return node;
 
     if (counter < n_elite_) {
+      if (ff_preferred_)
+        FFPreferred(batch.states[i], batch.applicable[i], preferred);
+
       GenerateChildren(node, h, batch.states[i], batch.applicable[i]);
       ++counter;
     } else {

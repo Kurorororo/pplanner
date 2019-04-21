@@ -76,6 +76,10 @@ class BMRW : public Search {
                const uint8_t *parent_landmark, uint8_t *landmark,
                std::unordered_set<int> &preferred);
 
+  int FFPreferred(const std::vector<int> &state,
+                  const std::vector<int> &applicable,
+                  std::unordered_set<int> &preferred);
+
   void InitialEvaluate();
 
   void UpdateQ(const std::vector<int> &applicable,
@@ -100,6 +104,7 @@ class BMRW : public Search {
   std::vector<int> ExtractPlan(int node);
 
   bool use_preferred_;
+  bool ff_preferred_;
   int n_batch_;
   int n_elite_;
   int walk_length_;

@@ -49,6 +49,13 @@ class LandmarkCountBase {
 
   std::shared_ptr<LandmarkGraph> landmark_graph() const { return graph_; }
 
+  int FFEvaluate(const std::vector<int> &state,
+                 std::unordered_set<int> &preferred) {
+    StateToFactVector(problem_, state, facts_);
+
+    return rpg_->PlanCost(facts_, preferred);
+  }
+
  private:
   bool IsLeaf(int lm_id, const uint8_t *accepted) const;
 
@@ -72,6 +79,7 @@ class LandmarkCountBase {
   };
 
   int reached_size_;
+  std::vector<int> facts_;
   std::vector<LandmarkState> status_;
   std::shared_ptr<const SASPlus> problem_;
   std::shared_ptr<RelaxedSASPlus> r_problem_;
