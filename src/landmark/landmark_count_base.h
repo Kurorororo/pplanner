@@ -45,7 +45,8 @@ class LandmarkCountBase {
   int Evaluate(const std::vector<int> &state,
                const std::vector<int> &applicable,
                const uint8_t *parent_accepted, uint8_t *accepted,
-               std::unordered_set<int> &preferred);
+               std::unordered_set<int> &preferred,
+               bool next_step_onluy = false);
 
   std::shared_ptr<LandmarkGraph> landmark_graph() const { return graph_; }
 

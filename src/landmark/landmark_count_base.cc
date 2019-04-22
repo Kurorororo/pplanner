@@ -110,7 +110,8 @@ int LandmarkCountBase::Evaluate(const vector<int> &state,
                                 const vector<int> &applicable,
                                 const uint8_t *parent_accepted,
                                 uint8_t *accepted,
-                                unordered_set<int> &preferred) {
+                                unordered_set<int> &preferred,
+                                bool next_step_only) {
   static std::vector<int> facts;
   static std::vector<int> disjunctive_goals;
 
@@ -120,6 +121,8 @@ int LandmarkCountBase::Evaluate(const vector<int> &state,
 
   preferred.clear();
   NextStepOperators(state, applicable, accepted, preferred);
+
+  if (next_step_only) return h;
 
   if (preferred.empty()) {
     disjunctive_goals.clear();

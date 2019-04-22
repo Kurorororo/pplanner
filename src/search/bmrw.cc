@@ -56,7 +56,7 @@ int BMRW::Evaluate(const vector<int> &state, const vector<int> &applicable,
 
   if (use_preferred_) {
     int h = lmcount_->Evaluate(state, applicable, parent_landmark, landmark,
-                               preferred);
+                               preferred, true);
     UpdateQ(applicable, preferred);
 
     return h;
