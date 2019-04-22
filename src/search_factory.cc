@@ -1,13 +1,14 @@
 #include "search_factory.h"
 
+#include "multithread_search/gbfs_independent.h"
 #include "multithread_search/gbfs_shared_closed.h"
 #include "multithread_search/gbfs_shared_open.h"
 #include "multithread_search/kpgbfs.h"
+#include "search/bmrw.h"
 #include "search/dehc.h"
 #include "search/gbfs.h"
 #include "search/kgbfs.h"
 #include "search/lazy_gbfs.h"
-#include "search/bmrw.h"
 #include "search/mrw13.h"
 #include "search/multi_focus_gbfs.h"
 #include "search/orbit_gbfs.h"
@@ -60,6 +61,9 @@ std::unique_ptr<Search> SearchFactory(std::shared_ptr<const SASPlus> problem,
 
   if (search.get() == "simhdgbfs1")
     return std::make_unique<SIMHDGBFS1>(problem, option.get());
+
+  if (search.get() == "gbfs_independent")
+    return std::make_unique<GBFSIndependent>(problem, option.get());
 
   if (search.get() == "gbfs_shared_closed")
     return std::make_unique<GBFSSharedClosed>(problem, option.get());

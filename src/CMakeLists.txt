@@ -47,6 +47,7 @@ add_library(search STATIC
   ./utils/lexical_order.cc
   ./sas_plus/abstract_graph.cc
   ./multithread_search/lock_free_closed_list.cc
+  ./multithread_search/gbfs_independent.cc
   ./multithread_search/gbfs_shared_closed.cc
   ./multithread_search/gbfs_shared_open.cc
   ./multithread_search/kpgbfs.cc
