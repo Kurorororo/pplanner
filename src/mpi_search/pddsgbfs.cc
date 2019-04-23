@@ -54,6 +54,7 @@ void PDDSGBFS::CallbackOnReceiveNode(int source, const unsigned char *d,
   if (node != -1) {
     IncrementGenerated();
     g->State(node, tmp_state);
+
     int h = Evaluate(tmp_state, node, values);
 
     if (h == -1) {

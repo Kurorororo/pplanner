@@ -6,8 +6,8 @@
 
 #include <boost/property_tree/ptree.hpp>
 
-#include "sas_plus.h"
 #include "mpi_search/hdgbfs.h"
+#include "sas_plus.h"
 
 namespace pplanner {
 
@@ -15,24 +15,18 @@ class PDDSGBFS : public HDGBFS {
  public:
   PDDSGBFS(std::shared_ptr<const SASPlus> problem,
            const boost::property_tree::ptree &pt)
-    : HDGBFS(problem, pt),
-      steal_best_(false),
-      steal_better_(false) {
-    if (auto opt = pt.get_optional<int>("steal_best"))
-      steal_best_ = true;
+      : HDGBFS(problem, pt), steal_best_(false), steal_better_(false) {
+    if (auto opt = pt.get_optional<int>("steal_best")) steal_best_ = true;
 
-    if (auto opt = pt.get_optional<int>("steal_better"))
-      steal_better_ = true;
+    if (auto opt = pt.get_optional<int>("steal_better")) steal_better_ = true;
   }
 
-  ~PDDSGBFS() {
-    Flush(kRegainTag);
-  }
+  ~PDDSGBFS() { Flush(kRegainTag); }
 
   int Search() override;
 
-  void CallbackOnReceiveNode(int source, const unsigned char *d, bool no_node)
-    override;
+  void CallbackOnReceiveNode(int source, const unsigned char *d,
+                             bool no_node) override;
 
   void CallbackOnReceiveAllNodes() override { SendNodes(kRegainTag); }
 
@@ -47,6 +41,6 @@ class PDDSGBFS : public HDGBFS {
   bool steal_better_;
 };
 
-} // namespace pplanner
+}  // namespace pplanner
 
-#endif // PDDSGBFS_H_
+#endif  // PDDSGBFS_H_

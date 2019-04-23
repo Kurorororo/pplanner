@@ -24,21 +24,23 @@ class StatePacker {
 
   void Unpack(const uint32_t *packed, int *state) const;
 
-  const int* block_index() const { return block_index_.data(); }
+  const int *block_index() const { return block_index_.data(); }
 
   std::size_t block_index_size() const { return block_index_.size(); }
 
-  const int* var_per_block() const { return var_per_block_.data(); }
+  const int *var_per_block() const { return var_per_block_.data(); }
 
   std::size_t var_per_block_size() const { return var_per_block_.size(); }
 
-  const int* shift() const { return shift_.data(); }
+  const int *shift() const { return shift_.data(); }
 
   std::size_t shift_size() const { return shift_.size(); }
 
-  const uint32_t* mask() const { return mask_.data(); }
+  const uint32_t *mask() const { return mask_.data(); }
 
   std::size_t mask_size() const { return mask_.size(); }
+
+  void Dump() const;
 
  private:
   std::size_t block_size_;
@@ -50,6 +52,6 @@ class StatePacker {
 
 bool BytesEqual(int block_size, const uint32_t *a, const uint32_t *b);
 
-} // namespace pplanner
+}  // namespace pplanner
 
-#endif // STATE_PACKER_H_
+#endif  // STATE_PACKER_H_

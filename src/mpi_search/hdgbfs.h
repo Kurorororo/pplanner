@@ -214,7 +214,6 @@ class HDGBFS : public Search {
   int n_evaluators_;
   unsigned char *mpi_buffer_;
   double min_pruning_ratio_;
-  std::vector<int> n_in_out_going_buffer_;
   std::vector<int> tmp_state_;
   std::vector<unsigned char> incoming_buffer_;
   std::vector<std::vector<unsigned char> > outgoing_buffers_;
