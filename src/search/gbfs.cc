@@ -171,6 +171,7 @@ int GBFS::Expand(int node, vector<int> &state, vector<int> &child,
 
     int child_node = graph_->GenerateNodeIfNotClosed(o, node, state, child);
     if (child_node == -1) continue;
+
     ++generated_;
 
     int h = Evaluate(evaluators_, child, child_node, values);

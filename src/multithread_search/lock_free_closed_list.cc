@@ -16,14 +16,6 @@ void LockFreeClosedList::Init() {
   for (int i = 0, n = closed_.size(); i < n; ++i) closed_[i] = nullptr;
 }
 
-bool LockFreeClosedList::IsClosed(
-    uint32_t hash, const std::vector<uint32_t> &packed_state) const {
-  std::size_t i = hash & mask_;
-  auto p = Find(i, packed_state);
-
-  return p.first != nullptr;
-}
-
 bool LockFreeClosedList::Close(std::shared_ptr<SearchNodeWithNext> node) {
   std::size_t i = node->hash & mask_;
 
@@ -43,6 +35,18 @@ bool LockFreeClosedList::Close(std::shared_ptr<SearchNodeWithNext> node) {
       return true;
     }
   }
+}
+
+std::shared_ptr<SearchNodeWithNext> LockFreeClosedList::Find(
+    uint32_t hash,
+    const std::vector<uint32_t> &packed_state) const {
+  std::size_t i = hash & mask_;
+  auto p = Find(i, packed_state);
+
+  if (p.first == nullptr)
+    return nullptr;
+
+  return packed_state == p.first->packed_state ? p.first : nullptr;
 }
 
 std::pair<std::shared_ptr<SearchNodeWithNext>,
@@ -80,7 +84,7 @@ void LockFreeClosedList::Dump(std::shared_ptr<const SASPlus> problem,
                               std::shared_ptr<const StatePacker> packer) const {
   std::ofstream expanded_nodes;
   expanded_nodes.open("expanded_nodes.csv", std::ios::out);
-  expanded_nodes << "node_id,parent_node_id,h,timestamp";
+  expanded_nodes << "node_id,parent_node_id,h,action,timestamp";
 
   for (int i = 0; i < problem->n_variables(); ++i) expanded_nodes << ",v" << i;
 
@@ -96,7 +100,7 @@ void LockFreeClosedList::Dump(std::shared_ptr<const SASPlus> problem,
       int parent_id = node->parent == nullptr ? -1 : node->parent->id;
       int h = node->h;
       expanded_nodes << node_id << "," << parent_id << "," << h << ","
-                     << node_id;
+                     << node->action << "," << node_id;
 
       packer->Unpack(node->packed_state.data(), state);
 

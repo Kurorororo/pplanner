@@ -23,9 +23,16 @@ class LockFreeClosedList {
     Init();
   }
 
-  bool IsClosed(uint32_t hash, const std::vector<uint32_t>& packed_state) const;
+  bool IsClosed(uint32_t hash,
+                const std::vector<uint32_t>& packed_state) const {
+    return Find(hash, packed_state) != nullptr;
+  }
 
   bool Close(std::shared_ptr<SearchNodeWithNext> node);
+
+  std::shared_ptr<SearchNodeWithNext> Find(
+      uint32_t hash,
+      const std::vector<uint32_t>& packed_state) const;
 
   std::pair<std::shared_ptr<SearchNodeWithNext>,
             std::shared_ptr<SearchNodeWithNext> >

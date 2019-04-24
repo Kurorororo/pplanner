@@ -144,6 +144,7 @@ std::shared_ptr<SearchNodeWithNext> GBFSSharedClosed::GenerateSeeds() {
     if (use_preferred_)
       preferring_[0]->Evaluate(state, node, applicable, preferred);
 
+
     for (auto o : applicable) {
       problem_->ApplyEffect(o, state, child);
 

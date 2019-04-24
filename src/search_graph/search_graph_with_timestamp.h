@@ -74,7 +74,7 @@ class SearchGraphWithTimestamp : public T {
     std::ofstream expanded_nodes;
     expanded_nodes.open("expanded_nodes.csv", std::ios::out);
 
-    expanded_nodes << "node_id,parent_node_id,h,timestamp";
+    expanded_nodes << "node_id,parent_node_id,h,action,timestamp";
 
     for (int i = 0; i < n_variables_; ++i) expanded_nodes << ",v" << i;
 
@@ -87,7 +87,8 @@ class SearchGraphWithTimestamp : public T {
       int node = ids_[i];
       expanded_table[node] = true;
       expanded_nodes << node << "," << this->Parent(node) << ",";
-      expanded_nodes << hs_[node] << "," << timestamps_[i];
+      expanded_nodes << hs_[node] << "," << this->Action(node) << ","
+                     << timestamps_[i];
 
       this->State(node, state);
 
@@ -98,7 +99,8 @@ class SearchGraphWithTimestamp : public T {
 
     for (auto p : closed_parent_) {
       int node = p.first;
-      expanded_nodes << node << "," << p.second << "," << hs_[node];
+      expanded_nodes << node << "," << p.second << "," << hs_[node] << ","
+                     << this->Action(node);
       expanded_nodes << ",9999999999999999999";
 
       this->State(node, state);
