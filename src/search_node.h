@@ -12,6 +12,7 @@ struct SearchNode {
   int cost;
   int h;
   int action;
+  int id;
   uint32_t hash;
   std::shared_ptr<SearchNode> parent;
   std::vector<uint32_t> packed_state;

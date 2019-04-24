@@ -1,5 +1,7 @@
 #include "multithread_search/lock_free_closed_list.h"
 
+#include <fstream>
+
 namespace pplanner {
 
 /***
@@ -70,6 +72,37 @@ LockFreeClosedList::Find(std::size_t head_index,
 
       prev = cur;
       cur = next;
+    }
+  }
+}
+
+void LockFreeClosedList::Dump(std::shared_ptr<const SASPlus> problem,
+                              std::shared_ptr<const StatePacker> packer) const {
+  std::ofstream expanded_nodes;
+  expanded_nodes.open("expanded_nodes.csv", std::ios::out);
+  expanded_nodes << "node_id,parent_node_id,h";
+
+  for (int i = 0; i < problem->n_variables(); ++i) expanded_nodes << ",v" << i;
+
+  std::vector<int> state(problem->n_variables());
+
+  for (auto list : closed_) {
+    std::shared_ptr<SearchNodeWithNext> node = list;
+
+    while (node != nullptr) {
+      int node_id = node->id;
+      int parent_id = node->parent == nullptr ? -1 : node->parent->id;
+      int h = node->h;
+      expanded_nodes << node_id << "," << parent_id << "," << h;
+
+      packer->Unpack(node->packed_state.data(), state);
+
+      for (int j = 0; j < problem->n_variables(); ++j)
+        expanded_nodes << "," << state[j];
+
+      expanded_nodes << std::endl;
+
+      node = node->next;
     }
   }
 }

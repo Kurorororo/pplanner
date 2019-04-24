@@ -1,6 +1,7 @@
 #ifndef GBFS_SHARED_CLOSED_H_
 #define GBFS_SHARED_CLOSED_H_
 
+#include <atomic>
 #include <memory>
 #include <random>
 #include <shared_mutex>
@@ -30,15 +31,17 @@ class GBFSSharedClosed : public Search {
   GBFSSharedClosed(std::shared_ptr<const SASPlus> problem,
                    const boost::property_tree::ptree &pt)
       : use_preferred_(false),
+        dump_(false),
         n_threads_(1),
         expanded_(0),
         evaluated_(0),
         generated_(0),
         dead_ends_(0),
         best_h_(-1),
+        id_(0),
         problem_(problem),
         generator_(std::make_unique<SuccessorGenerator>(problem)),
-        packer_(std::make_unique<StatePacker>(problem)),
+        packer_(std::make_shared<StatePacker>(problem)),
         hash_(std::make_unique<ZobristHash>(problem, 4166245435)) {
     Init(pt);
   }
@@ -82,19 +85,23 @@ class GBFSSharedClosed : public Search {
 
   void Init(const boost::property_tree::ptree &pt);
 
+  int IncrementID();
+
   std::shared_ptr<SearchNodeWithNext> GenerateSeeds();
 
   bool use_preferred_;
+  bool dump_;
   int n_threads_;
   int expanded_;
   int evaluated_;
   int generated_;
   int dead_ends_;
   int best_h_;
+  std::atomic<int> id_;
   std::shared_ptr<SearchNodeWithNext> goal_;
   std::shared_ptr<const SASPlus> problem_;
   std::unique_ptr<SuccessorGenerator> generator_;
-  std::unique_ptr<StatePacker> packer_;
+  std::shared_ptr<StatePacker> packer_;
   std::unique_ptr<ZobristHash> hash_;
   std::unique_ptr<LockFreeClosedList> closed_;
   std::vector<std::shared_ptr<Evaluator> > preferring_;

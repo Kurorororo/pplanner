@@ -38,6 +38,9 @@ void GBFSSharedClosed::InitHeuristics(int i,
 
 void GBFSSharedClosed::Init(const boost::property_tree::ptree& pt) {
   goal_ = nullptr;
+
+  if (auto opt = pt.get_optional<bool>("dump")) dump_ = opt.get();
+
   int closed_exponent = 26;
 
   if (auto closed_exponent_opt = pt.get_optional<int>("closed_exponent"))
@@ -98,6 +101,15 @@ int GBFSSharedClosed::Evaluate(int i, const vector<int>& state,
   return values[0];
 }
 
+int GBFSSharedClosed::IncrementID() {
+  int expected = id_.load();
+
+  while (!id_.compare_exchange_weak(expected, expected + 1))
+    ;
+
+  return expected;
+}
+
 std::shared_ptr<SearchNodeWithNext> GBFSSharedClosed::GenerateSeeds() {
   vector<int> state(problem_->n_variables());
   vector<int> child(problem_->n_variables());
@@ -111,10 +123,10 @@ std::shared_ptr<SearchNodeWithNext> GBFSSharedClosed::GenerateSeeds() {
 
     auto node = open_lists_[0]->Pop();
 
-    if (closed_->IsClosed(node->hash, node->packed_state)) continue;
+    if (!closed_->Close(node)) continue;
 
+    node->id = IncrementID();
     packer_->Unpack(node->packed_state.data(), state);
-    closed_->Close(node);
     ++expanded_;
 
     if (problem_->IsGoal(state)) return node;
@@ -192,6 +204,7 @@ void GBFSSharedClosed::Expand(int i) {
 
     if (!closed_->Close(node)) continue;
 
+    node->id = IncrementID();
     packer_->Unpack(node->packed_state.data(), state);
     ++expanded;
 
@@ -279,6 +292,8 @@ void GBFSSharedClosed::DumpStatistics() const {
   std::cout << "Evaluated " << evaluated_ << " state(s)" << std::endl;
   std::cout << "Generated " << generated_ << " state(s)" << std::endl;
   std::cout << "Dead ends " << dead_ends_ << " state(s)" << std::endl;
+
+  if (dump_) closed_->Dump(problem_, packer_);
 }
 
 }  // namespace pplanner

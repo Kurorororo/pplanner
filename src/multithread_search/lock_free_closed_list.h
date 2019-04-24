@@ -6,6 +6,8 @@
 #include <utility>
 #include <vector>
 
+#include "sas_plus.h"
+#include "search_graph/state_packer.h"
 #include "search_node.h"
 
 namespace pplanner {
@@ -28,6 +30,9 @@ class LockFreeClosedList {
   std::pair<std::shared_ptr<SearchNodeWithNext>,
             std::shared_ptr<SearchNodeWithNext> >
   Find(std::size_t head_index, const std::vector<uint32_t>& packed_state) const;
+
+  void Dump(std::shared_ptr<const SASPlus> problem,
+            std::shared_ptr<const StatePacker> packer) const;
 
  private:
   void Init();
