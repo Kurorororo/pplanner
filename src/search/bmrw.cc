@@ -34,8 +34,9 @@ void BMRW::Init(const boost::property_tree::ptree &pt) {
   graph_->InitLandmarks(lmcount_->landmark_graph());
 
   if (auto opt = pt.get_optional<int>("preferred")) {
-    if (opt.get() == 1) use_preferred_ = true;
+    if (opt.get() == 1) always_bias_ = true;
     if (opt.get() == 2) ff_preferred_ = true;
+    if (opt.get() == 3) initial_bias_ = true;
   }
 
   auto open_list_option = pt.get_child("open_list");
@@ -51,12 +52,12 @@ void BMRW::Init(const boost::property_tree::ptree &pt) {
 
 int BMRW::Evaluate(const vector<int> &state, const vector<int> &applicable,
                    const uint8_t *parent_landmark, uint8_t *landmark,
-                   unordered_set<int> &preferred) {
+                   unordered_set<int> &preferred, bool use_preferred) {
   ++evaluated_;
 
-  if (use_preferred_) {
+  if (use_preferred) {
     int h = lmcount_->Evaluate(state, applicable, parent_landmark, landmark,
-                               preferred, true);
+                               preferred, always_bias_);
     UpdateQ(applicable, preferred);
 
     return h;
@@ -82,7 +83,7 @@ int BMRW::MHA(const vector<int> &applicable, unordered_set<int> &preferred) {
   for (auto a : applicable) {
     double score = 0.0;
 
-    if (!use_preferred_ && !ff_preferred_) {
+    if (!initial_bias_ && !always_bias_ && !ff_preferred_) {
       score = e1_;
     } else if (preferred.empty()) {
       score = q1_[a];
@@ -121,8 +122,8 @@ void BMRW::InitialEvaluate() {
   std::vector<int> applicable;
   std::unordered_set<int> preferred;
   generator_->Generate(state, applicable);
-  best_h_ =
-      Evaluate(state, applicable, nullptr, graph_->Landmark(node), preferred);
+  best_h_ = Evaluate(state, applicable, nullptr, graph_->Landmark(node),
+                     preferred, always_bias_);
   graph_->SetH(node, best_h_);
   std::cout << "Initial heuristic value: " << best_h_ << std::endl;
   ++evaluated_;
@@ -172,19 +173,21 @@ void BMRW::RandomWalk(Batch &batch) {
 
     int index = 0;
 
-    if (graph_->Action(node) != -1) {
+    if (initial_bias_ || always_bias_ || graph_->Action(node) != -1) {
       memcpy(batch.landmarks[id].data(), graph_->ParentLandmark(node),
              graph_->n_landmarks_bytes() * sizeof(uint8_t));
       landmark[0] = batch.landmarks[id];
       landmark[1].resize(landmark[0].size());
       std::fill(landmark[1].begin(), landmark[1].end(), 0);
 
-      batch.hs[id] = Evaluate(state[0], applicable, landmark[0].data(),
-                              landmark[1].data(), preferred);
+      batch.hs[id] =
+          Evaluate(state[0], applicable, landmark[0].data(), landmark[1].data(),
+                   preferred, initial_bias_ || always_bias_);
 
       if (batch.hs[id] == -1) continue;
 
       state[1] = state[0];
+      batch.landmarks[id] = landmark[1];
       index = 1;
     } else {
       memcpy(batch.landmarks[id].data(), graph_->Landmark(node),
@@ -205,6 +208,9 @@ void BMRW::RandomWalk(Batch &batch) {
         continue;
       }
 
+      if (initial_bias_ && preferred.find(a) != preferred.end())
+        preferred.erase(a);
+
       ++expanded_;
       problem_->ApplyEffect(a, state[index], state[1 - index]);
 
@@ -212,7 +218,7 @@ void BMRW::RandomWalk(Batch &batch) {
 
       std::fill(landmark[1 - index].begin(), landmark[1 - index].end(), 0);
       int h = Evaluate(state[1 - index], applicable, landmark[index].data(),
-                       landmark[1 - index].data(), preferred);
+                       landmark[1 - index].data(), preferred, always_bias_);
 
       if (h == -1) {
         state[0] = batch.states[id];

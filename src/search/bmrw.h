@@ -37,7 +37,8 @@ class BMRW : public Search {
  public:
   BMRW(std::shared_ptr<const SASPlus> problem,
        const boost::property_tree::ptree &pt)
-      : use_preferred_(false),
+      : initial_bias_(false),
+        always_bias_(false),
         n_batch_(5120),
         n_elite_(100),
         walk_length_(10),
@@ -74,7 +75,7 @@ class BMRW : public Search {
   int Evaluate(const std::vector<int> &state,
                const std::vector<int> &applicable,
                const uint8_t *parent_landmark, uint8_t *landmark,
-               std::unordered_set<int> &preferred);
+               std::unordered_set<int> &preferred, bool update_bias);
 
   int FFPreferred(const std::vector<int> &state,
                   const std::vector<int> &applicable,
@@ -103,8 +104,9 @@ class BMRW : public Search {
 
   std::vector<int> ExtractPlan(int node);
 
-  bool use_preferred_;
   bool ff_preferred_;
+  bool initial_bias_;
+  bool always_bias_;
   int n_batch_;
   int n_elite_;
   int walk_length_;
