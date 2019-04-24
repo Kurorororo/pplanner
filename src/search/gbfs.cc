@@ -36,7 +36,7 @@ void GBFS::Init(const boost::property_tree::ptree &pt) {
   if (auto opt = pt.get_optional<int>("landmark")) use_landmark = true;
 
   bool dump_nodes = false;
-  if (auto opt = pt.get_optional<int>("dump_nodes")) dump_nodes = true;
+  if (auto opt = pt.get_optional<bool>("dump_nodes")) dump_nodes = opt.get();
 
   graph_ = SearchGraphFactory(problem_, closed_exponent, keep_cost,
                               use_landmark, dump_nodes);
