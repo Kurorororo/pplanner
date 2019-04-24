@@ -80,9 +80,11 @@ void LockFreeClosedList::Dump(std::shared_ptr<const SASPlus> problem,
                               std::shared_ptr<const StatePacker> packer) const {
   std::ofstream expanded_nodes;
   expanded_nodes.open("expanded_nodes.csv", std::ios::out);
-  expanded_nodes << "node_id,parent_node_id,h";
+  expanded_nodes << "node_id,parent_node_id,h,time_stamp";
 
   for (int i = 0; i < problem->n_variables(); ++i) expanded_nodes << ",v" << i;
+
+  expanded_nodes << std::endl;
 
   std::vector<int> state(problem->n_variables());
 
@@ -93,7 +95,8 @@ void LockFreeClosedList::Dump(std::shared_ptr<const SASPlus> problem,
       int node_id = node->id;
       int parent_id = node->parent == nullptr ? -1 : node->parent->id;
       int h = node->h;
-      expanded_nodes << node_id << "," << parent_id << "," << h;
+      expanded_nodes << node_id << "," << parent_id << "," << h << ","
+                     << node_id;
 
       packer->Unpack(node->packed_state.data(), state);
 

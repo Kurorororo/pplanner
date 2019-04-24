@@ -38,6 +38,7 @@ class GBFSSharedClosed : public Search {
         generated_(0),
         dead_ends_(0),
         best_h_(-1),
+        expansion_limit_(-1),
         id_(0),
         problem_(problem),
         generator_(std::make_unique<SuccessorGenerator>(problem)),
@@ -97,6 +98,7 @@ class GBFSSharedClosed : public Search {
   int generated_;
   int dead_ends_;
   int best_h_;
+  int expansion_limit_;
   std::atomic<int> id_;
   std::shared_ptr<SearchNodeWithNext> goal_;
   std::shared_ptr<const SASPlus> problem_;

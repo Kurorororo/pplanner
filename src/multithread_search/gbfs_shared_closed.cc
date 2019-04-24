@@ -39,7 +39,10 @@ void GBFSSharedClosed::InitHeuristics(int i,
 void GBFSSharedClosed::Init(const boost::property_tree::ptree& pt) {
   goal_ = nullptr;
 
-  if (auto opt = pt.get_optional<bool>("dump")) dump_ = opt.get();
+  if (auto opt = pt.get_optional<bool>("dump_nodes")) dump_ = opt.get();
+
+  if (auto opt = pt.get_optional<int>("max_expansion"))
+    expansion_limit_ = opt.get();
 
   int closed_exponent = 26;
 
@@ -222,6 +225,8 @@ void GBFSSharedClosed::Expand(int i) {
 
     if (use_preferred_)
       preferring_[i]->Evaluate(state, node, applicable, preferred);
+
+    if (expansion_limit_ > 0 && node->id > expansion_limit_) break;
 
     for (auto o : applicable) {
       problem_->ApplyEffect(o, state, child);
