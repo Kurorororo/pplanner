@@ -124,7 +124,7 @@ int BTSGBFS::Search() {
   int first_goal = -1;
 
   while (!open_list_->IsEmpty()) {
-    int goal = Expand(state, child, applicable, first_goal == -1);
+    int goal = Expand(state, child, applicable, first_goal != -1);
 
     if (goal != -1) graph_->MarkGoal(goal);
 
