@@ -68,27 +68,28 @@ class SearchGraphWithTimestamp : public T {
     hs_[i] = h;
   }
 
+  void MarkGoal(int i) override { goals_.insert(i); }
+
   void Dump() override {
     auto indices = ArgSort(timestamps_);
 
     std::ofstream expanded_nodes;
     expanded_nodes.open("expanded_nodes.csv", std::ios::out);
 
-    expanded_nodes << "node_id,parent_node_id,h,action,timestamp";
+    expanded_nodes << "node_id,parent_node_id,h,action,is_goal,timestamp";
 
     for (int i = 0; i < n_variables_; ++i) expanded_nodes << ",v" << i;
-
     expanded_nodes << std::endl;
 
     std::vector<int> state(n_variables_);
-    std::vector<bool> expanded_table(this->size(), false);
 
     for (int i = 0, n = ids_.size(); i < n; ++i) {
       int node = ids_[i];
-      expanded_table[node] = true;
+      int is_goal = goals_.find(node) == goals_.end() ? 0 : 1;
+
       expanded_nodes << node << "," << this->Parent(node) << ",";
-      expanded_nodes << hs_[node] << "," << this->Action(node) << ","
-                     << timestamps_[i];
+      expanded_nodes << hs_[node] << "," << this->Action(node) << "," << is_goal
+                     << "," << timestamps_[i];
 
       this->State(node, state);
 
@@ -99,8 +100,9 @@ class SearchGraphWithTimestamp : public T {
 
     for (auto p : closed_parent_) {
       int node = p.first;
+      int is_goal = goals_.find(node) == goals_.end() ? 0 : 1;
       expanded_nodes << node << "," << p.second << "," << hs_[node] << ","
-                     << this->Action(node);
+                     << this->Action(node) << "," << is_goal;
       expanded_nodes << ",9999999999999999999";
 
       this->State(node, state);
@@ -118,6 +120,7 @@ class SearchGraphWithTimestamp : public T {
   std::vector<int> hs_;
   std::vector<long long int> timestamps_;
   std::vector<std::pair<int, int> > closed_parent_;
+  std::unordered_set<int> goals_;
 };
 
 }  // namespace pplanner

@@ -34,6 +34,7 @@ add_library(search STATIC
   search_node.cc
   ./search/kgbfs.cc
   ./search/gbfs.cc
+  ./search/bts_gbfs.cc
   ./search/dehc.cc
   ./search/lazy_gbfs.cc
   ./search/orbit_gbfs.cc

@@ -79,6 +79,8 @@ class SearchGraph {
 
   virtual void SetH(int i, int h) {}
 
+  virtual void MarkGoal(int i) {}
+
   virtual int Cost(int i) const { return -1; }
 
   virtual void Clear();

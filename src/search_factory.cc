@@ -6,6 +6,7 @@
 #include "multithread_search/kpgbfs.h"
 #include "multithread_search/tkpgbfs.h"
 #include "search/bmrw.h"
+#include "search/bts_gbfs.h"
 #include "search/dehc.h"
 #include "search/gbfs.h"
 #include "search/kgbfs.h"
@@ -41,6 +42,9 @@ std::unique_ptr<Search> SearchFactory(std::shared_ptr<const SASPlus> problem,
 
   if (search.get() == "gbfs")
     return std::make_unique<GBFS>(problem, option.get());
+
+  if (search.get() == "bts_gbfs")
+    return std::make_unique<BTSGBFS>(problem, option.get());
 
   if (search.get() == "lazy_gbfs")
     return std::make_unique<LazyGBFS>(problem, option.get());
