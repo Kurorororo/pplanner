@@ -1,10 +1,10 @@
-#ifndef TKPGBFS_H_
-#define TKPGBFS_H_
+#ifndef HKPGBFS_H_
+#define HKPGBFS_H_
 
-#include <atomic>
 #include <memory>
 #include <mutex>
 #include <random>
+#include <set>
 #include <shared_mutex>
 #include <string>
 #include <thread>
@@ -28,9 +28,9 @@
 
 namespace pplanner {
 
-class TKPGBFS : public Search {
+class HKPGBFS : public Search {
  public:
-  TKPGBFS(std::shared_ptr<const SASPlus> problem,
+  HKPGBFS(std::shared_ptr<const SASPlus> problem,
           const boost::property_tree::ptree &pt)
       : use_preferred_(false),
         n_threads_(1),
@@ -38,8 +38,6 @@ class TKPGBFS : public Search {
         evaluated_(0),
         generated_(0),
         dead_ends_(0),
-        n_expanding_(0),
-        h_expanding_(-1),
         problem_(problem),
         generator_(std::make_unique<SuccessorGenerator>(problem)),
         packer_(std::make_unique<StatePacker>(problem)),
@@ -48,7 +46,7 @@ class TKPGBFS : public Search {
     Init(pt);
   }
 
-  ~TKPGBFS() {}
+  ~HKPGBFS() {}
 
   std::vector<int> Plan() override {
     auto goal = Search();
@@ -66,16 +64,25 @@ class TKPGBFS : public Search {
 
   int Evaluate(int i, const std::vector<int> &state,
                std::shared_ptr<SearchNodeWithNext> node,
-               std::vector<int> &values);
+               std::set<int, std::greater<int> > &values);
 
-  std::shared_ptr<SearchNodeWithNext> LockedPop();
+  std::shared_ptr<SearchNodeWithNext> LockedPop(
+      std::set<int, std::greater<int> > &history) {
+    std::lock_guard<std::mutex> lock(open_mtx_);
 
-  void LockedPush(int n, const std::vector<std::vector<int> > &values_buffer,
-                  std::vector<std::shared_ptr<SearchNodeWithNext> > node_buffer,
-                  std::vector<bool> is_preferred_buffer);
+    if (open_list_->IsEmpty()) return nullptr;
 
-  void LockedPush(const std::vector<int> &values,
-                  std::shared_ptr<SearchNodeWithNext> node, bool is_preferred);
+    history = open_list_->MinimumValue();
+
+    return open_list_->Pop();
+  }
+
+  void LockedPush(std::set<int, std::greater<int> > &values,
+                  std::shared_ptr<SearchNodeWithNext> node, bool is_preferred) {
+    std::lock_guard<std::mutex> lock(open_mtx_);
+
+    open_list_->Push(values, node, is_preferred);
+  }
 
   void WriteGoal(std::shared_ptr<SearchNodeWithNext> goal) {
     std::shared_ptr<SearchNodeWithNext> expected = nullptr;
@@ -102,8 +109,6 @@ class TKPGBFS : public Search {
   int evaluated_;
   int generated_;
   int dead_ends_;
-  std::atomic_int n_expanding_;
-  std::atomic_int h_expanding_;
   std::shared_ptr<SearchNodeWithNext> goal_;
   std::shared_ptr<const SASPlus> problem_;
   std::unique_ptr<SuccessorGenerator> generator_;
@@ -112,8 +117,8 @@ class TKPGBFS : public Search {
   std::unique_ptr<LockFreeClosedList> closed_;
   std::vector<std::shared_ptr<Evaluator> > preferring_;
   std::vector<std::vector<std::shared_ptr<Evaluator> > > evaluators_;
-  std::shared_ptr<
-      OpenList<std::vector<int>, std::shared_ptr<SearchNodeWithNext> > >
+  std::shared_ptr<OpenList<std::set<int, std::greater<int> >,
+                           std::shared_ptr<SearchNodeWithNext> > >
       open_list_;
   std::mutex open_mtx_;
   std::mutex stat_mtx_;
@@ -121,4 +126,4 @@ class TKPGBFS : public Search {
 
 }  // namespace pplanner
 
-#endif  // TKPGBFS_H_
+#endif  // HKPGBFS_H_

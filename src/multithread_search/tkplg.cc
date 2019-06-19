@@ -1,4 +1,4 @@
-#include "multithread_search/tkpgbfs.h"
+#include "multithread_search/tkplg.h"
 
 #include <algorithm>
 #include <iostream>
@@ -16,7 +16,7 @@ using std::size_t;
 using std::unordered_set;
 using std::vector;
 
-void TKPGBFS::InitHeuristics(int i, const boost::property_tree::ptree pt) {
+void TKPLG::InitHeuristics(int i, const boost::property_tree::ptree pt) {
   BOOST_FOREACH (const boost::property_tree::ptree::value_type& child,
                  pt.get_child("evaluators")) {
     auto e = child.second;
@@ -36,7 +36,7 @@ void TKPGBFS::InitHeuristics(int i, const boost::property_tree::ptree pt) {
   }
 }
 
-void TKPGBFS::Init(const boost::property_tree::ptree& pt) {
+void TKPLG::Init(const boost::property_tree::ptree& pt) {
   goal_ = nullptr;
   int closed_exponent = 26;
 
@@ -62,7 +62,7 @@ void TKPGBFS::Init(const boost::property_tree::ptree& pt) {
   for (int i = 0; i < n_threads_; ++i) ts[i].join();
 }
 
-void TKPGBFS::InitialEvaluate() {
+void TKPLG::InitialEvaluate() {
   auto state = problem_->initial();
   auto node = std::make_shared<SearchNodeWithNext>();
   node->cost = 0;
@@ -79,9 +79,9 @@ void TKPGBFS::InitialEvaluate() {
   std::cout << "Initial heuristic value: " << node->h << std::endl;
 }
 
-int TKPGBFS::Evaluate(int i, const vector<int>& state,
-                      std::shared_ptr<SearchNodeWithNext> node,
-                      vector<int>& values) {
+int TKPLG::Evaluate(int i, const vector<int>& state,
+                    std::shared_ptr<SearchNodeWithNext> node,
+                    vector<int>& values) {
   values.clear();
 
   for (auto e : evaluators_[i]) {
@@ -94,7 +94,7 @@ int TKPGBFS::Evaluate(int i, const vector<int>& state,
   return values[0];
 }
 
-std::shared_ptr<SearchNodeWithNext> TKPGBFS::LockedPop() {
+std::shared_ptr<SearchNodeWithNext> TKPLG::LockedPop() {
   std::lock_guard<std::mutex> lock(open_mtx_);
 
   if (open_list_->IsEmpty()) return nullptr;
@@ -112,18 +112,21 @@ std::shared_ptr<SearchNodeWithNext> TKPGBFS::LockedPop() {
   return open_list_->Pop();
 }
 
-void TKPGBFS::LockedPush(int n, const vector<vector<int> >& values_buffer,
-                         vector<shared_ptr<SearchNodeWithNext> > node_buffer,
-                         vector<bool> is_preferred_buffer) {
+void TKPLG::LockedPush(int n, const vector<vector<int> >& values_buffer,
+                       vector<shared_ptr<SearchNodeWithNext> > node_buffer,
+                       vector<bool> is_preferred_buffer, int next) {
   std::lock_guard<std::mutex> lock(open_mtx_);
 
-  for (int i = 0; i < n; ++i)
-    open_list_->Push(values_buffer[i], node_buffer[i], is_preferred_buffer[i]);
+  for (int i = 0; i < n; ++i) {
+    if (i != next)
+      open_list_->Push(values_buffer[i], node_buffer[i],
+                       is_preferred_buffer[i]);
+  }
 
   --n_expanding_;
 }
 
-void TKPGBFS::Expand(int i) {
+void TKPLG::Expand(int i) {
   vector<int> state(problem_->n_variables());
   vector<int> child(problem_->n_variables());
   vector<int> applicable;
@@ -139,9 +142,15 @@ void TKPGBFS::Expand(int i) {
   int evaluated = 0;
   int generated = 0;
   int dead_ends = 0;
+  int next = -1;
 
   while (goal_ == nullptr) {
-    auto node = LockedPop();
+    std::shared_ptr<SearchNodeWithNext> node = nullptr;
+
+    if (next == -1)
+      node = LockedPop();
+    else
+      node = node_buffer[next];
 
     if (node == nullptr) continue;
 
@@ -174,6 +183,8 @@ void TKPGBFS::Expand(int i) {
     values_buffer.resize(applicable.size());
     node_buffer.resize(applicable.size(), nullptr);
     is_preferred_buffer.resize(applicable.size());
+    next = -1;
+    int next_h = node->h;
 
     for (auto o : applicable) {
       problem_->ApplyEffect(o, state, child);
@@ -210,6 +221,11 @@ void TKPGBFS::Expand(int i) {
                   << " expanded]" << std::endl;
       }
 
+      if (h < next_h) {
+        next_h = h;
+        next = n_children;
+      }
+
       is_preferred_buffer[n_children] =
           use_preferred_ && preferred.find(o) != preferred.end();
 
@@ -217,7 +233,8 @@ void TKPGBFS::Expand(int i) {
     }
 
     if (n_children > 0)
-      LockedPush(n_children, values_buffer, node_buffer, is_preferred_buffer);
+      LockedPush(n_children, values_buffer, node_buffer, is_preferred_buffer,
+                 next);
     else
       --n_expanding_;
   }
@@ -225,7 +242,7 @@ void TKPGBFS::Expand(int i) {
   WriteStat(expanded, evaluated, generated, dead_ends);
 }
 
-std::shared_ptr<SearchNodeWithNext> TKPGBFS::Search() {
+std::shared_ptr<SearchNodeWithNext> TKPLG::Search() {
   InitialEvaluate();
   vector<std::thread> ts;
 
@@ -237,7 +254,7 @@ std::shared_ptr<SearchNodeWithNext> TKPGBFS::Search() {
   return goal_;
 }
 
-void TKPGBFS::DumpStatistics() const {
+void TKPLG::DumpStatistics() const {
   std::cout << "Expanded " << expanded_ << " state(s)" << std::endl;
   std::cout << "Evaluated " << evaluated_ << " state(s)" << std::endl;
   std::cout << "Generated " << generated_ << " state(s)" << std::endl;

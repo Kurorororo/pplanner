@@ -1,5 +1,5 @@
-#ifndef TKPGBFS_H_
-#define TKPGBFS_H_
+#ifndef TKPLG_H_
+#define TKPLG_H_
 
 #include <atomic>
 #include <memory>
@@ -28,10 +28,10 @@
 
 namespace pplanner {
 
-class TKPGBFS : public Search {
+class TKPLG : public Search {
  public:
-  TKPGBFS(std::shared_ptr<const SASPlus> problem,
-          const boost::property_tree::ptree &pt)
+  TKPLG(std::shared_ptr<const SASPlus> problem,
+        const boost::property_tree::ptree &pt)
       : use_preferred_(false),
         n_threads_(1),
         expanded_(0),
@@ -48,7 +48,7 @@ class TKPGBFS : public Search {
     Init(pt);
   }
 
-  ~TKPGBFS() {}
+  ~TKPLG() {}
 
   std::vector<int> Plan() override {
     auto goal = Search();
@@ -72,7 +72,7 @@ class TKPGBFS : public Search {
 
   void LockedPush(int n, const std::vector<std::vector<int> > &values_buffer,
                   std::vector<std::shared_ptr<SearchNodeWithNext> > node_buffer,
-                  std::vector<bool> is_preferred_buffer);
+                  std::vector<bool> is_preferred_buffer, int next);
 
   void LockedPush(const std::vector<int> &values,
                   std::shared_ptr<SearchNodeWithNext> node, bool is_preferred);
@@ -121,4 +121,4 @@ class TKPGBFS : public Search {
 
 }  // namespace pplanner
 
-#endif  // TKPGBFS_H_
+#endif  // TKPLG_H_
