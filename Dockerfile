@@ -5,6 +5,7 @@ RUN apt update -y && apt install -y \
     unzip \
     libboost-all-dev \
     libjemalloc-dev \
+    time \
     && apt clean
 
 WORKDIR /pplanner
