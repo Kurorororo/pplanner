@@ -28,6 +28,8 @@ namespace pplanner {
 
 class PUHF : public Search {
  public:
+  enum Status { OPEN, PENDING, WAITING, NO_SOLUTION };
+
   PUHF(std::shared_ptr<const SASPlus> problem,
        const boost::property_tree::ptree &pt)
       : use_preferred_(false),
@@ -36,8 +38,10 @@ class PUHF : public Search {
         evaluated_(0),
         generated_(0),
         dead_ends_(0),
-        n_expanding_(0),
-        h_expanding_(-1),
+        n_e_(0),
+        n_p_(0),
+        h_e_(-1),
+        h_p_(-1),
         problem_(problem),
         generator_(std::make_unique<SuccessorGenerator>(problem)),
         packer_(std::make_unique<StatePacker>(problem)),
@@ -61,26 +65,19 @@ class PUHF : public Search {
 
   void InitialEvaluate();
 
+  void DecreaseCounter(Status status);
+
   void Expand(int i);
 
   int Evaluate(int i, const std::vector<int> &state,
                std::shared_ptr<SearchNodeWithNext> node,
-               std::vector<int> &values);
+               std::vector<int> &values, const Status status);
 
-  int EvaluatePending(int i, const std::vector<int> &state,
-                      std::shared_ptr<SearchNodeWithNext> node,
-                      std::vector<int> &values);
-
-  std::pair<std::shared_ptr<SearchNodeWithNext>, bool> LockedPop();
+  std::pair<std::shared_ptr<SearchNodeWithNext>, Status> LockedPop();
 
   void LockedPush(int n, const std::vector<std::vector<int> > &values_buffer,
                   std::vector<std::shared_ptr<SearchNodeWithNext> > node_buffer,
-                  std::vector<bool> is_preferred_buffer);
-
-  void LockedPushPending(
-      int n, const std::vector<std::vector<int> > &values_buffer,
-      std::vector<std::shared_ptr<SearchNodeWithNext> > node_buffer,
-      std::vector<bool> is_preferred_buffer);
+                  std::vector<bool> is_preferred_buffer, const Status status);
 
   void WriteGoal(std::shared_ptr<SearchNodeWithNext> goal) {
     std::shared_ptr<SearchNodeWithNext> expected = nullptr;
@@ -107,8 +104,10 @@ class PUHF : public Search {
   int evaluated_;
   int generated_;
   int dead_ends_;
-  std::atomic_int n_expanding_;
-  std::atomic_int h_expanding_;
+  std::atomic_int n_e_;
+  std::atomic_int n_p_;
+  std::atomic_int h_e_;
+  std::atomic_int h_p_;
   std::shared_ptr<SearchNodeWithNext> goal_;
   std::shared_ptr<const SASPlus> problem_;
   std::unique_ptr<SuccessorGenerator> generator_;

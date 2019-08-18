@@ -77,15 +77,17 @@ void PUHF::InitialEvaluate() {
   node->next = nullptr;
 
   std::vector<int> values;
-  node->h = Evaluate(0, state, node, values);
+  node->h = Evaluate(0, state, node, values, Status::OPEN);
   open_list_->Push(values, node, false);
   std::cout << "Initial heuristic value: " << node->h << std::endl;
 }
 
 int PUHF::Evaluate(int i, const vector<int>& state,
                    std::shared_ptr<SearchNodeWithNext> node,
-                   vector<int>& values) {
+                   vector<int>& values, const Status status) {
   values.clear();
+
+  if (status == Status::PENDING) values.push_back(node->parent->h);
 
   for (auto e : evaluators_[i]) {
     int h = e->Evaluate(state, node);
@@ -93,42 +95,25 @@ int PUHF::Evaluate(int i, const vector<int>& state,
 
     if (h == -1) return -1;
   }
+
+  if (status == Status::PENDING) return values[1];
 
   return values[0];
 }
 
-int PUHF::EvaluatePending(int i, const vector<int>& state,
-                          std::shared_ptr<SearchNodeWithNext> node,
-                          vector<int>& values) {
-  values.clear();
-  values.push_back(node->parent->h);
-
-  for (auto e : evaluators_[i]) {
-    int h = e->Evaluate(state, node);
-    values.push_back(h);
-
-    if (h == -1) return -1;
-  }
-
-  return values[1];
-}
-
-std::pair<std::shared_ptr<SearchNodeWithNext>, bool> PUHF::LockedPop() {
+std::pair<std::shared_ptr<SearchNodeWithNext>, PUHF::Status> PUHF::LockedPop() {
   std::lock_guard<std::mutex> lock(open_mtx_);
 
-  int n_expanding = n_expanding_.load();
-
-  if (open_list_->IsEmpty() && n_expanding > 0)
-    return std::make_pair(nullptr, false);
-
-  int h = open_list_->IsEmpty() ? -1 : open_list_->MinimumValue()[0];
-  bool is_open = false;
-
-  if (n_expanding == 0) {
+  if (n_e_.load() == 0) {
     std::lock_guard<std::mutex> pending_lock(pending_mtx_);
 
-    if (open_list_->IsEmpty() && pending_list_->IsEmpty())
-      return std::make_pair(nullptr, false);
+    int h = open_list_->IsEmpty() ? -1 : open_list_->MinimumValue()[0];
+
+    if (open_list_->IsEmpty() && pending_list_->IsEmpty() && n_p_.load() == 0)
+      return std::make_pair(nullptr, Status::NO_SOLUTION);
+
+    if ((h == -1 || h > h_p_.load()) && n_p_.load() > 0)
+      return std::make_pair(nullptr, Status::WAITING);
 
     while (!pending_list_->IsEmpty() &&
            (h == -1 || pending_list_->MinimumValue()[0] < h)) {
@@ -137,43 +122,52 @@ std::pair<std::shared_ptr<SearchNodeWithNext>, bool> PUHF::LockedPop() {
       auto node = pending_list_->Pop();
       open_list_->Push(values, node, false);
     }
-
-    h = open_list_->MinimumValue()[0];
-    h_expanding_.store(h);
-    ++n_expanding_;
-    is_open = true;
-  } else if (h <= h_expanding_.load()) {
-    if (h < h_expanding_.load()) h_expanding_.store(h);
-
-    ++n_expanding_;
-    is_open = true;
   }
 
+  if (open_list_->IsEmpty()) return std::make_pair(nullptr, Status::WAITING);
+
+  int h = open_list_->MinimumValue()[0];
+
+  if (n_e_.load() == 0 || h <= h_e_.load()) {
+    h_e_.store(h);
+    ++n_e_;
+    auto node = open_list_->Pop();
+
+    return std::make_pair(node, Status::OPEN);
+  }
+
+  if (n_p_.load() == 0 || h < h_p_.load()) h_p_.store(h);
+  ++n_p_;
   auto node = open_list_->Pop();
 
-  return std::make_pair(node, is_open);
+  return std::make_pair(node, Status::PENDING);
 }
 
 void PUHF::LockedPush(int n, const vector<vector<int> >& values_buffer,
                       vector<shared_ptr<SearchNodeWithNext> > node_buffer,
-                      vector<bool> is_preferred_buffer) {
-  std::lock_guard<std::mutex> lock(open_mtx_);
+                      vector<bool> is_preferred_buffer, const Status status) {
+  if (n == 0) return;
 
-  for (int i = 0; i < n; ++i)
-    open_list_->Push(values_buffer[i], node_buffer[i], is_preferred_buffer[i]);
+  if (status == Status::OPEN) {
+    std::lock_guard<std::mutex> lock(open_mtx_);
 
-  --n_expanding_;
+    for (int i = 0; i < n; ++i)
+      open_list_->Push(values_buffer[i], node_buffer[i],
+                       is_preferred_buffer[i]);
+  }
+
+  if (status == Status::PENDING) {
+    std::lock_guard<std::mutex> lock(pending_mtx_);
+
+    for (int i = 0; i < n; ++i)
+      pending_list_->Push(values_buffer[i], node_buffer[i],
+                          is_preferred_buffer[i]);
+  }
 }
 
-void PUHF::LockedPushPending(
-    int n, const vector<vector<int> >& values_buffer,
-    vector<shared_ptr<SearchNodeWithNext> > node_buffer,
-    vector<bool> is_preferred_buffer) {
-  std::lock_guard<std::mutex> lock(pending_mtx_);
-
-  for (int i = 0; i < n; ++i)
-    pending_list_->Push(values_buffer[i], node_buffer[i],
-                        is_preferred_buffer[i]);
+void PUHF::DecreaseCounter(Status status) {
+  if (status == Status::OPEN) --n_e_;
+  if (status == Status::PENDING) --n_p_;
 }
 
 void PUHF::Expand(int i) {
@@ -195,12 +189,17 @@ void PUHF::Expand(int i) {
   while (goal_ == nullptr) {
     auto p = LockedPop();
     auto node = p.first;
-    bool is_open = p.second;
+    Status status = p.second;
 
-    if (node == nullptr) continue;
+    if (status == Status::WAITING) continue;
+
+    if (status == Status::NO_SOLUTION) {
+      DecreaseCounter(status);
+      break;
+    }
 
     if (!closed_->Close(node)) {
-      if (is_open) --n_expanding_;
+      DecreaseCounter(status);
       continue;
     }
 
@@ -209,7 +208,7 @@ void PUHF::Expand(int i) {
 
     if (problem_->IsGoal(state)) {
       WriteGoal(node);
-      if (is_open) --n_expanding_;
+      DecreaseCounter(status);
       break;
     }
 
@@ -217,7 +216,7 @@ void PUHF::Expand(int i) {
 
     if (applicable.empty()) {
       ++dead_ends;
-      if (is_open) --n_expanding_;
+      DecreaseCounter(status);
       continue;
     }
 
@@ -248,13 +247,7 @@ void PUHF::Expand(int i) {
       ++generated;
 
       auto& values = values_buffer[n_children];
-      int h = -1;
-
-      if (is_open)
-        h = Evaluate(i, child, child_node, values);
-      else
-        h = EvaluatePending(i, child, child_node, values);
-
+      int h = Evaluate(i, child, child_node, values, status);
       child_node->h = h;
       ++evaluated;
 
@@ -276,15 +269,9 @@ void PUHF::Expand(int i) {
       ++n_children;
     }
 
-    if (n_children > 0) {
-      if (is_open)
-        LockedPush(n_children, values_buffer, node_buffer, is_preferred_buffer);
-      else
-        LockedPushPending(n_children, values_buffer, node_buffer,
-                          is_preferred_buffer);
-    } else if (is_open) {
-      --n_expanding_;
-    }
+    LockedPush(n_children, values_buffer, node_buffer, is_preferred_buffer,
+               status);
+    DecreaseCounter(status);
   }
 
   WriteStat(expanded, evaluated, generated, dead_ends);
