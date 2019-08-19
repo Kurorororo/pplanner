@@ -1,4 +1,4 @@
-#include "multithread_search/puhf.h"
+#include "multithread_search/kplg.h"
 
 #include <algorithm>
 #include <iostream>
@@ -16,7 +16,7 @@ using std::size_t;
 using std::unordered_set;
 using std::vector;
 
-void PUHF::InitHeuristics(int i, const boost::property_tree::ptree pt) {
+void KPLG::InitHeuristics(int i, const boost::property_tree::ptree pt) {
   BOOST_FOREACH (const boost::property_tree::ptree::value_type& child,
                  pt.get_child("evaluators")) {
     auto e = child.second;
@@ -36,7 +36,7 @@ void PUHF::InitHeuristics(int i, const boost::property_tree::ptree pt) {
   }
 }
 
-void PUHF::Init(const boost::property_tree::ptree& pt) {
+void KPLG::Init(const boost::property_tree::ptree& pt) {
   goal_ = nullptr;
   int closed_exponent = 26;
 
@@ -45,10 +45,10 @@ void PUHF::Init(const boost::property_tree::ptree& pt) {
 
   auto open_list_option = pt.get_child("open_list");
   open_list_ =
-      OpenListFactory<std::vector<int>, std::shared_ptr<SearchNodeWithNext> >(
+      OpenListFactory<std::vector<int>, std::shared_ptr<SearchNodeWithFlag> >(
           open_list_option);
   pending_list_ =
-      OpenListFactory<std::vector<int>, std::shared_ptr<SearchNodeWithNext> >(
+      OpenListFactory<std::vector<int>, std::shared_ptr<SearchNodeWithFlag> >(
           open_list_option);
   closed_ = std::make_unique<LockFreeClosedList>(closed_exponent);
 
@@ -65,9 +65,9 @@ void PUHF::Init(const boost::property_tree::ptree& pt) {
   for (int i = 0; i < n_threads_; ++i) ts[i].join();
 }
 
-void PUHF::InitialEvaluate() {
+void KPLG::InitialEvaluate() {
   auto state = problem_->initial();
-  auto node = std::make_shared<SearchNodeWithNext>();
+  auto node = std::make_shared<SearchNodeWithFlag>();
   node->cost = 0;
   node->action = -1;
   node->parent = nullptr;
@@ -75,6 +75,8 @@ void PUHF::InitialEvaluate() {
   packer_->Pack(state, node->packed_state.data());
   node->hash = hash_->operator()(state);
   node->next = nullptr;
+  node->sure = true;
+  ++n_sure_;
 
   std::vector<int> values;
   node->h = Evaluate(0, state, node, values, Status::OPEN);
@@ -82,8 +84,8 @@ void PUHF::InitialEvaluate() {
   std::cout << "Initial heuristic value: " << node->h << std::endl;
 }
 
-int PUHF::Evaluate(int i, const vector<int>& state,
-                   std::shared_ptr<SearchNodeWithNext> node,
+int KPLG::Evaluate(int i, const vector<int>& state,
+                   std::shared_ptr<SearchNodeWithFlag> node,
                    vector<int>& values, const Status status) {
   values.clear();
 
@@ -101,89 +103,111 @@ int PUHF::Evaluate(int i, const vector<int>& state,
   return values[0];
 }
 
-std::pair<std::shared_ptr<SearchNodeWithNext>, PUHF::Status> PUHF::LockedPop() {
+std::pair<std::shared_ptr<KPLG::SearchNodeWithFlag>, KPLG::Status>
+KPLG::LockedPop() {
   std::lock_guard<std::mutex> lock(open_mtx_);
 
-  int h = open_list_->IsEmpty() ? -1 : open_list_->MinimumValue()[0];
-
-  if (n_e_.load() == 0 && (h == -1 || h > h_e_)) {
-    std::lock_guard<std::mutex> pending_lock(pending_mtx_);
-
-    if (open_list_->IsEmpty() && pending_list_->IsEmpty() && n_p_.load() == 0)
-      return std::make_pair(nullptr, Status::NO_SOLUTION);
-
-    if ((h == -1 || h > h_p_.load()) && n_p_.load() > 0)
-      return std::make_pair(nullptr, Status::WAITING);
-
-    if (!pending_list_->IsEmpty()) {
-      int h_min_p = pending_list_->MinimumValue()[0];
-
-      if (h == -1 || h_min_p < h) {
-        while (!pending_list_->IsEmpty() &&
-               pending_list_->MinimumValue()[0] == h_min_p) {
-          std::vector<int> values(pending_list_->MinimumValue().begin() + 1,
-                                  pending_list_->MinimumValue().end());
-          auto node = pending_list_->Pop();
-          open_list_->Push(values, node, false);
-        }
-      }
-    }
-  }
-
-  if (open_list_->IsEmpty()) return std::make_pair(nullptr, Status::WAITING);
-
-  h = open_list_->MinimumValue()[0];
-
-  if (n_e_.load() == 0 || h <= h_e_.load()) {
-    h_e_.store(h);
-    ++n_e_;
+  if (n_sure_.load() > 0) {
     auto node = open_list_->Pop();
 
-    return std::make_pair(node, Status::OPEN);
+    if (node->sure) {
+      ++n_e_;
+      --n_sure_;
+      return std::make_pair(node, Status::OPEN);
+    }
+
+    if (n_p_.load() == 0 || node->h < h_p_.load()) h_p_.store(node->h);
+    ++n_p_;
+
+    return std::make_pair(node, Status::PENDING);
   }
 
-  if (n_p_.load() == 0 || h < h_p_.load()) h_p_.store(h);
-  ++n_p_;
+  if (n_e_ > 0) {
+    if (open_list_->IsEmpty()) return std::make_pair(nullptr, Status::WAITING);
+    auto node = open_list_->Pop();
+    if (n_p_.load() == 0 || node->h < h_p_.load()) h_p_.store(node->h);
+    ++n_p_;
+
+    return std::make_pair(node, Status::PENDING);
+  }
+
+  std::lock_guard<std::mutex> pending_lock(pending_mtx_);
+
+  int h_op = open_list_->IsEmpty() ? -1 : open_list_->MinimumValue()[0];
+  int h_pe = pending_list_->IsEmpty() ? -1 : pending_list_->MinimumValue()[0];
+
+  if (h_op == -1 && h_pe == -1) {
+    if (n_p_.load() == 0) return std::make_pair(nullptr, Status::NO_SOLUTION);
+
+    return std::make_pair(nullptr, Status::WAITING);
+  }
+
+  if (h_op == -1 || h_pe < h_op) {
+    if (n_p_.load() > 0 && h_p_.load() < h_pe)
+      return std::make_pair(nullptr, Status::WAITING);
+
+    while (!pending_list_->IsEmpty() &&
+           pending_list_->MinimumValue()[0] == h_pe) {
+      std::vector<int> values(pending_list_->MinimumValue().begin() + 1,
+                              pending_list_->MinimumValue().end());
+      auto node = pending_list_->Pop();
+      if (node->sure) ++n_sure_;
+      open_list_->Push(values, node, false);
+    }
+
+    if (n_sure_.load() > 0) {
+      ++n_e_;
+      --n_sure_;
+      return std::make_pair(open_list_->Pop(), Status::OPEN);
+    }
+  } else if (n_p_.load() > 0 && h_p_.load() < h_op) {
+    return std::make_pair(nullptr, Status::WAITING);
+  }
+
+  vector<shared_ptr<SearchNodeWithFlag> > buffer;
+  vector<vector<int> > values;
+
+  h_op = open_list_->MinimumValue()[0];
+
+  while (!open_list_->IsEmpty() && open_list_->MinimumValue()[0] == h_op) {
+    values.push_back(open_list_->MinimumValue());
+    auto node = open_list_->Pop();
+    node->sure = true;
+    ++n_sure_;
+    buffer.push_back(node);
+  }
+
+  for (int i = 0, n = buffer.size(); i < n; ++i)
+    open_list_->Push(values[i], buffer[i], false);
+
+  ++n_e_;
+  --n_sure_;
   auto node = open_list_->Pop();
 
-  return std::make_pair(node, Status::PENDING);
+  return std::make_pair(node, Status::OPEN);
 }
 
-void PUHF::LockedPush(int n, const vector<vector<int> >& values_buffer,
-                      vector<shared_ptr<SearchNodeWithNext> > node_buffer,
-                      vector<bool> is_preferred_buffer, const Status status) {
-  if (n == 0) return;
-
+void KPLG::LockedPush(std::vector<int>& values,
+                      std::shared_ptr<SearchNodeWithFlag> node,
+                      bool is_preferred, const Status status) {
   if (status == Status::OPEN) {
     std::lock_guard<std::mutex> lock(open_mtx_);
-
-    for (int i = 0; i < n; ++i)
-      open_list_->Push(values_buffer[i], node_buffer[i],
-                       is_preferred_buffer[i]);
-  }
-
-  if (status == Status::PENDING) {
+    if (node->sure) ++n_sure_;
+    open_list_->Push(values, node, is_preferred);
+  } else if (status == Status::PENDING) {
     std::lock_guard<std::mutex> lock(pending_mtx_);
-
-    for (int i = 0; i < n; ++i)
-      pending_list_->Push(values_buffer[i], node_buffer[i],
-                          is_preferred_buffer[i]);
+    pending_list_->Push(values, node, is_preferred);
   }
 }
 
-void PUHF::DecreaseCounter(Status status) {
-  if (status == Status::OPEN) --n_e_;
-  if (status == Status::PENDING) --n_p_;
-}
-
-void PUHF::Expand(int i) {
+void KPLG::Expand(int i) {
   vector<int> state(problem_->n_variables());
   vector<int> child(problem_->n_variables());
   vector<int> applicable;
   unordered_set<int> preferred;
   vector<uint32_t> packed(packer_->block_size(), 0);
   vector<vector<int> > values_buffer;
-  vector<std::shared_ptr<SearchNodeWithNext> > node_buffer;
+  vector<std::shared_ptr<SearchNodeWithFlag> > node_buffer;
   vector<bool> is_preferred_buffer;
 
   int best_h = -1;
@@ -193,19 +217,18 @@ void PUHF::Expand(int i) {
   int dead_ends = 0;
 
   while (goal_ == nullptr) {
-    auto p = LockedPop();
-    auto node = p.first;
-    Status status = p.second;
+    auto entry = LockedPop();
+    auto status = entry.second;
 
     if (status == Status::WAITING) continue;
 
-    if (status == Status::NO_SOLUTION) {
-      DecreaseCounter(status);
-      break;
-    }
+    if (status == Status::NO_SOLUTION) break;
+
+    auto node = entry.first;
 
     if (!closed_->Close(node)) {
-      DecreaseCounter(status);
+      if (status == Status::OPEN) --n_e_;
+      if (status == Status::PENDING) --n_p_;
       continue;
     }
 
@@ -214,7 +237,8 @@ void PUHF::Expand(int i) {
 
     if (problem_->IsGoal(state)) {
       WriteGoal(node);
-      DecreaseCounter(status);
+      if (status == Status::OPEN) --n_e_;
+      if (status == Status::PENDING) --n_p_;
       break;
     }
 
@@ -222,7 +246,8 @@ void PUHF::Expand(int i) {
 
     if (applicable.empty()) {
       ++dead_ends;
-      DecreaseCounter(status);
+      if (status == Status::OPEN) --n_e_;
+      if (status == Status::PENDING) --n_p_;
       continue;
     }
 
@@ -230,6 +255,7 @@ void PUHF::Expand(int i) {
       preferring_[i]->Evaluate(state, node, applicable, preferred);
 
     int n_children = 0;
+    int h_min = node->h;
     values_buffer.resize(applicable.size());
     node_buffer.resize(applicable.size(), nullptr);
     is_preferred_buffer.resize(applicable.size());
@@ -243,13 +269,14 @@ void PUHF::Expand(int i) {
       if (closed_->IsClosed(hash, packed)) continue;
 
       auto& child_node = node_buffer[n_children];
-      child_node = std::make_shared<SearchNodeWithNext>();
+      child_node = std::make_shared<SearchNodeWithFlag>();
       child_node->cost = node->cost + problem_->ActionCost(o);
       child_node->action = o;
       child_node->parent = node;
       child_node->packed_state = packed;
       child_node->hash = hash;
       child_node->next = nullptr;
+      child_node->sure = false;
       ++generated;
 
       auto& values = values_buffer[n_children];
@@ -261,6 +288,8 @@ void PUHF::Expand(int i) {
         ++dead_ends;
         continue;
       }
+
+      if (h < h_min) h_min = h;
 
       if ((best_h == -1 || h < best_h) && i == 0) {
         best_h = h;
@@ -275,15 +304,20 @@ void PUHF::Expand(int i) {
       ++n_children;
     }
 
-    LockedPush(n_children, values_buffer, node_buffer, is_preferred_buffer,
-               status);
-    DecreaseCounter(status);
+    for (int j = 0; j < n_children; ++j) {
+      node_buffer[j]->sure = node_buffer[j]->h == h_min;
+      LockedPush(values_buffer[j], node_buffer[j], is_preferred_buffer[j],
+                 status);
+    }
+
+    if (status == Status::OPEN) --n_e_;
+    if (status == Status::PENDING) --n_p_;
   }
 
   WriteStat(expanded, evaluated, generated, dead_ends);
 }
 
-std::shared_ptr<SearchNodeWithNext> PUHF::Search() {
+std::shared_ptr<SearchNodeWithNext> KPLG::Search() {
   InitialEvaluate();
   vector<std::thread> ts;
 
@@ -295,7 +329,7 @@ std::shared_ptr<SearchNodeWithNext> PUHF::Search() {
   return goal_;
 }
 
-void PUHF::DumpStatistics() const {
+void KPLG::DumpStatistics() const {
   std::cout << "Expanded " << expanded_ << " state(s)" << std::endl;
   std::cout << "Evaluated " << evaluated_ << " state(s)" << std::endl;
   std::cout << "Generated " << generated_ << " state(s)" << std::endl;
