@@ -30,6 +30,8 @@ class PreferredOpenList : public OpenList<T, U> {
     if (preferred) lists_[1]->Push(values, node);
   }
 
+  U Top() const override;
+
   U Pop() override;
 
   bool IsEmpty() const override {
@@ -63,6 +65,17 @@ class PreferredOpenList : public OpenList<T, U> {
   std::array<int, 2> priorities_;
   std::array<std::shared_ptr<PriorityQueue<T, U> >, 2> lists_;
 };
+
+template <typename T, typename U>
+U PreferredOpenList<T, U>::Top() const {
+  if (lists_[0]->IsEmpty()) return lists_[1]->Top();
+
+  if (lists_[1]->IsEmpty()) return lists_[0]->Top();
+
+  int arg_max = priorities_[0] > priorities_[1] ? 0 : 1;
+
+  return lists_[arg_max]->Top();
+}
 
 template <typename T, typename U>
 U PreferredOpenList<T, U>::Pop() {

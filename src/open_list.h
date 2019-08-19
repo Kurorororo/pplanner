@@ -14,6 +14,8 @@ class OpenList {
 
   virtual void Push(T values, U node, bool preferred) = 0;
 
+  virtual U Top() const = 0;
+
   virtual U Pop() = 0;
 
   virtual bool IsEmpty() const = 0;

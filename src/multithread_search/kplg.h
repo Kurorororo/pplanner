@@ -33,7 +33,7 @@ class KPLG : public Search {
   enum Status { OPEN, PENDING, WAITING, NO_SOLUTION };
 
   struct SearchNodeWithFlag : public SearchNodeWithNext {
-    bool sure;
+    bool certain;
   };
 
   KPLG(std::shared_ptr<const SASPlus> problem,
@@ -45,7 +45,7 @@ class KPLG : public Search {
         generated_(0),
         dead_ends_(0),
         n_e_(0),
-        n_sure_(0),
+        n_certain_(0),
         n_p_(0),
         h_p_(-1),
         problem_(problem),
@@ -109,7 +109,7 @@ class KPLG : public Search {
   int generated_;
   int dead_ends_;
   std::atomic_int n_e_;
-  std::atomic_int n_sure_;
+  std::atomic_int n_certain_;
   std::atomic_int n_p_;
   std::atomic_int h_p_;
   std::shared_ptr<SearchNodeWithFlag> goal_;

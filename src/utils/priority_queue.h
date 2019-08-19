@@ -24,6 +24,8 @@ class PriorityQueue {
 
   virtual const T& MinimumValue() const = 0;
 
+  virtual U Top() const = 0;
+
   virtual U Pop() = 0;
 
   virtual void Clear() = 0;
@@ -48,6 +50,8 @@ class CppPriorityQueue : public PriorityQueue<T, U> {
   }
 
   const T& MinimumValue() const override { return q_.top().first; }
+
+  U Top() const override { return q_.top().second; }
 
   U Pop() override {
     auto top = q_.top();
@@ -89,6 +93,8 @@ class TieBreakingPriorityQueue : public PriorityQueue<T, U> {
   }
 
   const T& MinimumValue() const override { return buckets_.begin()->first; }
+
+  U Top() const override { return buckets_.begin()->second.Top(); }
 
   U Pop() override {
     auto it = buckets_.begin();
@@ -133,6 +139,8 @@ class VectorPriorityQueue : public PriorityQueue<int, U> {
   }
 
   const int& MinimumValue() const override { return minimum_value_; }
+
+  U Top() const override { return buckets_[minimum_value_].Top(); }
 
   U Pop() override {
     auto result = buckets_[minimum_value_].Pop();

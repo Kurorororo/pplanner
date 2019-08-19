@@ -30,6 +30,12 @@ class SingleOpenList : public OpenList<T, U> {
     list_->Push(values, node);
   }
 
+  U Top() const override {
+    assert(list_ != nullptr);
+
+    return list_->Top();
+  }
+
   U Pop() override {
     assert(list_ != nullptr);
 

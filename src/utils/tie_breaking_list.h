@@ -18,6 +18,8 @@ class FIFOList {
 
   void Push(const T& a) { list_.push_back(a); }
 
+  T Top() const { return list_.front(); }
+
   T Pop() {
     auto f = list_.front();
     list_.pop_front();
@@ -42,6 +44,8 @@ class LIFOList {
 
   void Push(const T& a) { list_.push_back(a); }
 
+  T Top() const { return list_.back(); }
+
   T Pop() {
     auto f = list_.back();
     list_.pop_back();
@@ -61,6 +65,7 @@ class ROList {
   ROList() {
     std::random_device rng;
     engine_ = std::mt19937(rng());
+    r_ = engine_();
   }
 
   std::size_t size() const { return list_.size(); }
@@ -69,12 +74,14 @@ class ROList {
 
   void Push(const T& a) { list_.push_back(a); }
 
+  T Top() const { return list_[r_ % list_.size()]; }
+
   T Pop() {
-    std::uint32_t r = engine_();
-    std::uint32_t index = r % list_.size();
+    std::uint32_t index = r_ % list_.size();
     auto f = list_[index];
     list_[index] = list_.back();
     list_.pop_back();
+    r_ = engine_();
 
     return f;
   }
@@ -84,6 +91,7 @@ class ROList {
  private:
   std::vector<T> list_;
   std::mt19937 engine_;
+  std::uint32_t r_;
 };
 
 }  // namespace pplanner

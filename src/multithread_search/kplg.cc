@@ -75,8 +75,8 @@ void KPLG::InitialEvaluate() {
   packer_->Pack(state, node->packed_state.data());
   node->hash = hash_->operator()(state);
   node->next = nullptr;
-  node->sure = true;
-  ++n_sure_;
+  node->certain = true;
+  ++n_certain_;
 
   std::vector<int> values;
   node->h = Evaluate(0, state, node, values, Status::OPEN);
@@ -107,19 +107,11 @@ std::pair<std::shared_ptr<KPLG::SearchNodeWithFlag>, KPLG::Status>
 KPLG::LockedPop() {
   std::lock_guard<std::mutex> lock(open_mtx_);
 
-  if (n_sure_.load() > 0) {
-    auto node = open_list_->Pop();
+  if (!open_list_->IsEmpty() && open_list_->Top()->certain) {
+    ++n_e_;
+    --n_certain_;
 
-    if (node->sure) {
-      ++n_e_;
-      --n_sure_;
-      return std::make_pair(node, Status::OPEN);
-    }
-
-    if (n_p_.load() == 0 || node->h < h_p_.load()) h_p_.store(node->h);
-    ++n_p_;
-
-    return std::make_pair(node, Status::PENDING);
+    return std::make_pair(open_list_->Pop(), Status::OPEN);
   }
 
   if (n_e_ > 0) {
@@ -151,13 +143,13 @@ KPLG::LockedPop() {
       std::vector<int> values(pending_list_->MinimumValue().begin() + 1,
                               pending_list_->MinimumValue().end());
       auto node = pending_list_->Pop();
-      if (node->sure) ++n_sure_;
+      if (node->certain) ++n_certain_;
       open_list_->Push(values, node, false);
     }
 
-    if (n_sure_.load() > 0) {
+    if (n_certain_.load() > 0) {
       ++n_e_;
-      --n_sure_;
+      --n_certain_;
       return std::make_pair(open_list_->Pop(), Status::OPEN);
     }
   } else if (n_p_.load() > 0 && h_p_.load() < h_op) {
@@ -172,8 +164,8 @@ KPLG::LockedPop() {
   while (!open_list_->IsEmpty() && open_list_->MinimumValue()[0] == h_op) {
     values.push_back(open_list_->MinimumValue());
     auto node = open_list_->Pop();
-    node->sure = true;
-    ++n_sure_;
+    node->certain = true;
+    ++n_certain_;
     buffer.push_back(node);
   }
 
@@ -181,7 +173,7 @@ KPLG::LockedPop() {
     open_list_->Push(values[i], buffer[i], false);
 
   ++n_e_;
-  --n_sure_;
+  --n_certain_;
   auto node = open_list_->Pop();
 
   return std::make_pair(node, Status::OPEN);
@@ -192,7 +184,7 @@ void KPLG::LockedPush(std::vector<int>& values,
                       bool is_preferred, const Status status) {
   if (status == Status::OPEN) {
     std::lock_guard<std::mutex> lock(open_mtx_);
-    if (node->sure) ++n_sure_;
+    if (node->certain) ++n_certain_;
     open_list_->Push(values, node, is_preferred);
   } else if (status == Status::PENDING) {
     std::lock_guard<std::mutex> lock(pending_mtx_);
@@ -276,7 +268,7 @@ void KPLG::Expand(int i) {
       child_node->packed_state = packed;
       child_node->hash = hash;
       child_node->next = nullptr;
-      child_node->sure = false;
+      child_node->certain = false;
       ++generated;
 
       auto& values = values_buffer[n_children];
@@ -305,7 +297,7 @@ void KPLG::Expand(int i) {
     }
 
     for (int j = 0; j < n_children; ++j) {
-      node_buffer[j]->sure = node_buffer[j]->h == h_min;
+      node_buffer[j]->certain = node_buffer[j]->h == h_min;
       LockedPush(values_buffer[j], node_buffer[j], is_preferred_buffer[j],
                  status);
     }
