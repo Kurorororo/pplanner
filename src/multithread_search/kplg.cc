@@ -105,6 +105,10 @@ int KPLG::Evaluate(int i, const vector<int>& state,
 
 std::pair<std::shared_ptr<KPLG::SearchNodeWithFlag>, KPLG::Status>
 KPLG::LockedPop() {
+  thread_local vector<int> values(evaluators_.size());
+  thread_local vector<shared_ptr<SearchNodeWithFlag> > buffer;
+  thread_local vector<vector<int> > values_buffer;
+
   std::lock_guard<std::mutex> lock(open_mtx_);
 
   if (!open_list_->IsEmpty() && open_list_->Top()->certain) {
@@ -140,8 +144,8 @@ KPLG::LockedPop() {
 
     while (!pending_list_->IsEmpty() &&
            pending_list_->MinimumValue()[0] == h_pe) {
-      std::vector<int> values(pending_list_->MinimumValue().begin() + 1,
-                              pending_list_->MinimumValue().end());
+      std::copy(pending_list_->MinimumValue().begin() + 1,
+                pending_list_->MinimumValue().end(), values.begin());
       auto node = pending_list_->Pop();
       if (node->certain) ++n_certain_;
       open_list_->Push(values, node, false);
@@ -156,13 +160,13 @@ KPLG::LockedPop() {
     return std::make_pair(nullptr, Status::WAITING);
   }
 
-  vector<shared_ptr<SearchNodeWithFlag> > buffer;
-  vector<vector<int> > values;
+  buffer.clear();
+  values_buffer.clear();
 
   h_op = open_list_->MinimumValue()[0];
 
   while (!open_list_->IsEmpty() && open_list_->MinimumValue()[0] == h_op) {
-    values.push_back(open_list_->MinimumValue());
+    values_buffer.push_back(open_list_->MinimumValue());
     auto node = open_list_->Pop();
     node->certain = true;
     ++n_certain_;
@@ -170,7 +174,7 @@ KPLG::LockedPop() {
   }
 
   for (int i = 0, n = buffer.size(); i < n; ++i)
-    open_list_->Push(values[i], buffer[i], false);
+    open_list_->Push(values_buffer[i], buffer[i], false);
 
   ++n_e_;
   --n_certain_;
