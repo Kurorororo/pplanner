@@ -111,76 +111,95 @@ KPLG::LockedPop() {
 
   std::lock_guard<std::mutex> lock(open_mtx_);
 
-  if (!open_list_->IsEmpty() && open_list_->Top()->certain) {
-    ++n_e_;
+  while (true) {
+    if (!open_list_->IsEmpty() && open_list_->Top()->certain) {
+      auto node = open_list_->Pop();
+      --n_certain_;
+
+      if (closed_->Close(node)) {
+        ++n_e_;
+
+        return std::make_pair(node, Status::OPEN);
+      }
+
+      continue;
+    }
+
+    if (n_e_ > 0) {
+      if (open_list_->IsEmpty())
+        return std::make_pair(nullptr, Status::WAITING);
+      auto node = open_list_->Pop();
+      if (n_p_.load() == 0 || node->h < h_p_.load()) h_p_.store(node->h);
+      ++n_p_;
+
+      return std::make_pair(node, Status::PENDING);
+    }
+
+    std::lock_guard<std::mutex> pending_lock(pending_mtx_);
+
+    int h_op = open_list_->IsEmpty() ? -1 : open_list_->MinimumValue()[0];
+    int h_pe = pending_list_->IsEmpty() ? -1 : pending_list_->MinimumValue()[0];
+
+    if (h_op == -1 && h_pe == -1) {
+      if (n_p_.load() == 0) return std::make_pair(nullptr, Status::NO_SOLUTION);
+
+      return std::make_pair(nullptr, Status::WAITING);
+    }
+
+    if (h_op == -1 || h_pe < h_op) {
+      if (n_p_.load() > 0 && h_p_.load() < h_pe)
+        return std::make_pair(nullptr, Status::WAITING);
+
+      while (!pending_list_->IsEmpty() &&
+             pending_list_->MinimumValue()[0] == h_pe) {
+        std::copy(pending_list_->MinimumValue().begin() + 1,
+                  pending_list_->MinimumValue().end(), values.begin());
+        auto node = pending_list_->Pop();
+        if (node->certain) ++n_certain_;
+        open_list_->Push(values, node, false);
+      }
+
+      if (n_certain_.load() > 0) {
+        auto node = open_list_->Pop();
+        --n_certain_;
+
+        if (closed_->Close(node)) {
+          ++n_e_;
+          return std::make_pair(node, Status::OPEN);
+        }
+
+        continue;
+      }
+    } else if (n_p_.load() > 0 && h_p_.load() < h_op) {
+      return std::make_pair(nullptr, Status::WAITING);
+    }
+
+    buffer.clear();
+    values_buffer.clear();
+
+    h_op = open_list_->MinimumValue()[0];
+
+    while (!open_list_->IsEmpty() && open_list_->MinimumValue()[0] == h_op) {
+      values_buffer.push_back(open_list_->MinimumValue());
+      auto node = open_list_->Pop();
+      node->certain = true;
+      ++n_certain_;
+      buffer.push_back(node);
+    }
+
+    for (int i = 0, n = buffer.size(); i < n; ++i)
+      open_list_->Push(values_buffer[i], buffer[i], false);
+
+    auto node = open_list_->Pop();
     --n_certain_;
 
-    return std::make_pair(open_list_->Pop(), Status::OPEN);
-  }
-
-  if (n_e_ > 0) {
-    if (open_list_->IsEmpty()) return std::make_pair(nullptr, Status::WAITING);
-    auto node = open_list_->Pop();
-    if (n_p_.load() == 0 || node->h < h_p_.load()) h_p_.store(node->h);
-    ++n_p_;
-
-    return std::make_pair(node, Status::PENDING);
-  }
-
-  std::lock_guard<std::mutex> pending_lock(pending_mtx_);
-
-  int h_op = open_list_->IsEmpty() ? -1 : open_list_->MinimumValue()[0];
-  int h_pe = pending_list_->IsEmpty() ? -1 : pending_list_->MinimumValue()[0];
-
-  if (h_op == -1 && h_pe == -1) {
-    if (n_p_.load() == 0) return std::make_pair(nullptr, Status::NO_SOLUTION);
-
-    return std::make_pair(nullptr, Status::WAITING);
-  }
-
-  if (h_op == -1 || h_pe < h_op) {
-    if (n_p_.load() > 0 && h_p_.load() < h_pe)
-      return std::make_pair(nullptr, Status::WAITING);
-
-    while (!pending_list_->IsEmpty() &&
-           pending_list_->MinimumValue()[0] == h_pe) {
-      std::copy(pending_list_->MinimumValue().begin() + 1,
-                pending_list_->MinimumValue().end(), values.begin());
-      auto node = pending_list_->Pop();
-      if (node->certain) ++n_certain_;
-      open_list_->Push(values, node, false);
-    }
-
-    if (n_certain_.load() > 0) {
+    if (closed_->Close(node)) {
       ++n_e_;
-      --n_certain_;
-      return std::make_pair(open_list_->Pop(), Status::OPEN);
+      return std::make_pair(node, Status::OPEN);
     }
-  } else if (n_p_.load() > 0 && h_p_.load() < h_op) {
-    return std::make_pair(nullptr, Status::WAITING);
+
+    continue;
   }
-
-  buffer.clear();
-  values_buffer.clear();
-
-  h_op = open_list_->MinimumValue()[0];
-
-  while (!open_list_->IsEmpty() && open_list_->MinimumValue()[0] == h_op) {
-    values_buffer.push_back(open_list_->MinimumValue());
-    auto node = open_list_->Pop();
-    node->certain = true;
-    ++n_certain_;
-    buffer.push_back(node);
-  }
-
-  for (int i = 0, n = buffer.size(); i < n; ++i)
-    open_list_->Push(values_buffer[i], buffer[i], false);
-
-  ++n_e_;
-  --n_certain_;
-  auto node = open_list_->Pop();
-
-  return std::make_pair(node, Status::OPEN);
 }
 
 void KPLG::LockedPush(std::vector<int>& values,
@@ -222,8 +241,7 @@ void KPLG::Expand(int i) {
 
     auto node = entry.first;
 
-    if (!closed_->Close(node)) {
-      if (status == Status::OPEN) --n_e_;
+    if (status != Status::OPEN && !closed_->Close(node)) {
       if (status == Status::PENDING) --n_p_;
       continue;
     }
