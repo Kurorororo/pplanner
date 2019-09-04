@@ -39,6 +39,7 @@ class KPLG : public Search {
   KPLG(std::shared_ptr<const SASPlus> problem,
        const boost::property_tree::ptree &pt)
       : use_preferred_(false),
+        lifo_(false),
         n_threads_(1),
         expanded_(0),
         evaluated_(0),
@@ -103,6 +104,7 @@ class KPLG : public Search {
   void Init(const boost::property_tree::ptree &pt);
 
   bool use_preferred_;
+  bool lifo_;
   int n_threads_;
   int expanded_;
   int evaluated_;

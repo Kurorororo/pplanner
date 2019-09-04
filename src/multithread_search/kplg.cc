@@ -52,6 +52,9 @@ void KPLG::Init(const boost::property_tree::ptree& pt) {
           open_list_option);
   closed_ = std::make_unique<LockFreeClosedList>(closed_exponent);
 
+  if (auto opt = open_list_option.get_optional<std::string>("tie_breaking"))
+    if (opt.get() == "lifo") lifo_ = true;
+
   if (auto opt = pt.get_optional<int>("n_threads")) n_threads_ = opt.get();
 
   preferring_.resize(n_threads_);
@@ -187,8 +190,13 @@ KPLG::LockedPop() {
       buffer.push_back(node);
     }
 
-    for (int i = 0, n = buffer.size(); i < n; ++i)
-      open_list_->Push(values_buffer[i], buffer[i], false);
+    if (lifo_) {
+      for (int i = 0, n = buffer.size(); i < n; ++i)
+        open_list_->Push(values_buffer[n - i - 1], buffer[n - i - 1], false);
+    } else {
+      for (int i = 0, n = buffer.size(); i < n; ++i)
+        open_list_->Push(values_buffer[i], buffer[i], false);
+    }
 
     auto node = open_list_->Pop();
     --n_certain_;
