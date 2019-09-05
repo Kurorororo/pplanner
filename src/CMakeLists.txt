@@ -57,6 +57,7 @@ add_library(search STATIC
   ./multithread_search/tkpgbfs.cc
   ./multithread_search/tkplg.cc
   ./multithread_search/kplg.cc
+  ./multithread_search/puhf2.cc
   #./multithread_search/gbfs_portfolio.cc
   #./multithread_search/multi_focus_gbfs.cc
   #./multithread_search/independent_context.cc
