@@ -5,7 +5,9 @@
 #include "multithread_search/gbfs_shared_open.h"
 #include "multithread_search/hkpgbfs.h"
 #include "multithread_search/kpgbfs.h"
+#include "multithread_search/kpgbfs_dump.h"
 #include "multithread_search/kplg.h"
+#include "multithread_search/kplg_dump.h"
 #include "multithread_search/puhf.h"
 #include "multithread_search/puhf2.h"
 #include "multithread_search/tkpgbfs.h"
@@ -94,6 +96,12 @@ std::unique_ptr<Search> SearchFactory(std::shared_ptr<const SASPlus> problem,
 
   if (search.get() == "kplg")
     return std::make_unique<KPLG>(problem, option.get());
+
+  if (search.get() == "kplg_dump")
+    return std::make_unique<KPLGDump>(problem, option.get());
+
+  if (search.get() == "kpgbfs_dump")
+    return std::make_unique<KPGBFSDump>(problem, option.get());
 
   if (search.get() == "puhf2")
     return std::make_unique<PUHF2>(problem, option.get());
