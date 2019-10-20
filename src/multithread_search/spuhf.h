@@ -78,7 +78,8 @@ class SPUHF : public Search {
                   std::vector<bool> is_preferred_buffer);
 
   void SpeculativePush(
-      int n, std::vector<std::shared_ptr<SearchNodeWithFlag>> node_buffer,
+      bool from_open, int n,
+      std::vector<std::shared_ptr<SearchNodeWithFlag>> node_buffer,
       std::vector<bool> is_preferred_buffer);
 
   void WriteGoal(std::shared_ptr<SearchNodeWithFlag> goal) {
@@ -119,7 +120,8 @@ class SPUHF : public Search {
   std::vector<std::shared_ptr<Evaluator>> evaluators_;
   std::shared_ptr<OpenList<int, std::shared_ptr<SearchNodeWithFlag>>>
       open_list_;
-  std::shared_ptr<OpenList<int, std::shared_ptr<SearchNodeWithFlag>>>
+  std::shared_ptr<
+      OpenList<std::pair<int, int>, std::shared_ptr<SearchNodeWithFlag>>>
       speculative_list_;
   std::mutex open_mtx_;
   std::mutex speculative_mtx_;

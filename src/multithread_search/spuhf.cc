@@ -42,8 +42,9 @@ void SPUHF::Init(const boost::property_tree::ptree& pt) {
   auto open_list_option = pt.get_child("open_list");
   open_list_ = OpenListFactory<int, std::shared_ptr<SearchNodeWithFlag>>(
       open_list_option);
-  speculative_list_ = OpenListFactory<int, std::shared_ptr<SearchNodeWithFlag>>(
-      open_list_option);
+  speculative_list_ =
+      OpenListFactory<std::pair<int, int>, std::shared_ptr<SearchNodeWithFlag>>(
+          open_list_option);
   closed_ =
       std::make_unique<LockFreeClosedList<SearchNodeWithFlag>>(closed_exponent);
   cached_ =
@@ -112,13 +113,17 @@ void SPUHF::LockedPush(
 }
 
 void SPUHF::SpeculativePush(
-    int n, vector<shared_ptr<SPUHF::SearchNodeWithFlag>> node_buffer,
+    bool from_open, int n,
+    vector<shared_ptr<SPUHF::SearchNodeWithFlag>> node_buffer,
     vector<bool> is_preferred_buffer) {
   std::lock_guard<std::mutex> lock(speculative_mtx_);
 
-  for (int i = 0; i < n; ++i)
-    speculative_list_->Push(node_buffer[i]->h, node_buffer[i],
-                            is_preferred_buffer[i]);
+  for (int i = 0; i < n; ++i) {
+    if (from_open && node_buffer[i]->certain) continue;
+    int value1 = from_open ? 0 : 1;
+    auto values = std::make_pair(value1, node_buffer[i]->h);
+    speculative_list_->Push(values, node_buffer[i], is_preferred_buffer[i]);
+  }
 }
 
 void SPUHF::Expand(int i) {
@@ -138,16 +143,16 @@ void SPUHF::Expand(int i) {
 
   while (goal_ == nullptr) {
     auto node = LockedPop();
-    bool speculative = false;
+    bool from_open = true;
 
     if (node == nullptr) {
       node = SpeculativePop();
       if (node == nullptr) continue;
-      speculative = true;
+      from_open = false;
     }
 
-    if (!closed_->Close(node)) {
-      if (!speculative) --n_expanding_;
+    if (from_open && !closed_->Close(node)) {
+      --n_expanding_;
       continue;
     }
 
@@ -156,7 +161,7 @@ void SPUHF::Expand(int i) {
 
     if (problem_->IsGoal(state)) {
       WriteGoal(node);
-      if (!speculative) --n_expanding_;
+      if (from_open) --n_expanding_;
       break;
     }
 
@@ -164,7 +169,7 @@ void SPUHF::Expand(int i) {
 
     if (applicable.empty()) {
       ++dead_ends;
-      if (!speculative) --n_expanding_;
+      if (from_open) --n_expanding_;
       continue;
     }
 
@@ -188,7 +193,7 @@ void SPUHF::Expand(int i) {
       auto found = cached_->Find(hash, packed);
 
       if (found != nullptr) {
-        if (speculative) continue;
+        if (!from_open) continue;
         child_node = found;
         if (min_h == -1 || child_node->h < min_h) min_h = child_node->h;
       } else {
@@ -219,7 +224,7 @@ void SPUHF::Expand(int i) {
                     << " expanded]" << std::endl;
         }
 
-        if (speculative) cached_->Close(child_node);
+        if (!from_open) cached_->Close(child_node);
       }
 
       is_preferred_buffer[n_children] =
@@ -228,17 +233,17 @@ void SPUHF::Expand(int i) {
       ++n_children;
     }
 
-    if (min_h != -1 && min_h < node->h) {
+    if (from_open && min_h != -1 && min_h <= node->h) {
       for (int j = 0; j < n_children; ++j)
         node_buffer[j]->certain = node_buffer[j]->h == min_h;
     }
 
-    if (n_children > 0 && !speculative)
-      LockedPush(n_children, node_buffer, is_preferred_buffer);
-    else if (n_children > 0 && speculative)
-      SpeculativePush(n_children, node_buffer, is_preferred_buffer);
-    else if (!speculative)
+    if (n_children > 0) {
+      SpeculativePush(from_open, n_children, node_buffer, is_preferred_buffer);
+      if (from_open) LockedPush(n_children, node_buffer, is_preferred_buffer);
+    } else if (from_open) {
       --n_expanding_;
+    }
   }
 
   WriteStat(expanded, evaluated, generated, dead_ends);
