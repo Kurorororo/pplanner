@@ -1,5 +1,3 @@
-#include "multithread_search/lock_free_closed_list.h"
-
 #include <fstream>
 
 namespace pplanner {
@@ -12,11 +10,13 @@ namespace pplanner {
  * In addition, it is dirty that each mark uses the lowest bit of the pointer.
  */
 
-void LockFreeClosedList::Init() {
+template <typename T>
+void LockFreeClosedList<T>::Init() {
   for (int i = 0, n = closed_.size(); i < n; ++i) closed_[i] = nullptr;
 }
 
-bool LockFreeClosedList::Close(std::shared_ptr<SearchNodeWithNext> node) {
+template <typename T>
+bool LockFreeClosedList<T>::Close(std::shared_ptr<T> node) {
   std::size_t i = node->hash & mask_;
 
   while (true) {
@@ -37,22 +37,20 @@ bool LockFreeClosedList::Close(std::shared_ptr<SearchNodeWithNext> node) {
   }
 }
 
-std::shared_ptr<SearchNodeWithNext> LockFreeClosedList::Find(
-    uint32_t hash,
-    const std::vector<uint32_t> &packed_state) const {
+template <typename T>
+std::shared_ptr<T> LockFreeClosedList<T>::Find(
+    uint32_t hash, const std::vector<uint32_t> &packed_state) const {
   std::size_t i = hash & mask_;
   auto p = Find(i, packed_state);
 
-  if (p.first == nullptr)
-    return nullptr;
+  if (p.first == nullptr) return nullptr;
 
   return packed_state == p.first->packed_state ? p.first : nullptr;
 }
 
-std::pair<std::shared_ptr<SearchNodeWithNext>,
-          std::shared_ptr<SearchNodeWithNext> >
-LockFreeClosedList::Find(std::size_t head_index,
-                         const std::vector<uint32_t> &packed_state) const {
+template <typename T>
+std::pair<std::shared_ptr<T>, std::shared_ptr<T> > LockFreeClosedList<T>::Find(
+    std::size_t head_index, const std::vector<uint32_t> &packed_state) const {
   while (true) {
     auto prev = closed_[head_index];
 
@@ -80,8 +78,10 @@ LockFreeClosedList::Find(std::size_t head_index,
   }
 }
 
-void LockFreeClosedList::Dump(std::shared_ptr<const SASPlus> problem,
-                              std::shared_ptr<const StatePacker> packer) const {
+template <typename T>
+void LockFreeClosedList<T>::Dump(
+    std::shared_ptr<const SASPlus> problem,
+    std::shared_ptr<const StatePacker> packer) const {
   std::ofstream expanded_nodes;
   expanded_nodes.open("expanded_nodes.csv", std::ios::out);
   expanded_nodes << "node_id,parent_node_id,h,action,timestamp";
@@ -93,7 +93,7 @@ void LockFreeClosedList::Dump(std::shared_ptr<const SASPlus> problem,
   std::vector<int> state(problem->n_variables());
 
   for (auto list : closed_) {
-    std::shared_ptr<SearchNodeWithNext> node = list;
+    std::shared_ptr<T> node = list;
 
     while (node != nullptr) {
       int node_id = node->id;

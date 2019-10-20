@@ -113,7 +113,7 @@ class PUHF : public Search {
   std::unique_ptr<SuccessorGenerator> generator_;
   std::unique_ptr<StatePacker> packer_;
   std::unique_ptr<ZobristHash> hash_;
-  std::unique_ptr<LockFreeClosedList> closed_;
+  std::unique_ptr<LockFreeClosedList<>> closed_;
   std::vector<std::shared_ptr<Evaluator> > preferring_;
   std::vector<std::vector<std::shared_ptr<Evaluator> > > evaluators_;
   std::shared_ptr<

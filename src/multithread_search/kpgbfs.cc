@@ -44,9 +44,9 @@ void KPGBFS::Init(const boost::property_tree::ptree& pt) {
 
   auto open_list_option = pt.get_child("open_list");
   open_list_ =
-      OpenListFactory<std::vector<int>, std::shared_ptr<SearchNodeWithNext> >(
+      OpenListFactory<std::vector<int>, std::shared_ptr<SearchNodeWithNext>>(
           open_list_option);
-  closed_ = std::make_unique<LockFreeClosedList>(closed_exponent);
+  closed_ = std::make_unique<LockFreeClosedList<>>(closed_exponent);
 
   if (auto opt = pt.get_optional<int>("n_threads")) n_threads_ = opt.get();
 

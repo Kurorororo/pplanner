@@ -1,6 +1,7 @@
-#ifndef MULTI_GBFS_H_
-#define MULTI_GBFS_H_
+#ifndef SPUHF_H_
+#define SPUHF_H_
 
+#include <atomic>
 #include <memory>
 #include <mutex>
 #include <random>
@@ -27,16 +28,23 @@
 
 namespace pplanner {
 
-class KPGBFS : public Search {
+class SPUHF : public Search {
  public:
-  KPGBFS(std::shared_ptr<const SASPlus> problem,
-         const boost::property_tree::ptree &pt)
+  struct SearchNodeWithFlag : public SearchNode {
+    std::shared_ptr<SearchNodeWithFlag> next;
+    bool certain;
+  };
+
+  SPUHF(std::shared_ptr<const SASPlus> problem,
+        const boost::property_tree::ptree &pt)
       : use_preferred_(false),
         n_threads_(1),
         expanded_(0),
         evaluated_(0),
         generated_(0),
         dead_ends_(0),
+        n_expanding_(0),
+        h_expanding_(-1),
         problem_(problem),
         generator_(std::make_unique<SuccessorGenerator>(problem)),
         packer_(std::make_unique<StatePacker>(problem)),
@@ -45,7 +53,7 @@ class KPGBFS : public Search {
     Init(pt);
   }
 
-  ~KPGBFS() {}
+  ~SPUHF() {}
 
   std::vector<int> Plan() override {
     auto goal = Search();
@@ -55,33 +63,26 @@ class KPGBFS : public Search {
 
   void DumpStatistics() const override;
 
-  std::shared_ptr<SearchNodeWithNext> Search();
+  std::shared_ptr<SearchNodeWithFlag> Search();
 
   void InitialEvaluate();
 
   void Expand(int i);
 
-  int Evaluate(int i, const std::vector<int> &state,
-               std::shared_ptr<SearchNodeWithNext> node,
-               std::vector<int> &values);
+  std::shared_ptr<SearchNodeWithFlag> LockedPop();
 
-  std::shared_ptr<SearchNodeWithNext> LockedPop() {
-    std::lock_guard<std::mutex> lock(open_mtx_);
+  std::shared_ptr<SearchNodeWithFlag> SpeculativePop();
 
-    if (open_list_->IsEmpty()) return nullptr;
+  void LockedPush(int n,
+                  std::vector<std::shared_ptr<SearchNodeWithFlag>> node_buffer,
+                  std::vector<bool> is_preferred_buffer);
 
-    return open_list_->Pop();
-  }
+  void SpeculativePush(
+      int n, std::vector<std::shared_ptr<SearchNodeWithFlag>> node_buffer,
+      std::vector<bool> is_preferred_buffer);
 
-  void LockedPush(std::vector<int> &values,
-                  std::shared_ptr<SearchNodeWithNext> node, bool is_preferred) {
-    std::lock_guard<std::mutex> lock(open_mtx_);
-
-    open_list_->Push(values, node, is_preferred);
-  }
-
-  void WriteGoal(std::shared_ptr<SearchNodeWithNext> goal) {
-    std::shared_ptr<SearchNodeWithNext> expected = nullptr;
+  void WriteGoal(std::shared_ptr<SearchNodeWithFlag> goal) {
+    std::shared_ptr<SearchNodeWithFlag> expected = nullptr;
     std::atomic_compare_exchange_strong(&goal_, &expected, goal);
   }
 
@@ -105,21 +106,26 @@ class KPGBFS : public Search {
   int evaluated_;
   int generated_;
   int dead_ends_;
-  std::shared_ptr<SearchNodeWithNext> goal_;
+  std::atomic_int n_expanding_;
+  std::atomic_int h_expanding_;
+  std::shared_ptr<SearchNodeWithFlag> goal_;
   std::shared_ptr<const SASPlus> problem_;
   std::unique_ptr<SuccessorGenerator> generator_;
   std::unique_ptr<StatePacker> packer_;
   std::unique_ptr<ZobristHash> hash_;
-  std::unique_ptr<LockFreeClosedList<>> closed_;
+  std::unique_ptr<LockFreeClosedList<SearchNodeWithFlag>> closed_;
+  std::unique_ptr<LockFreeClosedList<SearchNodeWithFlag>> cached_;
   std::vector<std::shared_ptr<Evaluator>> preferring_;
-  std::vector<std::vector<std::shared_ptr<Evaluator>>> evaluators_;
-  std::shared_ptr<
-      OpenList<std::vector<int>, std::shared_ptr<SearchNodeWithNext>>>
+  std::vector<std::shared_ptr<Evaluator>> evaluators_;
+  std::shared_ptr<OpenList<int, std::shared_ptr<SearchNodeWithFlag>>>
       open_list_;
+  std::shared_ptr<OpenList<int, std::shared_ptr<SearchNodeWithFlag>>>
+      speculative_list_;
   std::mutex open_mtx_;
+  std::mutex speculative_mtx_;
   std::mutex stat_mtx_;
 };
 
 }  // namespace pplanner
 
-#endif  // MULTI_GBFS_H_
+#endif  // SPUHF_H_

@@ -45,9 +45,9 @@ void PUHF2::Init(const boost::property_tree::ptree& pt) {
 
   auto open_list_option = pt.get_child("open_list");
   open_list_ =
-      OpenListFactory<std::vector<int>, std::shared_ptr<SearchNodeWithFlag> >(
+      OpenListFactory<std::vector<int>, std::shared_ptr<SearchNodeWithFlag>>(
           open_list_option);
-  closed_ = std::make_unique<LockFreeClosedList>(closed_exponent);
+  closed_ = std::make_unique<LockFreeClosedList<>>(closed_exponent);
 
   if (auto opt = open_list_option.get_optional<std::string>("tie_breaking"))
     if (opt.get() == "lifo") lifo_ = true;
@@ -101,8 +101,8 @@ int PUHF2::Evaluate(int i, const vector<int>& state,
 std::pair<std::shared_ptr<PUHF2::SearchNodeWithFlag>, PUHF2::Status>
 PUHF2::LockedPop() {
   thread_local vector<int> values(evaluators_.size());
-  thread_local vector<shared_ptr<SearchNodeWithFlag> > buffer;
-  thread_local vector<vector<int> > values_buffer;
+  thread_local vector<shared_ptr<SearchNodeWithFlag>> buffer;
+  thread_local vector<vector<int>> values_buffer;
 
   std::lock_guard<std::mutex> lock(open_mtx_);
 
@@ -157,8 +157,8 @@ void PUHF2::Expand(int i) {
   vector<int> applicable;
   unordered_set<int> preferred;
   vector<uint32_t> packed(packer_->block_size(), 0);
-  vector<vector<int> > values_buffer;
-  vector<std::shared_ptr<SearchNodeWithFlag> > node_buffer;
+  vector<vector<int>> values_buffer;
+  vector<std::shared_ptr<SearchNodeWithFlag>> node_buffer;
   vector<bool> is_preferred_buffer;
 
   int best_h = -1;

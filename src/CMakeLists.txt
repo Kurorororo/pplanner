@@ -47,19 +47,19 @@ add_library(search STATIC
   ./symmetry/symmetry.cc
   ./utils/lexical_order.cc
   ./sas_plus/abstract_graph.cc
-  ./multithread_search/lock_free_closed_list.cc
-  ./multithread_search/gbfs_independent.cc
-  ./multithread_search/gbfs_shared_closed.cc
-  ./multithread_search/gbfs_shared_open.cc
+  #./multithread_search/gbfs_independent.cc
+  #./multithread_search/gbfs_shared_closed.cc
+  #./multithread_search/gbfs_shared_open.cc
   ./multithread_search/kpgbfs.cc
-  ./multithread_search/kpgbfs_dump.cc
-  ./multithread_search/hkpgbfs.cc
-  ./multithread_search/puhf.cc
-  ./multithread_search/tkpgbfs.cc
-  ./multithread_search/tkplg.cc
-  ./multithread_search/kplg.cc
-  ./multithread_search/kplg_dump.cc
-  ./multithread_search/puhf2.cc
+  #./multithread_search/kpgbfs_dump.cc
+  #./multithread_search/hkpgbfs.cc
+  #./multithread_search/puhf.cc
+  #./multithread_search/tkpgbfs.cc
+  #./multithread_search/tkplg.cc
+  #./multithread_search/kplg.cc
+  #./multithread_search/kplg_dump.cc
+  #./multithread_search/puhf2.cc
+  ./multithread_search/spuhf.cc
   #./multithread_search/gbfs_portfolio.cc
   #./multithread_search/multi_focus_gbfs.cc
   #./multithread_search/independent_context.cc

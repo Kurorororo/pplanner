@@ -45,12 +45,12 @@ void PUHF::Init(const boost::property_tree::ptree& pt) {
 
   auto open_list_option = pt.get_child("open_list");
   open_list_ =
-      OpenListFactory<std::vector<int>, std::shared_ptr<SearchNodeWithNext> >(
+      OpenListFactory<std::vector<int>, std::shared_ptr<SearchNodeWithNext>>(
           open_list_option);
   pending_list_ =
-      OpenListFactory<std::vector<int>, std::shared_ptr<SearchNodeWithNext> >(
+      OpenListFactory<std::vector<int>, std::shared_ptr<SearchNodeWithNext>>(
           open_list_option);
-  closed_ = std::make_unique<LockFreeClosedList>(closed_exponent);
+  closed_ = std::make_unique<LockFreeClosedList<>>(closed_exponent);
 
   if (auto opt = pt.get_optional<int>("n_threads")) n_threads_ = opt.get();
 
@@ -149,8 +149,8 @@ std::pair<std::shared_ptr<SearchNodeWithNext>, PUHF::Status> PUHF::LockedPop() {
   return std::make_pair(node, Status::PENDING);
 }
 
-void PUHF::LockedPush(int n, const vector<vector<int> >& values_buffer,
-                      vector<shared_ptr<SearchNodeWithNext> > node_buffer,
+void PUHF::LockedPush(int n, const vector<vector<int>>& values_buffer,
+                      vector<shared_ptr<SearchNodeWithNext>> node_buffer,
                       vector<bool> is_preferred_buffer, const Status status) {
   if (n == 0) return;
 
@@ -182,8 +182,8 @@ void PUHF::Expand(int i) {
   vector<int> applicable;
   unordered_set<int> preferred;
   vector<uint32_t> packed(packer_->block_size(), 0);
-  vector<vector<int> > values_buffer;
-  vector<std::shared_ptr<SearchNodeWithNext> > node_buffer;
+  vector<vector<int>> values_buffer;
+  vector<std::shared_ptr<SearchNodeWithNext>> node_buffer;
   vector<bool> is_preferred_buffer;
 
   int best_h = -1;
