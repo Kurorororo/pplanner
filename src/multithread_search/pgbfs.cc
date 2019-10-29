@@ -1,0 +1,214 @@
+#include "multithread_search/pgbfs.h"
+
+#include <algorithm>
+#include <iostream>
+
+#include <boost/foreach.hpp>
+
+#include "evaluator_factory.h"
+#include "open_list_factory.h"
+
+namespace pplanner {
+
+using std::make_shared;
+using std::shared_ptr;
+using std::size_t;
+using std::unordered_set;
+using std::vector;
+
+void PGBFS::InitHeuristics(int i, const boost::property_tree::ptree pt) {
+  auto e = pt.get_child("evaluator");
+  evaluators_[i] = EvaluatorFactory(problem_, e);
+
+  if (auto preferring = pt.get_child_optional("preferring")) {
+    use_preferred_ = true;
+
+    if (auto name = preferring.get().get_optional<std::string>("name")) {
+      if (name.get() == "same")
+        preferring_[i] = evaluators_[i];
+      else
+        preferring_[i] = EvaluatorFactory(problem_, preferring.get());
+    }
+  }
+}
+
+void PGBFS::Init(const boost::property_tree::ptree& pt) {
+  if (auto opt = pt.get_optional<int>("n_threads")) n_threads_ = opt.get();
+
+  int closed_exponent = 22;
+
+  if (auto closed_exponent_opt = pt.get_optional<int>("closed_exponent"))
+    closed_exponent = closed_exponent_opt.get();
+
+  for (int i = 0; i < n_threads_; ++i)
+    closed_lists_.push_back(std::make_shared<ClosedList>(closed_exponent));
+
+  if (auto opt = pt.get_optional<bool>("cache_evaluation"))
+    cache_evaluation_ = opt.get();
+
+  if (cache_evaluation_) {
+    int cached_exponent = 22;
+
+    if (auto opt = pt.get_optional<int>("cached_exponent"))
+      cached_exponent = opt.get();
+
+    cached_ = std::make_unique<LockFreeClosedList<SearchNodeWithNext>>(
+        cached_exponent);
+  }
+
+  for (int i = 0; i < n_threads_; ++i) {
+    auto open_list_option = pt.get_child("open_list");
+
+    if (i == 0) open_list_option.put("tie_breaking", "fifo");
+    if (i == 1) open_list_option.put("tie_breaking", "lifo");
+    if (i > 1) open_list_option.put("tie_breaking", "ro");
+
+    open_lists_.push_back(
+        OpenListFactory<int, std::shared_ptr<SearchNode>>(open_list_option));
+  }
+
+  preferring_.resize(n_threads_);
+  evaluators_.resize(n_threads_);
+
+  vector<std::thread> ts;
+
+  for (int i = 0; i < n_threads_; ++i)
+    ts.push_back(std::thread([this, i, pt] { this->InitHeuristics(i, pt); }));
+
+  for (int i = 0; i < n_threads_; ++i) ts[i].join();
+}
+
+void PGBFS::InitialEvaluate() {
+  auto state = problem_->initial();
+  auto node = std::make_shared<SearchNodeWithNext>();
+  node->cost = 0;
+  node->action = -1;
+  node->parent = nullptr;
+  node->packed_state.resize(packer_->block_size());
+  packer_->Pack(state, node->packed_state.data());
+  node->hash = hash_->operator()(state);
+  node->next = nullptr;
+
+  node->h = evaluators_[0]->Evaluate(state, node);
+
+  for (int i = 0; i < n_threads_; ++i)
+    open_lists_[i]->Push(node->h, node, false);
+
+  std::cout << "Initial heuristic value: " << node->h << std::endl;
+}
+
+void PGBFS::Expand(int i) {
+  vector<int> state(problem_->n_variables());
+  vector<int> child(problem_->n_variables());
+  vector<int> applicable;
+  unordered_set<int> preferred;
+  vector<uint32_t> packed(packer_->block_size(), 0);
+
+  int best_h = -1;
+  int expanded = 0;
+  int evaluated = 0;
+  int generated = 0;
+  int dead_ends = 0;
+  int n_cached = 0;
+
+  while (!open_lists_[i]->IsEmpty() && goal_ == nullptr) {
+    auto node = open_lists_[i]->Pop();
+
+    if (!closed_lists_[i]->Close(node)) continue;
+
+    packer_->Unpack(node->packed_state.data(), state);
+    ++expanded;
+
+    if (problem_->IsGoal(state)) {
+      WriteGoal(node);
+      break;
+    }
+
+    generator_->Generate(state, applicable);
+
+    if (applicable.empty()) {
+      ++dead_ends;
+      continue;
+    }
+
+    if (use_preferred_)
+      preferring_[i]->Evaluate(state, node, applicable, preferred);
+
+    for (auto o : applicable) {
+      problem_->ApplyEffect(o, state, child);
+
+      uint32_t hash = hash_->HashByDifference(o, node->hash, state, child);
+      packer_->Pack(child, packed.data());
+
+      if (closed_lists_[i]->IsClosed(hash, packed)) continue;
+
+      std::shared_ptr<SearchNodeWithNext> child_node = nullptr;
+
+      if (cache_evaluation_) child_node = cached_->Find(hash, packed);
+
+      if (child_node != nullptr) {
+        ++n_cached;
+
+        if (child_node->h == -1) {
+          ++dead_ends;
+          continue;
+        }
+      } else {
+        child_node = std::make_shared<SearchNodeWithNext>();
+        child_node->cost = node->cost + problem_->ActionCost(o);
+        child_node->action = o;
+        child_node->parent = node;
+        child_node->packed_state = packed;
+        child_node->hash = hash;
+        child_node->next = nullptr;
+        ++generated;
+        int h = evaluators_[i]->Evaluate(child, child_node);
+        child_node->h = h;
+        ++evaluated;
+
+        if (cache_evaluation_) cached_->Close(child_node);
+
+        if (h == -1) {
+          ++dead_ends;
+          continue;
+        }
+
+        if ((best_h == -1 || h < best_h) && i == 0) {
+          best_h = h;
+          std::cout << "New best heuristic value: " << best_h << std::endl;
+          std::cout << "[" << generated << " generated, " << expanded
+                    << " expanded]" << std::endl;
+        }
+      }
+
+      bool is_preferred =
+          use_preferred_ && preferred.find(o) != preferred.end();
+
+      open_lists_[i]->Push(child_node->h, child_node, is_preferred);
+    }
+  }
+
+  WriteStat(expanded, evaluated, generated, dead_ends, n_cached);
+}
+
+std::shared_ptr<SearchNode> PGBFS::Search() {
+  InitialEvaluate();
+  vector<std::thread> ts;
+
+  for (int i = 0; i < n_threads_; ++i)
+    ts.push_back(std::thread([this, i] { this->Expand(i); }));
+
+  for (int i = 0; i < n_threads_; ++i) ts[i].join();
+
+  return goal_;
+}
+
+void PGBFS::DumpStatistics() const {
+  std::cout << "Expanded " << expanded_ << " state(s)" << std::endl;
+  std::cout << "Evaluated " << evaluated_ << " state(s)" << std::endl;
+  std::cout << "Generated " << generated_ << " state(s)" << std::endl;
+  std::cout << "Dead ends " << dead_ends_ << " state(s)" << std::endl;
+  std::cout << "Cached " << n_cached_ << " state(s)" << std::endl;
+}
+
+}  // namespace pplanner

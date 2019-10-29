@@ -10,6 +10,7 @@
 #include "open_list.h"
 #include "open_lists/preferred_open_list.h"
 //#include "open_lists/preferred_plus_open_list.h"
+#include <iostream>
 #include "open_lists/single_open_list.h"
 
 namespace pplanner {

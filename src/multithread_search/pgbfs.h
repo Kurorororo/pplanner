@@ -1,5 +1,5 @@
-#ifndef SPUHF_H_
-#define SPUHF_H_
+#ifndef PGBFS_H_
+#define PGBFS_H_
 
 #include <atomic>
 #include <memory>
@@ -28,33 +28,26 @@
 
 namespace pplanner {
 
-class SPUHF : public Search {
+class PGBFS : public Search {
  public:
-  struct SearchNodeWithFlag : public SearchNode {
-    std::shared_ptr<SearchNodeWithFlag> next;
-    bool certain;
-  };
-
-  SPUHF(std::shared_ptr<const SASPlus> problem,
+  PGBFS(std::shared_ptr<const SASPlus> problem,
         const boost::property_tree::ptree &pt)
       : use_preferred_(false),
+        cache_evaluation_(false),
         n_threads_(1),
         expanded_(0),
         evaluated_(0),
         generated_(0),
         dead_ends_(0),
         n_cached_(0),
-        n_expanding_(0),
-        h_expanding_(-1),
         problem_(problem),
         generator_(std::make_unique<SuccessorGenerator>(problem)),
         packer_(std::make_unique<StatePacker>(problem)),
-        hash_(std::make_unique<ZobristHash>(problem, 4166245435)),
-        open_list_(nullptr) {
+        hash_(std::make_unique<ZobristHash>(problem, 4166245435)) {
     Init(pt);
   }
 
-  ~SPUHF() {}
+  ~PGBFS() {}
 
   std::vector<int> Plan() override {
     auto goal = Search();
@@ -64,27 +57,14 @@ class SPUHF : public Search {
 
   void DumpStatistics() const override;
 
-  std::shared_ptr<SearchNodeWithFlag> Search();
+  std::shared_ptr<SearchNode> Search();
 
   void InitialEvaluate();
 
   void Expand(int i);
 
-  std::shared_ptr<SearchNodeWithFlag> LockedPop();
-
-  std::shared_ptr<SearchNodeWithFlag> SpeculativePop();
-
-  void LockedPush(int n,
-                  std::vector<std::shared_ptr<SearchNodeWithFlag>> node_buffer,
-                  std::vector<bool> is_preferred_buffer);
-
-  void SpeculativePush(
-      bool from_open, int n,
-      std::vector<std::shared_ptr<SearchNodeWithFlag>> node_buffer,
-      std::vector<bool> is_preferred_buffer);
-
-  void WriteGoal(std::shared_ptr<SearchNodeWithFlag> goal) {
-    std::shared_ptr<SearchNodeWithFlag> expected = nullptr;
+  void WriteGoal(std::shared_ptr<SearchNode> goal) {
+    std::shared_ptr<SearchNode> expected = nullptr;
     std::atomic_compare_exchange_strong(&goal_, &expected, goal);
   }
 
@@ -105,33 +85,27 @@ class SPUHF : public Search {
   void Init(const boost::property_tree::ptree &pt);
 
   bool use_preferred_;
+  bool cache_evaluation_;
   int n_threads_;
   int expanded_;
   int evaluated_;
   int generated_;
   int dead_ends_;
   int n_cached_;
-  std::atomic_int n_expanding_;
-  std::atomic_int h_expanding_;
-  std::shared_ptr<SearchNodeWithFlag> goal_;
+  std::shared_ptr<SearchNode> goal_;
   std::shared_ptr<const SASPlus> problem_;
   std::unique_ptr<SuccessorGenerator> generator_;
   std::unique_ptr<StatePacker> packer_;
   std::unique_ptr<ZobristHash> hash_;
-  std::unique_ptr<LockFreeClosedList<SearchNodeWithFlag>> closed_;
-  std::unique_ptr<LockFreeClosedList<SearchNodeWithFlag>> cached_;
+  std::vector<std::shared_ptr<ClosedList>> closed_lists_;
+  std::unique_ptr<LockFreeClosedList<SearchNodeWithNext>> cached_;
   std::vector<std::shared_ptr<Evaluator>> preferring_;
   std::vector<std::shared_ptr<Evaluator>> evaluators_;
-  std::shared_ptr<OpenList<int, std::shared_ptr<SearchNodeWithFlag>>>
-      open_list_;
-  std::shared_ptr<
-      OpenList<std::pair<int, int>, std::shared_ptr<SearchNodeWithFlag>>>
-      speculative_list_;
-  std::mutex open_mtx_;
-  std::mutex speculative_mtx_;
+  std::vector<std::shared_ptr<OpenList<int, std::shared_ptr<SearchNode>>>>
+      open_lists_;
   std::mutex stat_mtx_;
 };
 
 }  // namespace pplanner
 
-#endif  // SPUHF_H_
+#endif  // PGBFS_H_

@@ -60,6 +60,7 @@ add_library(search STATIC
   #./multithread_search/kplg_dump.cc
   ./multithread_search/puhf2.cc
   ./multithread_search/spuhf.cc
+  ./multithread_search/pgbfs.cc
   #./multithread_search/gbfs_portfolio.cc
   #./multithread_search/multi_focus_gbfs.cc
   #./multithread_search/independent_context.cc

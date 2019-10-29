@@ -140,6 +140,7 @@ void SPUHF::Expand(int i) {
   int evaluated = 0;
   int generated = 0;
   int dead_ends = 0;
+  int n_cached = 0;
 
   while (goal_ == nullptr) {
     auto node = LockedPop();
@@ -195,6 +196,7 @@ void SPUHF::Expand(int i) {
       if (found != nullptr) {
         if (!from_open) continue;
         child_node = found;
+        ++n_cached;
         if (min_h == -1 || child_node->h < min_h) min_h = child_node->h;
       } else {
         child_node = std::make_shared<SearchNodeWithFlag>();
@@ -210,6 +212,8 @@ void SPUHF::Expand(int i) {
         child_node->h = h;
         ++evaluated;
 
+        cached_->Close(child_node);
+
         if (h == -1) {
           ++dead_ends;
           continue;
@@ -223,8 +227,6 @@ void SPUHF::Expand(int i) {
           std::cout << "[" << generated << " generated, " << expanded
                     << " expanded]" << std::endl;
         }
-
-        if (!from_open) cached_->Close(child_node);
       }
 
       is_preferred_buffer[n_children] =
@@ -246,7 +248,7 @@ void SPUHF::Expand(int i) {
     }
   }
 
-  WriteStat(expanded, evaluated, generated, dead_ends);
+  WriteStat(expanded, evaluated, generated, dead_ends, n_cached);
 }
 
 std::shared_ptr<SPUHF::SearchNodeWithFlag> SPUHF::Search() {
@@ -266,6 +268,7 @@ void SPUHF::DumpStatistics() const {
   std::cout << "Evaluated " << evaluated_ << " state(s)" << std::endl;
   std::cout << "Generated " << generated_ << " state(s)" << std::endl;
   std::cout << "Dead ends " << dead_ends_ << " state(s)" << std::endl;
+  std::cout << "Cached " << n_cached_ << " state(s)" << std::endl;
 }
 
 }  // namespace pplanner
