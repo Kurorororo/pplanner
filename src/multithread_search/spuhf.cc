@@ -212,12 +212,12 @@ void SPUHF::Expand(int i) {
         child_node->h = h;
         ++evaluated;
 
-        cached_->Close(child_node);
-
         if (h == -1) {
           ++dead_ends;
           continue;
         }
+
+        if (!from_open) cached_->Close(child_node);
 
         if (min_h == -1 || h < min_h) min_h = h;
 
