@@ -38,6 +38,7 @@ class SPUHF : public Search {
   SPUHF(std::shared_ptr<const SASPlus> problem,
         const boost::property_tree::ptree &pt)
       : use_preferred_(false),
+        speculative_(false),
         n_threads_(1),
         expanded_(0),
         evaluated_(0),
@@ -105,6 +106,7 @@ class SPUHF : public Search {
   void Init(const boost::property_tree::ptree &pt);
 
   bool use_preferred_;
+  bool speculative_;
   int n_threads_;
   int expanded_;
   int evaluated_;

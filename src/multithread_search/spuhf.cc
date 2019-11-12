@@ -36,6 +36,8 @@ void SPUHF::Init(const boost::property_tree::ptree& pt) {
   goal_ = nullptr;
   int closed_exponent = 26;
 
+  if (auto opt = pt.get_optional<bool>("speculative")) speculative_ = opt.get();
+
   if (auto closed_exponent_opt = pt.get_optional<int>("closed_exponent"))
     closed_exponent = closed_exponent_opt.get();
 
@@ -47,8 +49,10 @@ void SPUHF::Init(const boost::property_tree::ptree& pt) {
           open_list_option);
   closed_ =
       std::make_unique<LockFreeClosedList<SearchNodeWithFlag>>(closed_exponent);
-  cached_ =
-      std::make_unique<LockFreeClosedList<SearchNodeWithFlag>>(closed_exponent);
+
+  if (speculative_)
+    cached_ = std::make_unique<LockFreeClosedList<SearchNodeWithFlag>>(
+        closed_exponent);
 
   if (auto opt = pt.get_optional<int>("n_threads")) n_threads_ = opt.get();
 
@@ -147,6 +151,7 @@ void SPUHF::Expand(int i) {
     bool from_open = true;
 
     if (node == nullptr) {
+      if (!speculative_) continue;
       node = SpeculativePop();
       if (node == nullptr) continue;
       from_open = false;
@@ -191,7 +196,9 @@ void SPUHF::Expand(int i) {
       if (closed_->IsClosed(hash, packed)) continue;
 
       auto& child_node = node_buffer[n_children];
-      auto found = cached_->Find(hash, packed);
+
+      std::shared_ptr<SearchNodeWithFlag> found =
+          speculative_ ? cached_->Find(hash, packed) : nullptr;
 
       if (found != nullptr) {
         if (!from_open) continue;
@@ -217,7 +224,7 @@ void SPUHF::Expand(int i) {
           continue;
         }
 
-        if (!from_open) cached_->Close(child_node);
+        if (speculative_ && !from_open) cached_->Close(child_node);
 
         if (min_h == -1 || h < min_h) min_h = h;
 
@@ -241,7 +248,9 @@ void SPUHF::Expand(int i) {
     }
 
     if (n_children > 0) {
-      SpeculativePush(from_open, n_children, node_buffer, is_preferred_buffer);
+      if (speculative_)
+        SpeculativePush(from_open, n_children, node_buffer,
+                        is_preferred_buffer);
       if (from_open) LockedPush(n_children, node_buffer, is_preferred_buffer);
     } else if (from_open) {
       --n_expanding_;
