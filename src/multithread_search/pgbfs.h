@@ -64,6 +64,8 @@ class PGBFS : public Search {
 
   void Expand(int i);
 
+  void GenerateSeed();
+
   void WriteGoal(std::shared_ptr<SearchNode> goal) {
     std::shared_ptr<SearchNode> expected = nullptr;
     std::atomic_compare_exchange_strong(&goal_, &expected, goal);

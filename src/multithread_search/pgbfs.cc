@@ -108,6 +108,94 @@ void PGBFS::InitialEvaluate() {
   std::cout << "Initial heuristic value: " << node->h << std::endl;
 }
 
+void PGBFS::GenerateSeed() {
+  vector<int> state(problem_->n_variables());
+  vector<int> child(problem_->n_variables());
+  vector<int> applicable;
+  unordered_set<int> preferred;
+  vector<uint32_t> packed(packer_->block_size(), 0);
+
+  int best_h = -1;
+
+  while (!open_lists_[0]->IsEmpty() && goal_ == nullptr &&
+         static_cast<int>(open_lists_[0]->size()) < n_threads_) {
+    auto node = open_lists_[0]->Pop();
+
+    if (!shared_closed_->Close(node)) continue;
+
+    packer_->Unpack(node->packed_state.data(), state);
+    ++expanded_;
+
+    if (problem_->IsGoal(state)) {
+      WriteGoal(node);
+      break;
+    }
+
+    generator_->Generate(state, applicable);
+
+    if (applicable.empty()) {
+      ++dead_ends_;
+      continue;
+    }
+
+    if (use_preferred_)
+      preferring_[0]->Evaluate(state, node, applicable, preferred);
+
+    for (auto o : applicable) {
+      problem_->ApplyEffect(o, state, child);
+
+      uint32_t hash = hash_->HashByDifference(o, node->hash, state, child);
+      packer_->Pack(child, packed.data());
+
+      if (shared_closed_->IsClosed(hash, packed)) continue;
+
+      std::shared_ptr<SearchNodeWithNext> child_node = nullptr;
+
+      if (cached_ != nullptr) child_node = cached_->Find(hash, packed);
+
+      if (child_node != nullptr) {
+        ++n_cached_;
+
+        if (child_node->h == -1) {
+          ++dead_ends_;
+          continue;
+        }
+      } else {
+        child_node = std::make_shared<SearchNodeWithNext>();
+        child_node->cost = node->cost + problem_->ActionCost(o);
+        child_node->action = o;
+        child_node->parent = node;
+        child_node->packed_state = packed;
+        child_node->hash = hash;
+        child_node->next = nullptr;
+        ++generated_;
+        int h = evaluators_[0]->Evaluate(child, child_node);
+        child_node->h = h;
+        ++evaluated_;
+
+        if (cached_ != nullptr) cached_->Close(child_node);
+
+        if (h == -1) {
+          ++dead_ends_;
+          continue;
+        }
+
+        if (best_h == -1 || h < best_h) {
+          best_h = h;
+          std::cout << "New best heuristic value: " << best_h << std::endl;
+          std::cout << "[" << generated_ << " generated, " << expanded_
+                    << " expanded]" << std::endl;
+        }
+      }
+
+      bool is_preferred =
+          use_preferred_ && preferred.find(o) != preferred.end();
+
+      open_lists_[0]->Push(child_node->h, child_node, is_preferred);
+    }
+  }
+}
+
 void PGBFS::Expand(int i) {
   vector<int> state(problem_->n_variables());
   vector<int> child(problem_->n_variables());
@@ -214,7 +302,7 @@ std::shared_ptr<SearchNode> PGBFS::Search() {
   InitialEvaluate();
 
   if (shared_closed_ != nullptr) {
-    while (open_lists_[0]->size() < n_threads_) Expand(0);
+    GenerateSeed();
 
     for (int i = 1; i < n_threads_; ++i) {
       int h = open_lists_[0]->MinimumValue();
