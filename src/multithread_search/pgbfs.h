@@ -33,7 +33,6 @@ class PGBFS : public Search {
   PGBFS(std::shared_ptr<const SASPlus> problem,
         const boost::property_tree::ptree &pt)
       : use_preferred_(false),
-        cache_evaluation_(false),
         n_threads_(1),
         expanded_(0),
         evaluated_(0),
@@ -43,7 +42,9 @@ class PGBFS : public Search {
         problem_(problem),
         generator_(std::make_unique<SuccessorGenerator>(problem)),
         packer_(std::make_unique<StatePacker>(problem)),
-        hash_(std::make_unique<ZobristHash>(problem, 4166245435)) {
+        hash_(std::make_unique<ZobristHash>(problem, 4166245435)),
+        cached_(nullptr),
+        shared_closed_(nullptr) {
     Init(pt);
   }
 
@@ -85,7 +86,6 @@ class PGBFS : public Search {
   void Init(const boost::property_tree::ptree &pt);
 
   bool use_preferred_;
-  bool cache_evaluation_;
   int n_threads_;
   int expanded_;
   int evaluated_;
@@ -99,9 +99,11 @@ class PGBFS : public Search {
   std::unique_ptr<ZobristHash> hash_;
   std::vector<std::shared_ptr<ClosedList>> closed_lists_;
   std::unique_ptr<LockFreeClosedList<SearchNodeWithNext>> cached_;
+  std::unique_ptr<LockFreeClosedList<SearchNodeWithNext>> shared_closed_;
   std::vector<std::shared_ptr<Evaluator>> preferring_;
   std::vector<std::shared_ptr<Evaluator>> evaluators_;
-  std::vector<std::shared_ptr<OpenList<int, std::shared_ptr<SearchNode>>>>
+  std::vector<
+      std::shared_ptr<OpenList<int, std::shared_ptr<SearchNodeWithNext>>>>
       open_lists_;
   std::mutex stat_mtx_;
 };

@@ -35,25 +35,31 @@ void PGBFS::InitHeuristics(int i, const boost::property_tree::ptree pt) {
 void PGBFS::Init(const boost::property_tree::ptree& pt) {
   if (auto opt = pt.get_optional<int>("n_threads")) n_threads_ = opt.get();
 
+  int shared_exponent = 26;
+
+  if (auto opt = pt.get_optional<int>("closed_exponent"))
+    shared_exponent = opt.get();
+
+  if (auto opt = pt.get_optional<bool>("share_closed")) {
+    if (opt.get())
+      shared_closed_ = std::make_unique<LockFreeClosedList<SearchNodeWithNext>>(
+          shared_exponent);
+  }
+
   int closed_exponent = 22;
 
   if (auto closed_exponent_opt = pt.get_optional<int>("closed_exponent"))
     closed_exponent = closed_exponent_opt.get();
 
-  for (int i = 0; i < n_threads_; ++i)
-    closed_lists_.push_back(std::make_shared<ClosedList>(closed_exponent));
+  if (shared_closed_ == nullptr) {
+    for (int i = 0; i < n_threads_; ++i)
+      closed_lists_.push_back(std::make_shared<ClosedList>(closed_exponent));
+  }
 
-  if (auto opt = pt.get_optional<bool>("cache_evaluation"))
-    cache_evaluation_ = opt.get();
-
-  if (cache_evaluation_) {
-    int cached_exponent = 22;
-
-    if (auto opt = pt.get_optional<int>("cached_exponent"))
-      cached_exponent = opt.get();
-
-    cached_ = std::make_unique<LockFreeClosedList<SearchNodeWithNext>>(
-        cached_exponent);
+  if (auto opt = pt.get_optional<bool>("cache_evaluation")) {
+    if (opt.get())
+      cached_ = std::make_unique<LockFreeClosedList<SearchNodeWithNext>>(
+          shared_exponent);
   }
 
   for (int i = 0; i < n_threads_; ++i) {
@@ -64,7 +70,8 @@ void PGBFS::Init(const boost::property_tree::ptree& pt) {
     if (i > 1) open_list_option.put("tie_breaking", "ro");
 
     open_lists_.push_back(
-        OpenListFactory<int, std::shared_ptr<SearchNode>>(open_list_option));
+        OpenListFactory<int, std::shared_ptr<SearchNodeWithNext>>(
+            open_list_option));
   }
 
   preferring_.resize(n_threads_);
@@ -91,8 +98,12 @@ void PGBFS::InitialEvaluate() {
 
   node->h = evaluators_[0]->Evaluate(state, node);
 
-  for (int i = 0; i < n_threads_; ++i)
-    open_lists_[i]->Push(node->h, node, false);
+  if (shared_closed_ == nullptr) {
+    for (int i = 0; i < n_threads_; ++i)
+      open_lists_[i]->Push(node->h, node, false);
+  } else {
+    open_lists_[0]->Push(node->h, node, false);
+  }
 
   std::cout << "Initial heuristic value: " << node->h << std::endl;
 }
@@ -114,7 +125,11 @@ void PGBFS::Expand(int i) {
   while (!open_lists_[i]->IsEmpty() && goal_ == nullptr) {
     auto node = open_lists_[i]->Pop();
 
-    if (!closed_lists_[i]->Close(node)) continue;
+    if (shared_closed_ == nullptr) {
+      if (!closed_lists_[i]->Close(node)) continue;
+    } else {
+      if (!shared_closed_->Close(node)) continue;
+    }
 
     packer_->Unpack(node->packed_state.data(), state);
     ++expanded;
@@ -140,11 +155,15 @@ void PGBFS::Expand(int i) {
       uint32_t hash = hash_->HashByDifference(o, node->hash, state, child);
       packer_->Pack(child, packed.data());
 
-      if (closed_lists_[i]->IsClosed(hash, packed)) continue;
+      if (shared_closed_ == nullptr) {
+        if (closed_lists_[i]->IsClosed(hash, packed)) continue;
+      } else {
+        if (shared_closed_->IsClosed(hash, packed)) continue;
+      }
 
       std::shared_ptr<SearchNodeWithNext> child_node = nullptr;
 
-      if (cache_evaluation_) child_node = cached_->Find(hash, packed);
+      if (cached_ != nullptr) child_node = cached_->Find(hash, packed);
 
       if (child_node != nullptr) {
         ++n_cached;
@@ -166,7 +185,7 @@ void PGBFS::Expand(int i) {
         child_node->h = h;
         ++evaluated;
 
-        if (cache_evaluation_) cached_->Close(child_node);
+        if (cached_ != nullptr) cached_->Close(child_node);
 
         if (h == -1) {
           ++dead_ends;
@@ -193,6 +212,17 @@ void PGBFS::Expand(int i) {
 
 std::shared_ptr<SearchNode> PGBFS::Search() {
   InitialEvaluate();
+
+  if (shared_closed_ != nullptr) {
+    while (open_lists_[0]->size() < n_threads_) Expand(0);
+
+    for (int i = 1; i < n_threads_; ++i) {
+      int h = open_lists_[0]->MinimumValue();
+      auto node = open_lists_[0]->Pop();
+      open_lists_[i]->Push(h, node, false);
+    }
+  }
+
   vector<std::thread> ts;
 
   for (int i = 0; i < n_threads_; ++i)
