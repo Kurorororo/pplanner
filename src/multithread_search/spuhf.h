@@ -39,6 +39,7 @@ class SPUHF : public Search {
         const boost::property_tree::ptree &pt)
       : use_preferred_(false),
         speculative_(false),
+        goal_from_speculation_(false),
         n_threads_(1),
         expanded_(0),
         evaluated_(0),
@@ -71,7 +72,7 @@ class SPUHF : public Search {
 
   void Expand(int i);
 
-  std::shared_ptr<SearchNodeWithFlag> LockedPop();
+  std::pair<bool, std::shared_ptr<SearchNodeWithFlag>> LockedPop();
 
   std::shared_ptr<SearchNodeWithFlag> SpeculativePop();
 
@@ -107,6 +108,7 @@ class SPUHF : public Search {
 
   bool use_preferred_;
   bool speculative_;
+  bool goal_from_speculation_;
   int n_threads_;
   int expanded_;
   int evaluated_;

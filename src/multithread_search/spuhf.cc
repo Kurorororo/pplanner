@@ -44,15 +44,16 @@ void SPUHF::Init(const boost::property_tree::ptree& pt) {
   auto open_list_option = pt.get_child("open_list");
   open_list_ = OpenListFactory<int, std::shared_ptr<SearchNodeWithFlag>>(
       open_list_option);
-  speculative_list_ =
-      OpenListFactory<std::pair<int, int>, std::shared_ptr<SearchNodeWithFlag>>(
-          open_list_option);
   closed_ =
       std::make_unique<LockFreeClosedList<SearchNodeWithFlag>>(closed_exponent);
 
-  if (speculative_)
+  if (speculative_) {
+    speculative_list_ =
+        OpenListFactory<std::pair<int, int>,
+                        std::shared_ptr<SearchNodeWithFlag>>(open_list_option);
     cached_ = std::make_unique<LockFreeClosedList<SearchNodeWithFlag>>(
         closed_exponent);
+  }
 
   if (auto opt = pt.get_optional<int>("n_threads")) n_threads_ = opt.get();
 
@@ -84,17 +85,17 @@ void SPUHF::InitialEvaluate() {
   std::cout << "Initial heuristic value: " << node->h << std::endl;
 }
 
-std::shared_ptr<SPUHF::SearchNodeWithFlag> SPUHF::LockedPop() {
+std::pair<bool, std::shared_ptr<SPUHF::SearchNodeWithFlag>> SPUHF::LockedPop() {
   std::lock_guard<std::mutex> lock(open_mtx_);
 
-  if (open_list_->IsEmpty()) return nullptr;
+  if (open_list_->IsEmpty()) return std::make_pair(n_expanding_ != 0, nullptr);
 
   if (open_list_->Top()->certain || n_expanding_ == 0) {
     ++n_expanding_;
-    return open_list_->Pop();
+    return std::make_pair(true, open_list_->Pop());
   }
 
-  return nullptr;
+  return std::make_pair(true, nullptr);
 }
 
 std::shared_ptr<SPUHF::SearchNodeWithFlag> SPUHF::SpeculativePop() {
@@ -147,7 +148,10 @@ void SPUHF::Expand(int i) {
   int n_cached = 0;
 
   while (goal_ == nullptr) {
-    auto node = LockedPop();
+    auto top = LockedPop();
+    if (!top.first) break;
+    auto node = top.second;
+
     bool from_open = true;
 
     if (node == nullptr) {
@@ -168,6 +172,7 @@ void SPUHF::Expand(int i) {
     if (problem_->IsGoal(state)) {
       WriteGoal(node);
       if (from_open) --n_expanding_;
+      if (!from_open) goal_from_speculation_ = true;
       break;
     }
 
@@ -193,7 +198,12 @@ void SPUHF::Expand(int i) {
       uint32_t hash = hash_->HashByDifference(o, node->hash, state, child);
       packer_->Pack(child, packed.data());
 
-      if (closed_->IsClosed(hash, packed)) continue;
+      auto closed_node = closed_->Find(hash, packed);
+
+      if (closed_node != nullptr) {
+        if (min_h == -1 || closed_node->h < min_h) min_h = closed_node->h;
+        continue;
+      }
 
       auto& child_node = node_buffer[n_children];
 
@@ -278,6 +288,10 @@ void SPUHF::DumpStatistics() const {
   std::cout << "Generated " << generated_ << " state(s)" << std::endl;
   std::cout << "Dead ends " << dead_ends_ << " state(s)" << std::endl;
   std::cout << "Cached " << n_cached_ << " state(s)" << std::endl;
+  if (goal_from_speculation_)
+    std::cout << "Goal from speculation: " << 1 << " state(s)" << std::endl;
+  else
+    std::cout << "Goal from speculation: " << 0 << " state(s)" << std::endl;
 }
 
 }  // namespace pplanner
