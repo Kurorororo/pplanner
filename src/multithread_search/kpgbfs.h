@@ -32,6 +32,7 @@ class KPGBFS : public Search {
   KPGBFS(std::shared_ptr<const SASPlus> problem,
          const boost::property_tree::ptree &pt)
       : use_preferred_(false),
+        dump_(false),
         n_threads_(1),
         expanded_(0),
         evaluated_(0),
@@ -100,6 +101,7 @@ class KPGBFS : public Search {
   void Init(const boost::property_tree::ptree &pt);
 
   bool use_preferred_;
+  bool dump_;
   int n_threads_;
   int expanded_;
   int evaluated_;
@@ -116,6 +118,7 @@ class KPGBFS : public Search {
   std::shared_ptr<
       OpenList<std::vector<int>, std::shared_ptr<SearchNodeWithNext>>>
       open_list_;
+  std::vector<std::shared_ptr<SearchNode>> expanded_nodes_;
   std::mutex open_mtx_;
   std::mutex stat_mtx_;
 };

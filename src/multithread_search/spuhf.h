@@ -40,6 +40,7 @@ class SPUHF : public Search {
       : use_preferred_(false),
         speculative_(false),
         goal_from_speculation_(false),
+        dump_(false),
         n_threads_(1),
         expanded_(0),
         evaluated_(0),
@@ -109,6 +110,7 @@ class SPUHF : public Search {
   bool use_preferred_;
   bool speculative_;
   bool goal_from_speculation_;
+  bool dump_;
   int n_threads_;
   int expanded_;
   int evaluated_;
@@ -131,6 +133,7 @@ class SPUHF : public Search {
   std::shared_ptr<
       OpenList<std::pair<int, int>, std::shared_ptr<SearchNodeWithFlag>>>
       speculative_list_;
+  std::vector<std::shared_ptr<SearchNode>> expanded_nodes_;
   std::mutex open_mtx_;
   std::mutex speculative_mtx_;
   std::mutex stat_mtx_;

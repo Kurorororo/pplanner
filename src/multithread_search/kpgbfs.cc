@@ -42,6 +42,8 @@ void KPGBFS::Init(const boost::property_tree::ptree& pt) {
   if (auto closed_exponent_opt = pt.get_optional<int>("closed_exponent"))
     closed_exponent = closed_exponent_opt.get();
 
+  if (auto opt = pt.get_optional<bool>("dump")) dump_ = opt.get();
+
   auto open_list_option = pt.get_child("open_list");
   open_list_ =
       OpenListFactory<std::vector<int>, std::shared_ptr<SearchNodeWithNext>>(
@@ -114,6 +116,11 @@ void KPGBFS::Expand(int i) {
 
     packer_->Unpack(node->packed_state.data(), state);
     ++expanded;
+
+    if (dump_) {
+      std::lock_guard<std::mutex> lock(stat_mtx_);
+      expanded_nodes_.push_back(node);
+    }
 
     if (problem_->IsGoal(state)) {
       WriteGoal(node);
@@ -189,6 +196,34 @@ void KPGBFS::DumpStatistics() const {
   std::cout << "Evaluated " << evaluated_ << " state(s)" << std::endl;
   std::cout << "Generated " << generated_ << " state(s)" << std::endl;
   std::cout << "Dead ends " << dead_ends_ << " state(s)" << std::endl;
+
+  if (dump_) {
+    std::ofstream dump_file;
+    dump_file.open("expanded_nodes.csv", std::ios::out);
+
+    dump_file << "order";
+
+    for (int i = 0; i < problem_->n_variables(); ++i) {
+      dump_file << ",v" << i;
+    }
+
+    dump_file << std::endl;
+
+    std::vector<int> state(problem_->n_variables());
+    int order = 0;
+
+    for (auto node : expanded_nodes_) {
+      packer_->Unpack(node->packed_state.data(), state);
+
+      dump_file << order;
+
+      for (int j = 0; j < problem_->n_variables(); ++j)
+        dump_file << "," << state[j];
+
+      dump_file << std::endl;
+      order += 1;
+    }
+  }
 }
 
 }  // namespace pplanner
