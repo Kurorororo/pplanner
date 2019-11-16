@@ -304,6 +304,8 @@ std::shared_ptr<SearchNode> PGBFS::Search() {
   if (shared_closed_ != nullptr) {
     GenerateSeed();
 
+    if (goal_ != nullptr) return goal_;
+
     for (int i = 1; i < n_threads_; ++i) {
       int h = open_lists_[0]->MinimumValue();
       auto node = open_lists_[0]->Pop();
