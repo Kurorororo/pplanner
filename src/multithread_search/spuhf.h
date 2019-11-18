@@ -128,12 +128,12 @@ class SPUHF : public Search {
   std::unique_ptr<LockFreeClosedList<SearchNodeWithFlag>> cached_;
   std::vector<std::shared_ptr<Evaluator>> preferring_;
   std::vector<std::shared_ptr<Evaluator>> evaluators_;
-  std::shared_ptr<OpenList<int, std::shared_ptr<SearchNodeWithFlag>>>
+  std::shared_ptr<OpenList<std::pair<int, int>, std::shared_ptr<SearchNodeWithFlag>>>
       open_list_;
   std::shared_ptr<
       OpenList<std::pair<int, int>, std::shared_ptr<SearchNodeWithFlag>>>
       speculative_list_;
-  std::vector<std::shared_ptr<SearchNode>> expanded_nodes_;
+  std::vector<std::shared_ptr<SearchNodeWithFlag>> expanded_nodes_;
   std::mutex open_mtx_;
   std::mutex speculative_mtx_;
   std::mutex stat_mtx_;
