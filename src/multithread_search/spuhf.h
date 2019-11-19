@@ -77,14 +77,10 @@ class SPUHF : public Search {
 
   std::shared_ptr<SearchNodeWithFlag> SpeculativePop();
 
-  void LockedPush(int n,
-                  std::vector<std::shared_ptr<SearchNodeWithFlag>> node_buffer,
+  void LockedPush(std::vector<std::shared_ptr<SearchNodeWithFlag>> node_buffer,
                   std::vector<bool> is_preferred_buffer);
 
-  void SpeculativePush(
-      bool from_open, int n,
-      std::vector<std::shared_ptr<SearchNodeWithFlag>> node_buffer,
-      std::vector<bool> is_preferred_buffer);
+  void SpeculativePush(bool from_open, std::vector<std::shared_ptr<SearchNodeWithFlag>> node_buffer, std::vector<bool> is_preferred_buffer);
 
   void WriteGoal(std::shared_ptr<SearchNodeWithFlag> goal) {
     std::shared_ptr<SearchNodeWithFlag> expected = nullptr;

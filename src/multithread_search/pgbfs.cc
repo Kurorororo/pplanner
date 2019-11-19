@@ -271,7 +271,18 @@ void PGBFS::Expand(int i) {
         child_node->h = h;
         ++evaluated;
 
-        if (cached_ != nullptr) cached_->Close(child_node);
+        if (cached_ != nullptr) {
+          std::shared_ptr<SearchNodeWithNext> cache_node =
+              std::make_shared<SearchNodeWithNext>();
+          cache_node->h = h;
+          cache_node->cost = node->cost + problem_->ActionCost(o);
+          cache_node->action = o;
+          cache_node->parent = node;
+          cache_node->packed_state = packed;
+          cache_node->hash = hash;
+          cache_node->next = nullptr;
+          cached_->Close(cache_node);
+        }
 
         if (h == -1) {
           ++dead_ends;
