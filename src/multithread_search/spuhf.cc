@@ -44,9 +44,8 @@ void SPUHF::Init(const boost::property_tree::ptree& pt) {
     closed_exponent = closed_exponent_opt.get();
 
   auto open_list_option = pt.get_child("open_list");
-  open_list_ =
-      OpenListFactory<std::pair<int, int>, std::shared_ptr<SearchNodeWithFlag>>(
-          open_list_option);
+  open_list_ = OpenListFactory<int, std::shared_ptr<SearchNodeWithFlag>>(
+      open_list_option);
   closed_ =
       std::make_unique<LockFreeClosedList<SearchNodeWithFlag>>(closed_exponent);
 
@@ -84,7 +83,7 @@ void SPUHF::InitialEvaluate() {
   node->certain = true;
 
   node->h = evaluators_[0]->Evaluate(state, node);
-  open_list_->Push(std::make_pair(0, node->h), node, false);
+  open_list_->Push(node->h, node, false);
   std::cout << "Initial heuristic value: " << node->h << std::endl;
 }
 
@@ -114,11 +113,8 @@ void SPUHF::LockedPush(
     vector<bool> is_preferred_buffer) {
   std::lock_guard<std::mutex> lock(open_mtx_);
 
-  for (int i = 0; i < n; ++i) {
-    auto value =
-        std::make_pair(node_buffer[i]->certain ? 0 : 1, node_buffer[i]->h);
-    open_list_->Push(value, node_buffer[i], is_preferred_buffer[i]);
-  }
+  for (int i = 0; i < n; ++i)
+    open_list_->Push(node_buffer[i]->h, node_buffer[i], is_preferred_buffer[i]);
 
   --n_expanding_;
 }
