@@ -205,42 +205,42 @@ void SPUHF::Expand(int i) {
       uint32_t hash = hash_->HashByDifference(o, node->hash, state, child);
       packer_->Pack(child, packed.data());
       auto closed_node = closed_->Find(hash, packed);
-
       if (closed_node != nullptr) {
         if (min_h == -1 || closed_node->h < min_h) min_h = closed_node->h;
         continue;
       }
 
-      auto& child_node = node_buffer[n_children];
-
       std::shared_ptr<SearchNodeWithFlag> found =
           speculative_ ? cached_->Find(hash, packed) : nullptr;
 
+      if (found != nullptr && (!from_open || found->h == -1)) continue;
+
+      auto& child_node = node_buffer[n_children];
+      child_node = std::make_shared<SearchNodeWithFlag>();
+      child_node->cost = node->cost + problem_->ActionCost(o);
+      child_node->action = o;
+      child_node->parent = node;
+      child_node->packed_state = packed;
+      child_node->hash = hash;
+      child_node->next = nullptr;
+      child_node->certain = false;
+      ++generated;
+
       if (found != nullptr) {
-        if (!from_open) continue;
-        child_node = found;
+        child_node->h = found->h;
         ++n_cached;
         if (min_h == -1 || child_node->h < min_h) min_h = child_node->h;
       } else {
-        child_node = std::make_shared<SearchNodeWithFlag>();
-        child_node->cost = node->cost + problem_->ActionCost(o);
-        child_node->action = o;
-        child_node->parent = node;
-        child_node->packed_state = packed;
-        child_node->hash = hash;
-        child_node->next = nullptr;
-        child_node->certain = false;
-        ++generated;
         int h = evaluators_[i]->Evaluate(child, child_node);
         child_node->h = h;
         ++evaluated;
+
+        if (speculative_ && !from_open) cached_->Close(child_node);
 
         if (h == -1) {
           ++dead_ends;
           continue;
         }
-
-        if (speculative_ && !from_open) cached_->Close(child_node);
 
         if (min_h == -1 || h < min_h) min_h = h;
 

@@ -149,26 +149,25 @@ void PGBFS::GenerateSeed() {
 
       if (shared_closed_->IsClosed(hash, packed)) continue;
 
-      std::shared_ptr<SearchNodeWithNext> child_node = nullptr;
+      std::shared_ptr<SearchNodeWithNext> found =
+          cached_ != nullptr ? cached_->Find(hash, packed) : nullptr;
 
-      if (cached_ != nullptr) child_node = cached_->Find(hash, packed);
+      if (found != nullptr && found->h == -1) continue;
 
-      if (child_node != nullptr) {
+      std::shared_ptr<SearchNodeWithNext> child_node =
+          std::make_shared<SearchNodeWithNext>();
+      child_node->cost = node->cost + problem_->ActionCost(o);
+      child_node->action = o;
+      child_node->parent = node;
+      child_node->packed_state = packed;
+      child_node->hash = hash;
+      child_node->next = nullptr;
+      ++generated_;
+
+      if (found != nullptr) {
         ++n_cached_;
-
-        if (child_node->h == -1) {
-          ++dead_ends_;
-          continue;
-        }
+        child_node->h = found->h;
       } else {
-        child_node = std::make_shared<SearchNodeWithNext>();
-        child_node->cost = node->cost + problem_->ActionCost(o);
-        child_node->action = o;
-        child_node->parent = node;
-        child_node->packed_state = packed;
-        child_node->hash = hash;
-        child_node->next = nullptr;
-        ++generated_;
         int h = evaluators_[0]->Evaluate(child, child_node);
         child_node->h = h;
         ++evaluated_;
@@ -249,25 +248,24 @@ void PGBFS::Expand(int i) {
         if (shared_closed_->IsClosed(hash, packed)) continue;
       }
 
-      std::shared_ptr<SearchNodeWithNext> child_node = nullptr;
+      std::shared_ptr<SearchNodeWithNext> found =
+          cached_ != nullptr ? cached_->Find(hash, packed) : nullptr;
 
-      if (cached_ != nullptr) child_node = cached_->Find(hash, packed);
+      if (found != nullptr && found->h == -1) continue;
 
-      if (child_node != nullptr) {
+      std::shared_ptr<SearchNodeWithNext> child_node =
+          std::make_shared<SearchNodeWithNext>();
+      child_node->cost = node->cost + problem_->ActionCost(o);
+      child_node->action = o;
+      child_node->parent = node;
+      child_node->packed_state = packed;
+      child_node->hash = hash;
+      child_node->next = nullptr;
+
+      if (found != nullptr) {
         ++n_cached;
-
-        if (child_node->h == -1) {
-          ++dead_ends;
-          continue;
-        }
+        child_node->h = found->h;
       } else {
-        child_node = std::make_shared<SearchNodeWithNext>();
-        child_node->cost = node->cost + problem_->ActionCost(o);
-        child_node->action = o;
-        child_node->parent = node;
-        child_node->packed_state = packed;
-        child_node->hash = hash;
-        child_node->next = nullptr;
         ++generated;
         int h = evaluators_[i]->Evaluate(child, child_node);
         child_node->h = h;
