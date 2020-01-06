@@ -12,15 +12,14 @@
 
 namespace pplanner {
 
-template<class T>
+template <class T>
 class DistributedSearchGraphWithTimestamp : public T {
  public:
   DistributedSearchGraphWithTimestamp(std::shared_ptr<const SASPlus> problem,
                                       int closed_exponent, int n_evaluators,
                                       int rank)
-    : T(problem, closed_exponent, n_evaluators, rank),
-      n_variables_(problem->n_variables()) {
-  }
+      : T(problem, closed_exponent, n_evaluators, rank),
+        n_variables_(problem->n_variables()) {}
 
   ~DistributedSearchGraphWithTimestamp() {}
 
@@ -28,14 +27,15 @@ class DistributedSearchGraphWithTimestamp : public T {
     T::Expand(i, state);
     ids_.push_back(i);
     auto now = std::chrono::system_clock::now();
-    long long int timestamp = std::chrono::duration_cast<
-      std::chrono::nanoseconds>(now.time_since_epoch()).count();
+    long long int timestamp =
+        std::chrono::duration_cast<std::chrono::nanoseconds>(
+            now.time_since_epoch())
+            .count();
     timestamps_.push_back(timestamp);
   }
 
   void SetH(int i, int h) override {
-    if (static_cast<int>(hs_.size()) <= i)
-      hs_.resize(i + 1);
+    if (static_cast<int>(hs_.size()) <= i) hs_.resize(i + 1);
 
     hs_[i] = h;
   }
@@ -50,10 +50,10 @@ class DistributedSearchGraphWithTimestamp : public T {
     expanded_nodes.open(filename, std::ios::out);
 
     if (this->rank() == 0) {
-      expanded_nodes << "rank_id,parent_rank_id,node_id,parent_node_id,h,timestamp";
+      expanded_nodes
+          << "rank_id,parent_rank_id,node_id,parent_node_id,h,timestamp";
 
-      //for (int i=0; i<n_variables_; ++i)
-      //  expanded_nodes << ",v" << i;
+      for (int i = 0; i < n_variables_; ++i) expanded_nodes << ",v" << i;
 
       expanded_nodes << std::endl;
     }
@@ -61,7 +61,7 @@ class DistributedSearchGraphWithTimestamp : public T {
     std::vector<int> state(n_variables_);
     std::vector<bool> expanded_table(this->size(), false);
 
-    for (int i=0, n=ids_.size(); i<n; ++i) {
+    for (int i = 0, n = ids_.size(); i < n; ++i) {
       int node = ids_[i];
       expanded_table[node] = true;
       expanded_nodes << this->rank() << "," << this->ParentRank(node) << ",";
@@ -69,27 +69,25 @@ class DistributedSearchGraphWithTimestamp : public T {
       expanded_nodes << hs_[node] << "," << timestamps_[i];
       this->State(node, state);
 
-      //for (int i=0; i<n_variables_; ++i)
-      //  expanded_nodes << "," << state[i];
+      for (int i = 0; i < n_variables_; ++i) expanded_nodes << "," << state[i];
 
       expanded_nodes << std::endl;
     }
 
-    for (int i=0, n=this->size(); i<n; ++i) {
-      if (expanded_table[i] || !expanded_table[this->Parent(i)]) continue;
+    // for (int i = 0, n = this->size(); i < n; ++i) {
+    //  if (expanded_table[i] || !expanded_table[this->Parent(i)]) continue;
 
-      expanded_nodes << this->rank() << "," << this->ParentRank(i) << ",";
-      expanded_nodes << i << "," << this->Parent(i) << ",";
-      expanded_nodes << hs_[i] << ",9999999999999999999";
+    //  expanded_nodes << this->rank() << "," << this->ParentRank(i) << ",";
+    //  expanded_nodes << i << "," << this->Parent(i) << ",";
+    //  expanded_nodes << hs_[i] << ",9999999999999999999";
 
-      this->State(i, state);
+    //  this->State(i, state);
 
-      //for (int i=0; i<n_variables_; ++i)
-      //  expanded_nodes << "," << state[i];
+    //  // for (int i=0; i<n_variables_; ++i)
+    //  //  expanded_nodes << "," << state[i];
 
-
-      expanded_nodes << std::endl;
-    }
+    //  expanded_nodes << std::endl;
+    //}
   }
 
  private:
@@ -99,6 +97,6 @@ class DistributedSearchGraphWithTimestamp : public T {
   std::vector<long long int> timestamps_;
 };
 
-} // namespace pplanner
+}  // namespace pplanner
 
-#endif // DISTRIBUTED_SEARCH_GRAPH_WITH_TIMESTAMP_H_
+#endif  // DISTRIBUTED_SEARCH_GRAPH_WITH_TIMESTAMP_H_
