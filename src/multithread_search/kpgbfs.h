@@ -38,6 +38,7 @@ class KPGBFS : public Search {
         evaluated_(0),
         generated_(0),
         dead_ends_(0),
+        expansion_limit_(-1),
         problem_(problem),
         generator_(std::make_unique<SuccessorGenerator>(problem)),
         packer_(std::make_unique<StatePacker>(problem)),
@@ -107,6 +108,7 @@ class KPGBFS : public Search {
   int evaluated_;
   int generated_;
   int dead_ends_;
+  int expansion_limit_;
   std::shared_ptr<SearchNodeWithNext> goal_;
   std::shared_ptr<const SASPlus> problem_;
   std::unique_ptr<SuccessorGenerator> generator_;

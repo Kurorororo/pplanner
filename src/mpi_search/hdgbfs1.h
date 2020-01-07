@@ -48,6 +48,8 @@ class HDGBFS1 : public Search {
         n_sent_(0),
         n_sent_or_generated_(0),
         n_received_(0),
+        n_buffered_(0),
+        n_recvd_(0),
         best_h_(-1),
         initial_rank_(0),
         world_size_(1),
@@ -55,6 +57,7 @@ class HDGBFS1 : public Search {
         n_d_pruned_(0),
         n_evaluators_(0),
         mpi_buffer_(nullptr),
+        time_limit_(-1.0),
         min_pruning_ratio_(0.0),
         problem_(problem),
         preferring_(nullptr),
@@ -204,6 +207,8 @@ class HDGBFS1 : public Search {
   int n_sent_;
   int n_sent_or_generated_;
   int n_received_;
+  int n_buffered_;
+  int n_recvd_;
   int best_h_;
   int initial_rank_;
   int world_size_;
@@ -211,6 +216,7 @@ class HDGBFS1 : public Search {
   int n_d_pruned_;
   int n_evaluators_;
   unsigned char *mpi_buffer_;
+  float time_limit_;
   double min_pruning_ratio_;
   std::vector<int> best_values_;
   std::vector<unsigned char> incoming_buffer_;

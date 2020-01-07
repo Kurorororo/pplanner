@@ -36,6 +36,9 @@ void KPGBFS::InitHeuristics(int i, const boost::property_tree::ptree pt) {
 }
 
 void KPGBFS::Init(const boost::property_tree::ptree& pt) {
+  if (auto opt = pt.get_optional<int>("expansion_limit"))
+    expansion_limit_ = opt.get();
+
   goal_ = nullptr;
   int closed_exponent = 26;
 
@@ -110,6 +113,8 @@ void KPGBFS::Expand(int i) {
   int dead_ends = 0;
 
   while (goal_ == nullptr) {
+    if (expansion_limit_ > 0 && expanded >= expansion_limit_) break;
+
     auto node = LockedPop();
 
     if (node == nullptr || !closed_->Close(node)) continue;
@@ -201,7 +206,7 @@ void KPGBFS::DumpStatistics() const {
     std::ofstream dump_file;
     dump_file.open("expanded_nodes.csv", std::ios::out);
 
-    dump_file << "order,dummy1,dummy2,dummy3,dummy4,dummy5";
+    dump_file << "node_id,parent_node_id,h,dummy1,dummy2,dummy3";
 
     for (int i = 0; i < problem_->n_variables(); ++i) {
       dump_file << ",v" << i;
@@ -215,8 +220,13 @@ void KPGBFS::DumpStatistics() const {
     for (auto node : expanded_nodes_) {
       packer_->Unpack(node->packed_state.data(), state);
 
-      dump_file << order;
-      dump_file << ",0,0,0,0,0";
+      node->id = order;
+      int parent_id = -1;
+
+      if (node->parent != nullptr) parent_id = node->parent->id;
+
+      dump_file << order << "," << parent_id << "," << node->h;
+      dump_file << ",0,0,0";
 
       for (int j = 0; j < problem_->n_variables(); ++j)
         dump_file << "," << state[j];

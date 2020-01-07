@@ -320,7 +320,7 @@ void SPUHF::DumpStatistics() const {
     std::ofstream dump_file;
     dump_file.open("expanded_nodes.csv", std::ios::out);
 
-    dump_file << "order,dummy1,dummy2,dummy3,dummy4,dummy5";
+    dump_file << "node_id,parent_node_id,h,dummy1,dummy2,dummy3";
 
     for (int i = 0; i < problem_->n_variables(); ++i) {
       dump_file << ",v" << i;
@@ -334,8 +334,13 @@ void SPUHF::DumpStatistics() const {
     for (auto node : expanded_nodes_) {
       packer_->Unpack(node->packed_state.data(), state);
 
-      dump_file << order;
-      dump_file << ",0,0,0,0,0";
+      node->id = order;
+      int parent_id = -1;
+
+      if (node->parent != nullptr) parent_id = node->parent->id;
+
+      dump_file << order << "," << parent_id << "," << node->h;
+      dump_file << ",0,0,0";
 
       for (int j = 0; j < problem_->n_variables(); ++j)
         dump_file << "," << state[j];

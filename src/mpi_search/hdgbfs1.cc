@@ -1,6 +1,7 @@
 #include "mpi_search/hdgbfs1.h"
 
 #include <algorithm>
+#include <chrono>
 #include <iostream>
 #include <unordered_set>
 
@@ -25,6 +26,8 @@ void HDGBFS1::Init(const boost::property_tree::ptree &pt) {
     limit_expansion_ = true;
     max_expansion_ = opt.get();
   }
+
+  if (auto opt = pt.get_optional<float>("time_limit")) time_limit_ = opt.get();
 
   int closed_exponent = 22;
 
@@ -126,6 +129,7 @@ void HDGBFS1::Init(const boost::property_tree::ptree &pt) {
 }
 
 int HDGBFS1::Search() {
+  auto start_time = std::chrono::system_clock::now();
   auto state = InitialEvaluate();
 
   while (!ReceiveTermination()) {
@@ -143,6 +147,18 @@ int HDGBFS1::Search() {
       SendTermination();
 
       return goal;
+    }
+
+    if (time_limit_ > 0.0) {
+      auto now = std::chrono::system_clock::now();
+      auto seconds =
+          std::chrono::duration_cast<std::chrono::seconds>(now - start_time)
+              .count();
+
+      if (static_cast<float>(seconds) > time_limit_) {
+        SendTermination();
+        return goal;
+      }
     }
 
     SendNodes(kNodeTag);
@@ -370,6 +386,8 @@ void HDGBFS1::SendNodes(int tag) {
 
     unsigned char *d = outgoing_buffers_[i].data();
     MPI_Bsend(d, outgoing_buffers_[i].size(), MPI_BYTE, i, tag, MPI_COMM_WORLD);
+    n_buffered_ += outgoing_buffers_[i].size() /
+                   (node_size() + n_evaluators_ * sizeof(int));
     ClearOutgoingBuffer(i);
   }
 }
@@ -394,6 +412,7 @@ void HDGBFS1::ReceiveNodes() {
 
     auto buffer = IncomingBuffer();
     size_t n_nodes = d_size / unit_size;
+    n_recvd_ += n_nodes;
 
     for (size_t i = 0; i < n_nodes; ++i) {
       memcpy(values.data(), buffer, values.size() * sizeof(int));
@@ -574,6 +593,13 @@ void HDGBFS1::DumpStatistics() const {
   MPI_Gather(&expanded_, 1, MPI_INT, expanded_array, 1, MPI_INT, initial_rank_,
              MPI_COMM_WORLD);
 
+  int buffered_array[world_size_];
+  MPI_Gather(&n_buffered_, 1, MPI_INT, buffered_array, 1, MPI_INT,
+             initial_rank_, MPI_COMM_WORLD);
+  int recvd_array[world_size_];
+  MPI_Gather(&n_recvd_, 1, MPI_INT, recvd_array, 1, MPI_INT, initial_rank_,
+             MPI_COMM_WORLD);
+
   if (rank_ == initial_rank_) {
     std::cout << "Expanded " << expanded << " state(s)" << std::endl;
     std::cout << "Evaluated " << evaluated << " state(s)" << std::endl;
@@ -612,27 +638,36 @@ void HDGBFS1::DumpStatistics() const {
 
     std::cout << "CO " << co << std::endl;
 
-    double mean = 0.0;
-
-    for (int i = 0; i < world_size_; ++i)
-      mean += static_cast<double>(expanded_array[i]);
-
-    mean /= static_cast<double>(world_size_);
-
-    double var = 0.0;
+    int arg_max = -1;
+    int max_exp = -1;
+    int arg_min = -1;
+    int min_exp = -1;
+    int total_buffered = 0;
+    int total_recvd = 0;
 
     for (int i = 0; i < world_size_; ++i) {
-      double diff = static_cast<double>(expanded_array[i]) - mean;
-      var += diff * diff;
+      total_buffered += buffered_array[i];
+      total_recvd += recvd_array[i];
+
+      if (arg_max == -1 || expanded_array[i] > max_exp) {
+        arg_max = i;
+        max_exp = expanded_array[i];
+      }
+
+      if (arg_min == -1 || expanded_array[i] < min_exp) {
+        arg_min = i;
+        min_exp = expanded_array[i];
+      }
     }
 
-    var /= static_cast<double>(world_size_);
-
-    std::cout << "Expansion mean " << mean << std::endl;
-    std::cout << "Expansion variance " << var << std::endl;
-
-    if (use_dominance_)
-      std::cout << "Pruned by dominance " << n_d_pruned << std::endl;
+    std::cout << "Max expansions: " << max_exp << std::endl;
+    std::cout << "Min expansions: " << min_exp << std::endl;
+    std::cout << "Max buffered: " << buffered_array[arg_max] << std::endl;
+    std::cout << "Min buffered: " << buffered_array[arg_min] << std::endl;
+    std::cout << "Max recvd: " << recvd_array[arg_max] << std::endl;
+    std::cout << "Min recvd: " << recvd_array[arg_min] << std::endl;
+    std::cout << "Total buffered:: " << total_buffered << std::endl;
+    std::cout << "Total recvd: " << total_recvd << std::endl;
   }
 
   graph_->Dump();

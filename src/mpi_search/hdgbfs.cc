@@ -1,6 +1,7 @@
 #include "mpi_search/hdgbfs.h"
 
 #include <algorithm>
+#include <chrono>
 #include <iostream>
 #include <unordered_set>
 
@@ -25,6 +26,8 @@ void HDGBFS::Init(const boost::property_tree::ptree &pt) {
     limit_expansion_ = true;
     max_expansion_ = opt.get();
   }
+
+  if (auto opt = pt.get_optional<float>("time_limit")) time_limit_ = opt.get();
 
   if (auto opt = pt.get_optional<int>("runup")) runup_ = true;
 
@@ -122,6 +125,7 @@ void HDGBFS::Init(const boost::property_tree::ptree &pt) {
 }
 
 int HDGBFS::Search() {
+  auto start_time = std::chrono::system_clock::now();
   auto state = InitialEvaluate();
 
   if (runup() && rank() == initial_rank()) {
@@ -148,8 +152,19 @@ int HDGBFS::Search() {
 
     if (goal != -1 || (limit_expansion() && expanded() > max_expansion())) {
       SendTermination();
-
       return goal;
+    }
+
+    if (time_limit_ > 0.0) {
+      auto now = std::chrono::system_clock::now();
+      auto seconds =
+          std::chrono::duration_cast<std::chrono::seconds>(now - start_time)
+              .count();
+
+      if (static_cast<float>(seconds) > time_limit_) {
+        SendTermination();
+        return goal;
+      }
     }
   }
 
@@ -423,6 +438,7 @@ void HDGBFS::SendNodes(int tag) {
 
     const unsigned char *d = OutgoingBuffer(i);
     MPI_Bsend(d, OutgoingBufferSize(i), MPI_BYTE, i, tag, MPI_COMM_WORLD);
+    n_buffered_ += OutgoingBufferSize(i) / node_size();
     ClearOutgoingBuffer(i);
   }
 }
@@ -435,15 +451,23 @@ void HDGBFS::ReceiveNodes() {
 
   if (has_received) ++n_received_;
 
+  int now_recvd = 0;
+  size_t recvd_bytes = 0;
+
   while (has_received) {
     int d_size = 0;
     int source = status.MPI_SOURCE;
     MPI_Get_count(&status, MPI_BYTE, &d_size);
-    ResizeIncomingBuffer(d_size);
-    MPI_Recv(IncomingBuffer(), d_size, MPI_BYTE, source, kNodeTag,
-             MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    ResizeIncomingBuffer(recvd_bytes + d_size);
+    unsigned char *buffer = incoming_buffer_.data() + recvd_bytes;
+    MPI_Recv(buffer, d_size, MPI_BYTE, source, kNodeTag, MPI_COMM_WORLD,
+             MPI_STATUS_IGNORE);
 
+    recvd_bytes += d_size;
     size_t n_nodes = d_size / unit_size;
+    n_recvd_ += n_nodes;
+    now_recvd += n_nodes;
+
     bool no_node = NoNode();
 
     for (size_t i = 0; i < n_nodes; ++i)
@@ -631,6 +655,12 @@ void HDGBFS::DumpStatistics() const {
   int expanded_array[world_size_];
   MPI_Gather(&expanded_, 1, MPI_INT, expanded_array, 1, MPI_INT, initial_rank_,
              MPI_COMM_WORLD);
+  int buffered_array[world_size_];
+  MPI_Gather(&n_buffered_, 1, MPI_INT, buffered_array, 1, MPI_INT,
+             initial_rank_, MPI_COMM_WORLD);
+  int recvd_array[world_size_];
+  MPI_Gather(&n_recvd_, 1, MPI_INT, recvd_array, 1, MPI_INT, initial_rank_,
+             MPI_COMM_WORLD);
 
   if (rank_ == initial_rank_) {
     std::cout << "Expanded " << expanded << " state(s)" << std::endl;
@@ -663,24 +693,36 @@ void HDGBFS::DumpStatistics() const {
 
     std::cout << "CO " << co << std::endl;
 
-    double mean = 0.0;
-
-    for (int i = 0; i < world_size_; ++i)
-      mean += static_cast<double>(expanded_array[i]);
-
-    mean /= static_cast<double>(world_size_);
-
-    double var = 0.0;
+    int arg_max = -1;
+    int max_exp = -1;
+    int arg_min = -1;
+    int min_exp = -1;
+    int total_buffered = 0;
+    int total_recvd = 0;
 
     for (int i = 0; i < world_size_; ++i) {
-      double diff = static_cast<double>(expanded_array[i]) - mean;
-      var += diff * diff;
+      total_buffered += buffered_array[i];
+      total_recvd += recvd_array[i];
+
+      if (arg_max == -1 || expanded_array[i] > max_exp) {
+        arg_max = i;
+        max_exp = expanded_array[i];
+      }
+
+      if (arg_min == -1 || expanded_array[i] < min_exp) {
+        arg_min = i;
+        min_exp = expanded_array[i];
+      }
     }
 
-    var /= static_cast<double>(world_size_);
-
-    std::cout << "Expansion mean " << mean << std::endl;
-    std::cout << "Expansion variance " << var << std::endl;
+    std::cout << "Max expansions: " << max_exp << std::endl;
+    std::cout << "Min expansions: " << min_exp << std::endl;
+    std::cout << "Max buffered: " << buffered_array[arg_max] << std::endl;
+    std::cout << "Min buffered: " << buffered_array[arg_min] << std::endl;
+    std::cout << "Max recvd: " << recvd_array[arg_max] << std::endl;
+    std::cout << "Min recvd: " << recvd_array[arg_min] << std::endl;
+    std::cout << "Total buffered:: " << total_buffered << std::endl;
+    std::cout << "Total recvd: " << total_recvd << std::endl;
   }
 
   graph_->Dump();
