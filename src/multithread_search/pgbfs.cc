@@ -34,6 +34,7 @@ void PGBFS::InitHeuristics(int i, const boost::property_tree::ptree pt) {
 
 void PGBFS::Init(const boost::property_tree::ptree& pt) {
   if (auto opt = pt.get_optional<int>("n_threads")) n_threads_ = opt.get();
+  if (auto opt = pt.get_optional<bool>("dump")) dump_ = opt.get();
 
   int shared_exponent = 26;
 
@@ -62,12 +63,21 @@ void PGBFS::Init(const boost::property_tree::ptree& pt) {
           shared_exponent);
   }
 
+  std::string all_tie_breaking = "none";
+
+  if (auto opt = pt.get_optional<std::string>("all_tie_breaking"))
+    all_tie_breaking = opt.get();
+
   for (int i = 0; i < n_threads_; ++i) {
     auto open_list_option = pt.get_child("open_list");
 
-    if (i == 0) open_list_option.put("tie_breaking", "fifo");
-    if (i == 1) open_list_option.put("tie_breaking", "lifo");
-    if (i > 1) open_list_option.put("tie_breaking", "ro");
+    if (all_tie_breaking == "none") {
+      if (i == 0) open_list_option.put("tie_breaking", "fifo");
+      if (i == 1) open_list_option.put("tie_breaking", "lifo");
+      if (i > 1) open_list_option.put("tie_breaking", "ro");
+    } else {
+      open_list_option.put("tie_breaking", all_tie_breaking);
+    }
 
     open_lists_.push_back(
         OpenListFactory<int, std::shared_ptr<SearchNodeWithNext>>(
@@ -125,6 +135,11 @@ void PGBFS::GenerateSeed() {
 
     packer_->Unpack(node->packed_state.data(), state);
     ++expanded_;
+
+    if (dump_) {
+      std::lock_guard<std::mutex> lock(stat_mtx_);
+      expanded_nodes_.push_back(node);
+    }
 
     if (problem_->IsGoal(state)) {
       WriteGoal(node);
@@ -220,6 +235,11 @@ void PGBFS::Expand(int i) {
 
     packer_->Unpack(node->packed_state.data(), state);
     ++expanded;
+
+    if (dump_) {
+      std::lock_guard<std::mutex> lock(stat_mtx_);
+      expanded_nodes_.push_back(node);
+    }
 
     if (problem_->IsGoal(state)) {
       WriteGoal(node);
@@ -338,6 +358,40 @@ void PGBFS::DumpStatistics() const {
   std::cout << "Generated " << generated_ << " state(s)" << std::endl;
   std::cout << "Dead ends " << dead_ends_ << " state(s)" << std::endl;
   std::cout << "Cached " << n_cached_ << " state(s)" << std::endl;
+
+  if (dump_) {
+    std::ofstream dump_file;
+    dump_file.open("expanded_nodes.csv", std::ios::out);
+
+    dump_file << "node_id,parent_node_id,h,dummy1,dummy2,dummy3";
+
+    for (int i = 0; i < problem_->n_variables(); ++i) {
+      dump_file << ",v" << i;
+    }
+
+    dump_file << std::endl;
+
+    std::vector<int> state(problem_->n_variables());
+    int order = 0;
+
+    for (auto node : expanded_nodes_) {
+      packer_->Unpack(node->packed_state.data(), state);
+
+      node->id = order;
+      int parent_id = -1;
+
+      if (node->parent != nullptr) parent_id = node->parent->id;
+
+      dump_file << order << "," << parent_id << "," << node->h;
+      dump_file << ",0,0,0";
+
+      for (int j = 0; j < problem_->n_variables(); ++j)
+        dump_file << "," << state[j];
+
+      dump_file << std::endl;
+      order += 1;
+    }
+  }
 }
 
 }  // namespace pplanner

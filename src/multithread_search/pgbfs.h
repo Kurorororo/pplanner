@@ -39,6 +39,7 @@ class PGBFS : public Search {
         generated_(0),
         dead_ends_(0),
         n_cached_(0),
+        dump_(false),
         problem_(problem),
         generator_(std::make_unique<SuccessorGenerator>(problem)),
         packer_(std::make_unique<StatePacker>(problem)),
@@ -94,6 +95,7 @@ class PGBFS : public Search {
   int generated_;
   int dead_ends_;
   int n_cached_;
+  bool dump_;
   std::shared_ptr<SearchNode> goal_;
   std::shared_ptr<const SASPlus> problem_;
   std::unique_ptr<SuccessorGenerator> generator_;
@@ -107,6 +109,7 @@ class PGBFS : public Search {
   std::vector<
       std::shared_ptr<OpenList<int, std::shared_ptr<SearchNodeWithNext>>>>
       open_lists_;
+  std::vector<std::shared_ptr<SearchNode>> expanded_nodes_;
   std::mutex stat_mtx_;
 };
 
