@@ -32,7 +32,7 @@ class RPGTable : public RPG {
         precondition_counter_(r_problem->n_actions(), -1),
         prop_cost_(r_problem->n_facts(), -1),
         best_support_(r_problem->n_facts(), -1),
-        marked_(r_problem->n_actions(), false),
+        marked_(r_problem->n_facts(), false),
         plan_set_(problem->n_actions(), false),
         is_applicable_(problem->n_actions(), false),
         is_disjunctive_goal_(problem->n_facts(), false),

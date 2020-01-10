@@ -54,8 +54,9 @@ class SearchGraphWithTimestamp : public T {
       closed_parent_.push_back(std::make_pair(child, T::Parent(node)));
 
       if (hs_[node] != hs_[child]) {
-        std::cout << "different h value: " << node << " and " << child;
-        std::cout << std::endl;
+        std::cout << "different h value: " << node << " and " << child
+                  << std::endl;
+        std::cout << hs_[node] << " vs. " << hs_[child] << std::endl;
       }
     }
 
