@@ -1,0 +1,20 @@
+{
+  "config": {
+    "search": "gbfs",
+    "option": {
+      "evaluators": [
+        {
+          "name": "fa",
+          "option": {
+            "simplify": 1,
+            "unit_cost": 1
+          }
+        }
+      ],
+      "open_list": {
+        "preferred": 0
+      },
+      "ram": 8000000000
+    }
+  }
+}

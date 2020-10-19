@@ -1,0 +1,19 @@
+{
+  "config": {
+    "search": "spuhf",
+    "option": {
+      "n_threads": 16,
+      "evaluator": {
+        "name": "fa",
+        "option": {
+          "simplify": 1,
+          "unit_cost": 1
+        }
+      },
+      "open_list": {
+        "preferred": 0
+      },
+      "closed_exponent": 22
+    }
+  }
+}

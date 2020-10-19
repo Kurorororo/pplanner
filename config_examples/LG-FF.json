@@ -1,0 +1,22 @@
+{
+  "config": {
+    "search": "hdgbfs1",
+    "option": {
+      "evaluators": [
+        {
+          "name": "fa",
+          "option": {
+            "simplify": 1,
+            "unit_cost": 1
+          }
+        }
+      ],
+      "open_list": {
+        "preferred": 0
+      },
+      "local_open": 1,
+      "take": 1,
+      "ram": 8000000000
+    }
+  }
+}

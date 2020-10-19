@@ -3,10 +3,7 @@
 #include "mpi_search/hddehc.h"
 #include "mpi_search/hdgbfs.h"
 #include "mpi_search/hdgbfs1.h"
-#include "mpi_search/pddsgbfs.h"
-#include "mpi_search/pigbfs.h"
 #include "mpi_search/symmetry_breaking_hdgbfs.h"
-#include "mpi_search/symmetry_breaking_pddsgbfs.h"
 
 namespace pplanner {
 
@@ -22,17 +19,8 @@ std::unique_ptr<Search> MpiSearchFactory(
   if (search.get() == "hdgbfs")
     return std::unique_ptr<HDGBFS>(new HDGBFS(problem, option.get()));
 
-  if (search.get() == "pddsgbfs")
-    return std::unique_ptr<PDDSGBFS>(new PDDSGBFS(problem, option.get()));
-
-  if (search.get() == "pigbfs")
-    return std::unique_ptr<PIGBFS>(new PIGBFS(problem, option.get()));
-
   if (search.get() == "sbhdgbfs")
     return std::unique_ptr<SBHDGBFS>(new SBHDGBFS(problem, option.get()));
-
-  if (search.get() == "sbpddsgbfs")
-    return std::unique_ptr<SBPDDSGBFS>(new SBPDDSGBFS(problem, option.get()));
 
   if (search.get() == "hddehc")
     return std::unique_ptr<HDDEHC>(new HDDEHC(problem, option.get()));
@@ -43,5 +31,4 @@ std::unique_ptr<Search> MpiSearchFactory(
   throw std::runtime_error("No such search algorithm.");
 }
 
-
-} // namespace pplanner
+}  // namespace pplanner

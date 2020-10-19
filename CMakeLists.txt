@@ -41,12 +41,9 @@ if (MPI_CXX_FOUND)
   add_executable(mpi_planner
     ./src/mpi_planner.cc
     ./src/mpi_search_factory.cc
-    ./src/mpi_search/pddsgbfs.cc
-    ./src/mpi_search/pigbfs.cc
     ./src/mpi_search/hddehc.cc
     ./src/mpi_search/hdgbfs.cc
     ./src/mpi_search/hdgbfs1.cc
-    ./src/mpi_search/symmetry_breaking_pddsgbfs.cc
     ./src/mpi_search/symmetry_breaking_hdgbfs.cc
     ./src/successor_generator.cc
     ./src/postprocess/action_elimination.cc

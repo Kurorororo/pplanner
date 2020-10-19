@@ -1,0 +1,20 @@
+{
+  "config": {
+    "search": "pgbfs",
+    "option": {
+      "n_threads": 16,
+      "cache_evaluation": true,
+      "evaluator": {
+        "name": "fa",
+        "option": {
+          "simplify": 1,
+          "unit_cost": 1
+        }
+      },
+      "open_list": {
+        "preferred": 0
+      },
+      "closed_exponent": 22
+    }
+  }
+}
