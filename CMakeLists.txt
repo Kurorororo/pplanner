@@ -17,10 +17,10 @@ set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g3")
 set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O3 -g3")
 enable_testing()
 
-set(Boost_USE_STATIC_LIBS ON)
+set(Boost_USE_STATIC_LIBS OFF)
 set(Boost_USE_MULTITHREADED OFF)
 set(Boost_USE_STATIC_RUNTIME OFF)
-find_package (Boost 1.63.0 COMPONENTS program_options system)
+find_package (Boost 1.63.0 REQUIRED COMPONENTS program_options system)
 
 set(GTEST_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/googletest/googletest/)
 
