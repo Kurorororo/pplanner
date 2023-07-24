@@ -36,7 +36,7 @@ env=pplanner
     conda env config vars set PKG_CONFIG_PATH=
 
     # these are required for building dependencies properly under conda
-    conda env config vars set CPATH=${CONDA_PREFIX}/include:${CONDA_PREFIX}/x86_64-conda-linux-gnu/sysroot/usr/include:
+    conda env config vars set CPATH=${CONDA_PREFIX}/include:${CONDA_PREFIX}/targets/x86_64-linux/include:${CONDA_PREFIX}/x86_64-conda-linux-gnu/sysroot/usr/include:
 
     # note: "variables" field in yaml file introduced in conda 4.9 does not work because it does not expand shell variables
 
