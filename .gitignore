@@ -1,7 +1,5 @@
 /bin/*
 !/bin/.gitkeep
-/lib/*
-!/lib/.gitkeep
 /tmp/*
 !/tmp/.gitkeep
 /scripts/*
@@ -15,3 +13,7 @@
 *.o
 *.obj
 *.out
+*.zip
+*~
+#*
+lib/bliss/bliss
