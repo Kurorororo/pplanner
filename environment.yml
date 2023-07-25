@@ -1,0 +1,17 @@
+
+channels:
+  - nvidia
+  - conda-forge
+dependencies:
+  - make
+  - cmake
+  - cxx-compiler
+  - c-compiler
+  - boost
+  - jemalloc
+  - nvidia::cuda-compiler=12.2
+  - nvidia::libcurand-dev
+  # - cudatoolkit
+  # - boost
+  # - parallel
+  # - poppler
