@@ -1,5 +1,5 @@
 cmake_minimum_required (VERSION 3.8)
-project(pplanner)
+project(pplanner LANGUAGES CXX CUDA)
 
 if (NOT CMAKE_BUILD_TYPE)
   message(STATUS "No build type selected, default to Release")
@@ -16,6 +16,10 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
 set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g3")
 set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O3 -g3")
 enable_testing()
+
+set(CMAKE_CUDA_STANDARD 14)
+set(CMAKE_CUDA_ARCHITECTURES "61")
+set(CMAKE_CUDA_SEPARABLE_COMPILATION ON)
 
 set(Boost_USE_STATIC_LIBS OFF)
 set(Boost_USE_MULTITHREADED OFF)
@@ -34,7 +38,6 @@ add_subdirectory(src)
 add_subdirectory(${GTEST_ROOT})
 
 find_package(MPI)
-find_package(CUDA 8.0)
 
 # MPI planner
 if (MPI_CXX_FOUND)
@@ -66,10 +69,9 @@ if (MPI_CXX_FOUND)
 endif ()
 
 # CUDA planner
-if (CUDA_FOUND)
-  set(CUDA_SEPARABLE_COMPILATION ON)
-  set(CUDA_PROPAGATE_HOST_FLAGS ON)
-  set(CUDA_NVCC_FLAGS "-std=c++14" "-arch=compute_61" "-code=sm_61")
+include(CheckLanguage)
+check_language(CUDA)
+if (CMAKE_CUDA_COMPILER)
 
   string(TOUPPER ${CMAKE_BUILD_TYPE} CMAKE_BUILD_TYPE_UPPER)
 
@@ -81,7 +83,7 @@ if (CUDA_FOUND)
     set(CUDA_NVCC_FLAGS_DEBUG -O3;-g;-G)
   endIf ()
 
-  cuda_add_executable(cuda_planner
+  add_executable(cuda_planner
     ./src/cuda_planner.cu
     ./src/cuda_sas_plus.cu
     ./src/cuda_successor_generator.cu
@@ -110,21 +112,21 @@ if (CUDA_FOUND)
     sas_plus
     ${Boost_PROGRAM_OPTIONS_LIBRARY})
 
-  cuda_add_executable(time_cuda_prefix_sum
+  add_executable(time_cuda_prefix_sum
     ./tests/cuda_common/time_cuda_prefix_sum.cu
     ./src/cuda_common/cuda_prefix_sum.cu)
 
-  cuda_add_executable(test_cuda_prefix_sum
+  add_executable(test_cuda_prefix_sum
     ./tests/cuda_common/test_cuda_prefix_sum.cu
     ./src/cuda_common/cuda_prefix_sum.cu)
   add_test(NAME CudaPrefixSumTest COMMAND test_cuda_prefix_sum)
 
-  cuda_add_executable(test_cuda_sas_plus
+  add_executable(test_cuda_sas_plus
     ./tests/test_cuda_sas_plus.cu ./src/cuda_sas_plus.cu)
   add_test(NAME CudaSASPlusTest COMMAND test_cuda_sas_plus)
   target_link_libraries(test_cuda_sas_plus sas_plus)
 
-  cuda_add_executable(test_cuda_successor_generator
+  add_executable(test_cuda_successor_generator
     ./tests/test_cuda_successor_generator.cu
     ./src/cuda_successor_generator.cu
     ./src/cuda_sas_plus.cu
